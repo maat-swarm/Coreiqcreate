@@ -1,0 +1,6 @@
+{
+  "name": "Core IQ Create",
+  "description": "An intelligent AI creation environment. Build what matters with AI agents, automation, apps, websites, voice AI, integrations, and tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,341 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #020617;
+    color: #f8fafc;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 6s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: floatSlow 7s ease-in-out infinite;
+}
+
+.gradient-text-primary {
+  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 35%, #c084fc 65%, #f472b6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-phoenix {
+  background: linear-gradient(135deg, #22d3ee 0%, #38bdf8 20%, #a855f7 50%, #ec4899 80%, #fb923c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-subtle {
+  background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glow-cyan {
+  box-shadow: 0 0 40px -10px rgba(6, 182, 212, 0.45);
+}
+
+.glow-purple {
+  box-shadow: 0 0 50px -10px rgba(168, 85, 247, 0.4);
+}
+
+.glow-pink {
+  box-shadow: 0 0 50px -10px rgba(236, 72, 153, 0.35);
+}
+
+.coreiq-glass-panel {
+  background: rgba(8, 15, 36, 0.72);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.15);
+}
+
+.coreiq-glass-card {
+  background: linear-gradient(145deg, rgba(13, 23, 52, 0.7) 0%, rgba(6, 12, 28, 0.85) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 189, 248, 0.12);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+.coreiq-glass-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 12px 35px -8px rgba(34, 211, 238, 0.22), 0 0 25px -4px rgba(168, 85, 247, 0.18);
+  transform: translateY(-3px) scale(1.008);
+}
+
+.coreiq-glass-card:active {
+  transform: translateY(-1px) scale(0.995);
+}
+
+/* Traveling energy line animations */
+@keyframes flowDash {
+  0% {
+    stroke-dashoffset: 48;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes reverseFlowDash {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 48;
+  }
+}
+
+.animate-flow-dash {
+  stroke-dasharray: 6 8;
+  animation: flowDash 3s linear infinite;
+}
+
+.animate-reverse-flow-dash {
+  stroke-dasharray: 4 6;
+  animation: reverseFlowDash 4s linear infinite;
+}
+
+/* Ambient Volumetric Drift */
+@keyframes ambientDrift1 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(25px, -30px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+}
+
+@keyframes ambientDrift2 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  40% {
+    transform: translate(-30px, 25px) scale(1.08);
+  }
+  80% {
+    transform: translate(20px, -15px) scale(0.92);
+  }
+}
+
+@keyframes ambientDrift3 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  50% {
+    transform: translate(35px, 20px) scale(1.06);
+  }
+}
+
+.animate-ambient-drift-1 {
+  animation: ambientDrift1 22s ease-in-out infinite;
+}
+
+.animate-ambient-drift-2 {
+  animation: ambientDrift2 26s ease-in-out infinite;
+}
+
+.animate-ambient-drift-3 {
+  animation: ambientDrift3 30s ease-in-out infinite;
+}
+
+/* Organic Micro-Particle Floating */
+@keyframes particleDrift {
+  0% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translateY(-40px) translateX(15px);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-80px) translateX(-10px);
+    opacity: 0;
+  }
+}
+
+.animate-particle-1 {
+  animation: particleDrift 8s ease-in-out infinite;
+}
+
+.animate-particle-2 {
+  animation: particleDrift 11s ease-in-out infinite 2s;
+}
+
+.animate-particle-3 {
+  animation: particleDrift 14s ease-in-out infinite 4s;
+}
+
+/* Orbiting Capability Nodes Breathing */
+@keyframes orbitalBreathe {
+  0%, 100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.04) translateY(-3px);
+  }
+}
+
+.animate-orbital-breathe {
+  animation: orbitalBreathe 5s ease-in-out infinite;
+}
+
+/* Beacon Ping for Operational Indicators */
+@keyframes beaconSoft {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-beacon {
+  animation: beaconSoft 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Gradient Energy Shift */
+@keyframes gradientCycle {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradientCycle 8s ease infinite;
+}
+
+/* Navigation Link Sophisticated Text Gradient & Hover Shift */
+.nav-text-gradient {
+  color: #94a3b8;
+  background-image: linear-gradient(
+    115deg,
+    rgba(148, 163, 184, 0.9) 0%,
+    rgba(203, 213, 225, 0.95) 25%,
+    #ffffff 45%,
+    #38bdf8 68%,
+    #22d3ee 85%,
+    #c084fc 100%
+  );
+  background-size: 260% 100%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: background-position 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.3s ease;
+  display: inline-block;
+  will-change: background-position, filter;
+}
+
+.nav-text-gradient.is-hovered,
+.nav-text-gradient:hover {
+  background-position: 70% 50%;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.45));
+}
+
+.nav-text-gradient.is-active {
+  color: #ffffff;
+  background-image: linear-gradient(
+    115deg,
+    #ffffff 0%,
+    #e0f2fe 30%,
+    #38bdf8 65%,
+    #c084fc 100%
+  );
+  background-size: 100% 100%;
+  background-position: 50% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.4));
+}
+
+.nav-text-gradient.is-active.is-hovered {
+  background-position: 70% 50%;
+  filter: drop-shadow(0 0 14px rgba(34, 211, 238, 0.65));
+}
+
+/* Accessibility: respect user prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-pulse-glow,
+  .animate-float-slow,
+  .animate-ambient-drift-1,
+  .animate-ambient-drift-2,
+  .animate-ambient-drift-3,
+  .animate-particle-1,
+  .animate-particle-2,
+  .animate-particle-3,
+  .animate-flow-dash,
+  .animate-reverse-flow-dash,
+  .animate-beacon,
+  .animate-orbital-breathe {
+    animation: none !important;
+    transform: none !important;
+  }
+}
