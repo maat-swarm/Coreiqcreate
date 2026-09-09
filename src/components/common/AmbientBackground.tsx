@@ -1,70 +1,166 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { ASSETS } from '../../assets/images';
 
 export const AmbientBackground: React.FC = () => {
-  const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const target = useRef({ x: 0, y: 0 });
+  const current = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    // Only track on fine pointer devices, respect reduced motion
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mediaQuery.matches) return;
+    const reduceMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
 
-    let rafId: number;
-    const handleMouseMove = (e: MouseEvent) => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        const xRel = (e.clientX / window.innerWidth - 0.5) * 20;
-        const yRel = (e.clientY / window.innerHeight - 0.5) * 20;
-        setMouseOffset({ x: xRel, y: yRel });
-      });
+    if (reduceMotion) return;
+
+    const handlePointer = (event: PointerEvent) => {
+      target.current.x =
+        (event.clientX / window.innerWidth - 0.5) * 2;
+      target.current.y =
+        (event.clientY / window.innerHeight - 0.5) * 2;
     };
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    const animate = () => {
+      current.current.x +=
+        (target.current.x - current.current.x) * 0.035;
+      current.current.y +=
+        (target.current.y - current.current.y) * 0.035;
+
+      if (sceneRef.current) {
+        sceneRef.current.style.setProperty(
+          '--scene-x',
+          `${current.current.x * 18}px`
+        );
+        sceneRef.current.style.setProperty(
+          '--scene-y',
+          `${current.current.y * 14}px`
+        );
+        sceneRef.current.style.setProperty(
+          '--scene-x-soft',
+          `${current.current.x * -9}px`
+        );
+        sceneRef.current.style.setProperty(
+          '--scene-y-soft',
+          `${current.current.y * -7}px`
+        );
+      }
+
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    window.addEventListener('pointermove', handlePointer, {
+      passive: true,
+    });
+
+    rafRef.current = requestAnimationFrame(animate);
+
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      cancelAnimationFrame(rafId);
+      window.removeEventListener('pointermove', handlePointer);
+
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
     };
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden bg-[#030712]">
-      {/* Deep gradient wash */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#050b1d] via-[#030712] to-[#02050f]" />
+    <div
+      ref={sceneRef}
+      aria-hidden="true"
+      className="fixed inset-0 pointer-events-none -z-10 overflow-hidden bg-[#02040b]"
+    >
+      {/* Deep cinematic base */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_30%,rgba(28,91,190,0.16),transparent_34%),radial-gradient(circle_at_82%_52%,rgba(137,45,177,0.12),transparent_32%),radial-gradient(circle_at_18%_78%,rgba(17,66,155,0.12),transparent_35%),linear-gradient(180deg,#050a18_0%,#02040b_55%,#010207_100%)]" />
 
-      {/* Primary Cyan volumetric glow (Top Right / Center) */}
-      <div 
-        className="absolute -top-40 right-[-10%] w-[650px] h-[650px] rounded-full bg-gradient-to-br from-cyan-500/15 via-blue-600/10 to-transparent blur-[130px] animate-ambient-drift-1 transition-transform duration-700 ease-out"
-        style={{ transform: `translate(${mouseOffset.x * 0.7}px, ${mouseOffset.y * 0.7}px)` }}
-      />
-
-      {/* Violet / Magenta Core glow (Middle / Right) */}
-      <div 
-        className="absolute top-[25%] right-[5%] w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-purple-600/15 via-pink-600/10 to-transparent blur-[140px] animate-ambient-drift-2 transition-transform duration-1000 ease-out"
-        style={{ transform: `translate(${mouseOffset.x * -0.5}px, ${mouseOffset.y * -0.5}px)` }}
-      />
-
-      {/* Deep blue accent glow (Bottom Left) */}
-      <div 
-        className="absolute top-[65%] -left-[10%] w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-blue-700/15 via-indigo-600/10 to-transparent blur-[140px] animate-ambient-drift-3 transition-transform duration-700 ease-out"
-        style={{ transform: `translate(${mouseOffset.x * 0.4}px, ${mouseOffset.y * 0.4}px)` }}
-      />
-
-      {/* Subtle drifting micro-particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
-        <div className="absolute top-[20%] left-[15%] w-1.5 h-1.5 rounded-full bg-cyan-400 blur-[1px] animate-particle-1" />
-        <div className="absolute top-[45%] left-[80%] w-1 h-1 rounded-full bg-purple-400 blur-[1px] animate-particle-2" />
-        <div className="absolute top-[75%] left-[30%] w-1.5 h-1.5 rounded-full bg-blue-400 blur-[1px] animate-particle-3" />
-        <div className="absolute top-[35%] left-[55%] w-1 h-1 rounded-full bg-cyan-300 blur-[0.5px] animate-particle-2" />
-        <div className="absolute top-[60%] left-[65%] w-1.5 h-1.5 rounded-full bg-pink-400 blur-[1px] animate-particle-1" />
+      {/* Existing Core IQ cosmic artwork, used as atmosphere rather than a card/image */}
+      <div
+        className="absolute inset-[-8%] opacity-[0.13] mix-blend-screen transition-transform duration-1000 ease-out"
+        style={{
+          transform:
+            'translate3d(var(--scene-x-soft), var(--scene-y-soft), 0) scale(1.08)',
+        }}
+      >
+        <img
+          src={ASSETS.cosmicHorizon}
+          alt=""
+          className="h-full w-full object-cover object-center"
+        />
       </div>
 
-      {/* Subtle digital grid texture */}
-      <div 
-        className="absolute inset-0 opacity-[0.035]"
+      {/* Large spatial light fields */}
+      <div
+        className="absolute -top-[22%] right-[3%] h-[720px] w-[720px] rounded-full blur-[120px] opacity-60"
         style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(56, 189, 248, 0.4) 1px, transparent 0)`,
-          backgroundSize: '40px 40px',
+          background:
+            'radial-gradient(circle, rgba(34,211,238,.20) 0%, rgba(37,99,235,.10) 35%, transparent 70%)',
+          transform:
+            'translate3d(var(--scene-x), var(--scene-y), 0)',
         }}
       />
+
+      <div
+        className="absolute top-[15%] right-[18%] h-[600px] w-[600px] rounded-full blur-[130px] opacity-50"
+        style={{
+          background:
+            'radial-gradient(circle, rgba(168,85,247,.18) 0%, rgba(236,72,153,.09) 38%, transparent 72%)',
+          transform:
+            'translate3d(var(--scene-x-soft), var(--scene-y-soft), 0)',
+        }}
+      />
+
+      <div
+        className="absolute bottom-[-25%] left-[-12%] h-[760px] w-[760px] rounded-full blur-[140px] opacity-45"
+        style={{
+          background:
+            'radial-gradient(circle, rgba(37,99,235,.20) 0%, rgba(6,182,212,.07) 40%, transparent 72%)',
+          transform:
+            'translate3d(var(--scene-x), var(--scene-y), 0)',
+        }}
+      />
+
+      {/* Fine atmospheric light streak */}
+      <div
+        className="absolute left-[-10%] top-[48%] h-px w-[120%] opacity-20"
+        style={{
+          background:
+            'linear-gradient(90deg, transparent, rgba(103,232,249,.55), rgba(167,139,250,.35), transparent)',
+          transform:
+            'translate3d(var(--scene-x-soft), var(--scene-y-soft), 0) rotate(-7deg)',
+        }}
+      />
+
+      {/* Sparse intelligent particles */}
+      <div className="absolute inset-0">
+        {Array.from({ length: 34 }).map((_, index) => {
+          const left = (index * 37) % 100;
+          const top = (index * 61) % 100;
+          const size = 1 + (index % 3);
+
+          return (
+            <span
+              key={index}
+              className="absolute rounded-full bg-cyan-200/40 animate-pulse"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+                width: `${size}px`,
+                height: `${size}px`,
+                animationDelay: `${(index % 9) * 0.55}s`,
+                animationDuration: `${3 + (index % 5)}s`,
+                transform:
+                  'translate3d(var(--scene-x-soft), var(--scene-y-soft), 0)',
+              }}
+            />
+          );
+        })}
+      </div>
+
+      {/* Cinematic vignette */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,.38)_100%)]" />
+
+      {/* Subtle lower horizon */}
+      <div className="absolute bottom-0 left-0 right-0 h-[28vh] bg-gradient-to-t from-[#010207] via-[#010207]/65 to-transparent" />
     </div>
   );
 };
