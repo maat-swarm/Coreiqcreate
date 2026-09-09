@@ -10,82 +10,53 @@ import { ToolsPage } from './pages/ToolsPage';
 import { AboutPage } from './pages/AboutPage';
 import { AskPage } from './pages/AskPage';
 import { NavRoute } from './types';
+import { useScrollReveal } from './hooks/useScrollReveal';
 
 export default function App() {
-  // Parse initial route from window.location.pathname
-  const getInitialRoute = (): NavRoute => {
-    const path = window.location.pathname.replace(/^\//, '').toLowerCase();
-    if (path === 'solutions') return 'solutions';
-    if (path === 'apps') return 'apps';
-    if (path === 'learn') return 'learn';
-    if (path === 'tools') return 'tools';
-    if (path === 'about') return 'about';
-    if (path === 'ask') return 'ask';
+  const getRoute = (): NavRoute => {
+    const p = window.location.pathname.replace(/^\//, '').toLowerCase();
+    if (p === 'solutions') return 'solutions';
+    if (p === 'apps') return 'apps';
+    if (p === 'learn') return 'learn';
+    if (p === 'tools') return 'tools';
+    if (p === 'about') return 'about';
+    if (p === 'ask') return 'ask';
     return 'home';
   };
 
-  const [currentRoute, setCurrentRoute] = useState<NavRoute>(getInitialRoute);
-  const [activePrompt, setActivePrompt] = useState<string>('');
+  const [currentRoute, setCurrentRoute] = useState<NavRoute>(getRoute);
+  const [activePrompt, setActivePrompt] = useState('');
+  const [pageKey, setPageKey] = useState(0);
 
-  // Handle browser popstate (back/forward)
+  useScrollReveal();
+
   useEffect(() => {
-    const handlePopState = () => {
-      setCurrentRoute(getInitialRoute());
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    const onPop = () => { setCurrentRoute(getRoute()); setPageKey(k => k + 1); };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   const navigateTo = (route: NavRoute, query?: string) => {
     setCurrentRoute(route);
-    if (query) {
-      setActivePrompt(query);
-    }
-    const path = route === 'home' ? '/' : `/${route}`;
-    window.history.pushState({}, '', path);
+    setPageKey(k => k + 1);
+    if (query) setActivePrompt(query);
+    window.history.pushState({}, '', route === 'home' ? '/' : `/${route}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleAskTrigger = (query: string) => {
-    navigateTo('ask', query);
   };
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
       <AmbientBackground />
-      
-      {/* Persistent Global Navigation Header */}
-      <Header
-        currentRoute={currentRoute}
-        onNavigate={(route) => navigateTo(route)}
-      />
-
-      {/* Main Page Canvas */}
-      <main className="flex-1 w-full flex flex-col">
-        {currentRoute === 'home' && (
-          <HomePage onNavigate={navigateTo} onAsk={handleAskTrigger} />
-        )}
-        {currentRoute === 'solutions' && (
-          <SolutionsPage onNavigate={navigateTo} onAsk={handleAskTrigger} />
-        )}
-        {currentRoute === 'apps' && (
-          <AppsPage onNavigate={navigateTo} onAsk={handleAskTrigger} />
-        )}
-        {currentRoute === 'learn' && (
-          <LearnPage onNavigate={navigateTo} onAsk={handleAskTrigger} />
-        )}
-        {currentRoute === 'tools' && (
-          <ToolsPage onNavigate={navigateTo} onAsk={handleAskTrigger} />
-        )}
-        {currentRoute === 'about' && (
-          <AboutPage onNavigate={navigateTo} onAsk={handleAskTrigger} />
-        )}
-        {currentRoute === 'ask' && (
-          <AskPage initialPrompt={activePrompt} onNavigate={navigateTo} />
-        )}
+      <Header currentRoute={currentRoute} onNavigate={navigateTo} />
+      <main key={pageKey} className="flex-1 w-full flex flex-col page-enter">
+        {currentRoute === 'home'      && <HomePage      onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
+        {currentRoute === 'solutions' && <SolutionsPage onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
+        {currentRoute === 'apps'      && <AppsPage      onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
+        {currentRoute === 'learn'     && <LearnPage     onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
+        {currentRoute === 'tools'     && <ToolsPage     onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
+        {currentRoute === 'about'     && <AboutPage     onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
+        {currentRoute === 'ask'       && <AskPage       initialPrompt={activePrompt} onNavigate={navigateTo} />}
       </main>
-
-      {/* Persistent Global Footer */}
       <Footer onNavigate={navigateTo} />
     </div>
   );
