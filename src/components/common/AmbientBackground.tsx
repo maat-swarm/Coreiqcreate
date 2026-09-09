@@ -1,72 +1,166 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { ASSETS } from '../../assets/images';
 
 export const AmbientBackground: React.FC = () => {
-  const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const target = useRef({ x: 0, y: 0 });
+  const current = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    // Only track on fine pointer devices, respect reduced motion
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mediaQuery.matches) return;
+    const reduceMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
 
-    let rafId: number;
-    const handleMouseMove = (e: MouseEvent) => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        const xRel = (e.clientX / window.innerWidth - 0.5) * 20;
-        const yRel = (e.clientY / window.innerHeight - 0.5) * 20;
-        setMouseOffset({ x: xRel, y: yRel });
-      });
+    if (reduceMotion) return;
+
+    const handlePointer = (event: PointerEvent) => {
+      target.current.x =
+        (event.clientX / window.innerWidth - 0.5) * 2;
+      target.current.y =
+        (event.clientY / window.innerHeight - 0.5) * 2;
     };
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    const animate = () => {
+      current.current.x +=
+        (target.current.x - current.current.x) * 0.035;
+      current.current.y +=
+        (target.current.y - current.current.y) * 0.035;
+
+      if (sceneRef.current) {
+        sceneRef.current.style.setProperty(
+          '--scene-x',
+          `${current.current.x * 18}px`
+        );
+        sceneRef.current.style.setProperty(
+          '--scene-y',
+          `${current.current.y * 14}px`
+        );
+        sceneRef.current.style.setProperty(
+          '--scene-x-soft',
+          `${current.current.x * -9}px`
+        );
+        sceneRef.current.style.setProperty(
+          '--scene-y-soft',
+          `${current.current.y * -7}px`
+        );
+      }
+
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    window.addEventListener('pointermove', handlePointer, {
+      passive: true,
+    });
+
+    rafRef.current = requestAnimationFrame(animate);
+
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      cancelAnimationFrame(rafId);
+      window.removeEventListener('pointermove', handlePointer);
+
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
     };
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden bg-[#050814]">
-      {/* Layer 1 (deepest): Pure #050814 base */}
-      <div className="absolute inset-0 bg-[#050814]" />
+    <div
+      ref={sceneRef}
+      aria-hidden="true"
+      className="fixed inset-0 pointer-events-none -z-10 overflow-hidden bg-[#02040b]"
+    >
+      {/* Deep cinematic base */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_30%,rgba(28,91,190,0.16),transparent_34%),radial-gradient(circle_at_82%_52%,rgba(137,45,177,0.12),transparent_32%),radial-gradient(circle_at_18%_78%,rgba(17,66,155,0.12),transparent_35%),linear-gradient(180deg,#050a18_0%,#02040b_55%,#010207_100%)]" />
 
-      {/* Layer 2: Large radial gradient, deep violet-blue (#1a0a3e), positioned bottom-left, covering 60% of viewport */}
+      {/* Existing Core IQ cosmic artwork, used as atmosphere rather than a card/image */}
       <div
-        className="absolute -bottom-[12%] -left-[12%] w-[60vw] h-[60vh] min-w-[520px] min-h-[520px] rounded-full pointer-events-none transition-transform duration-1000 ease-out"
+        className="absolute inset-[-8%] opacity-[0.13] mix-blend-screen transition-transform duration-1000 ease-out"
         style={{
-          background: 'radial-gradient(circle at 35% 65%, #1a0a3e 0%, rgba(26, 10, 62, 0.55) 40%, transparent 70%)',
-          filter: 'blur(90px)',
-          transform: `translate(${mouseOffset.x * 0.5}px, ${mouseOffset.y * 0.5}px)`,
+          transform:
+            'translate3d(var(--scene-x-soft), var(--scene-y-soft), 0) scale(1.08)',
+        }}
+      >
+        <img
+          src={ASSETS.cosmicHorizon}
+          alt=""
+          className="h-full w-full object-cover object-center"
+        />
+      </div>
+
+      {/* Large spatial light fields */}
+      <div
+        className="absolute -top-[22%] right-[3%] h-[720px] w-[720px] rounded-full blur-[120px] opacity-60"
+        style={{
+          background:
+            'radial-gradient(circle, rgba(34,211,238,.20) 0%, rgba(37,99,235,.10) 35%, transparent 70%)',
+          transform:
+            'translate3d(var(--scene-x), var(--scene-y), 0)',
         }}
       />
 
-      {/* Layer 3: Second radial gradient, deep cyan-blue (#0a1a3e), positioned top-right, 40% viewport */}
       <div
-        className="absolute -top-[10%] -right-[10%] w-[40vw] h-[40vh] min-w-[380px] min-h-[380px] rounded-full pointer-events-none transition-transform duration-700 ease-out"
+        className="absolute top-[15%] right-[18%] h-[600px] w-[600px] rounded-full blur-[130px] opacity-50"
         style={{
-          background: 'radial-gradient(circle at 65% 35%, #0a1a3e 0%, rgba(10, 26, 62, 0.6) 40%, transparent 70%)',
-          filter: 'blur(80px)',
-          transform: `translate(${mouseOffset.x * -0.6}px, ${mouseOffset.y * -0.6}px)`,
+          background:
+            'radial-gradient(circle, rgba(168,85,247,.18) 0%, rgba(236,72,153,.09) 38%, transparent 72%)',
+          transform:
+            'translate3d(var(--scene-x-soft), var(--scene-y-soft), 0)',
         }}
       />
 
-      {/* Layer 4: Animated SVG noise texture, 3% opacity, very slow drift (60s cycle) */}
       <div
-        className="absolute -inset-[60px] opacity-[0.03] pointer-events-none animate-noise-drift"
+        className="absolute bottom-[-25%] left-[-12%] h-[760px] w-[760px] rounded-full blur-[140px] opacity-45"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'repeat',
+          background:
+            'radial-gradient(circle, rgba(37,99,235,.20) 0%, rgba(6,182,212,.07) 40%, transparent 72%)',
+          transform:
+            'translate3d(var(--scene-x), var(--scene-y), 0)',
         }}
       />
 
-      {/* Subtle digital coordinate grid for high-tech spatial fidelity */}
+      {/* Fine atmospheric light streak */}
       <div
-        className="absolute inset-0 opacity-[0.025]"
+        className="absolute left-[-10%] top-[48%] h-px w-[120%] opacity-20"
         style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(56, 189, 248, 0.4) 1px, transparent 0)`,
-          backgroundSize: '48px 48px',
+          background:
+            'linear-gradient(90deg, transparent, rgba(103,232,249,.55), rgba(167,139,250,.35), transparent)',
+          transform:
+            'translate3d(var(--scene-x-soft), var(--scene-y-soft), 0) rotate(-7deg)',
         }}
       />
+
+      {/* Sparse intelligent particles */}
+      <div className="absolute inset-0">
+        {Array.from({ length: 34 }).map((_, index) => {
+          const left = (index * 37) % 100;
+          const top = (index * 61) % 100;
+          const size = 1 + (index % 3);
+
+          return (
+            <span
+              key={index}
+              className="absolute rounded-full bg-cyan-200/40 animate-pulse"
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+                width: `${size}px`,
+                height: `${size}px`,
+                animationDelay: `${(index % 9) * 0.55}s`,
+                animationDuration: `${3 + (index % 5)}s`,
+                transform:
+                  'translate3d(var(--scene-x-soft), var(--scene-y-soft), 0)',
+              }}
+            />
+          );
+        })}
+      </div>
+
+      {/* Cinematic vignette */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,.38)_100%)]" />
+
+      {/* Subtle lower horizon */}
+      <div className="absolute bottom-0 left-0 right-0 h-[28vh] bg-gradient-to-t from-[#010207] via-[#010207]/65 to-transparent" />
     </div>
   );
 };
