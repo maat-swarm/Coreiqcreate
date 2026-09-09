@@ -52,16 +52,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
         ref={heroRef}
         onMouseMove={handleHeroMouseMove}
         onMouseLeave={handleHeroMouseLeave}
-        className="relative min-h-[88vh] flex items-center pt-8 pb-16 lg:py-20 overflow-hidden"
+        className="relative min-h-screen flex items-center pt-24 pb-16 lg:py-20 overflow-hidden"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
             {/* Left Content Column */}
-            <div className="lg:col-span-7 space-y-7 z-10">
+            <div className="lg:col-span-6 space-y-7 z-10">
               {/* Eyebrow */}
               <div className="inline-flex items-center gap-2">
-                <span className="text-xs sm:text-sm font-semibold tracking-[0.25em] text-slate-400 uppercase">
+                <span className="text-xs sm:text-sm font-semibold tracking-[0.25em] text-cyan-400 uppercase drop-shadow-[0_0_10px_rgba(34,211,238,0.4)]">
                   IDEAS + INTELLIGENCE + ACTION
                 </span>
               </div>
@@ -95,7 +95,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
             </div>
 
             {/* Right Visual Column: The Iconic Core IQ Phoenix Energy Core with 3D Parallax & Depth */}
-            <div className="lg:col-span-5 relative flex justify-center items-center select-none" style={{ perspective: '1000px' }}>
+            <div className="lg:col-span-6 relative flex justify-center items-center select-none" style={{ perspective: '1000px' }}>
               {/* Floating metadata badge with spatial parallax */}
               <div 
                 className="absolute -top-6 right-2 sm:right-6 z-20 text-[10px] sm:text-xs font-semibold tracking-[0.2em] text-cyan-300/80 uppercase text-right transition-transform duration-500 ease-out"
@@ -112,7 +112,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 
               {/* The Glowing Energy Core Phoenix Visual with 3D Tilt */}
               <div 
-                className="relative w-full max-w-[480px] aspect-square flex items-center justify-center transition-transform duration-500 ease-out"
+                className="relative w-full max-w-[620px] aspect-square flex items-center justify-center transition-transform duration-500 ease-out"
                 style={{
                   transform: heroTilt.active
                     ? `rotateY(${heroTilt.x * 8}deg) rotateX(${heroTilt.y * -8}deg) translateZ(10px)`
@@ -122,35 +122,34 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
               >
                 {/* Multi-layered ambient glows behind the core with differential parallax */}
                 <div 
-                  className="absolute inset-0 rounded-full bg-cyan-500/25 blur-[85px] animate-pulse-glow transition-transform duration-700 ease-out" 
+                  className="absolute inset-0 rounded-full bg-cyan-500/30 blur-[100px] animate-pulse-glow transition-transform duration-700 ease-out" 
                   style={{
                     transform: heroTilt.active ? `translate(${heroTilt.x * 20}px, ${heroTilt.y * 20}px)` : 'none',
                   }}
                 />
                 <div 
-                  className="absolute inset-8 rounded-full bg-purple-600/30 blur-[65px] transition-transform duration-1000 ease-out"
+                  className="absolute inset-10 rounded-full bg-purple-600/30 blur-[80px] transition-transform duration-1000 ease-out"
                   style={{
                     transform: heroTilt.active ? `translate(${heroTilt.x * -15}px, ${heroTilt.y * -15}px)` : 'none',
                   }}
                 />
-                <div className="absolute inset-16 rounded-full bg-pink-500/20 blur-[50px]" />
+                <div className="absolute inset-20 rounded-full bg-pink-500/20 blur-[60px]" />
 
                 {/* Floating ambient orbital particles around the Phoenix Core */}
-                <div className="absolute -top-3 left-1/4 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-particle-1 pointer-events-none" />
-                <div className="absolute -bottom-2 right-1/4 w-1.5 h-1.5 rounded-full bg-pink-400 shadow-[0_0_8px_#ec4899] animate-particle-2 pointer-events-none" />
-                <div className="absolute top-1/2 -right-4 w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_10px_#c084fc] animate-particle-3 pointer-events-none" />
+                <div className="absolute top-[8%] left-[12%] w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-particle-1 pointer-events-none" />
+                <div className="absolute bottom-[10%] right-[16%] w-1.5 h-1.5 rounded-full bg-pink-400 shadow-[0_0_8px_#ec4899] animate-particle-2 pointer-events-none" />
+                <div className="absolute top-[45%] -right-2 w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_10px_#c084fc] animate-particle-3 pointer-events-none" />
+                <div className="absolute top-[20%] right-[8%] w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#67e8f9] animate-particle-2 pointer-events-none" />
+                <div className="absolute bottom-[24%] left-[6%] w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_#60a5fa] animate-particle-3 pointer-events-none" />
 
-                {/* Core IQ Phoenix Energy Core Image */}
-                <div className="relative w-full h-full rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_0_65px_rgba(6,182,212,0.3)] animate-float-slow transition-shadow duration-500 hover:shadow-[0_0_90px_rgba(6,182,212,0.45)]">
+                {/* Core IQ Phoenix Energy Core Image — displayed large and uncropped */}
+                <div className="relative w-full h-full animate-float-slow">
                   <img
                     src="/logo.png"
                     alt="Core IQ Phoenix Energy Core"
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover object-center transform hover:scale-[1.02] transition-transform duration-700 ease-out"
+                    className="w-full h-full object-contain object-center drop-shadow-[0_0_45px_rgba(6,182,212,0.4)] transform hover:scale-[1.03] transition-transform duration-700 ease-out"
                   />
-                  {/* Subtle inner vignette */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#030712] via-transparent to-transparent opacity-40 pointer-events-none" />
-                  <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/10 via-transparent to-purple-500/10 opacity-60 pointer-events-none" />
                 </div>
               </div>
             </div>
