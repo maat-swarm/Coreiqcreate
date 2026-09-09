@@ -1,166 +1,75 @@
-import React, { useEffect, useRef } from 'react';
-import { ASSETS } from '../../assets/images';
+import React, { useEffect, useRef, useState } from 'react';
 
 export const AmbientBackground: React.FC = () => {
-  const sceneRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number | null>(null);
-  const target = useRef({ x: 0, y: 0 });
-  const current = useRef({ x: 0, y: 0 });
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const raf = useRef<number>(0);
 
   useEffect(() => {
-    const reduceMotion = window.matchMedia(
-      '(prefers-reduced-motion: reduce)'
-    ).matches;
-
-    if (reduceMotion) return;
-
-    const handlePointer = (event: PointerEvent) => {
-      target.current.x =
-        (event.clientX / window.innerWidth - 0.5) * 2;
-      target.current.y =
-        (event.clientY / window.innerHeight - 0.5) * 2;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq.matches) return;
+    const onMove = (e: MouseEvent) => {
+      cancelAnimationFrame(raf.current);
+      raf.current = requestAnimationFrame(() =>
+        setMouse({ x: e.clientX / window.innerWidth - 0.5, y: e.clientY / window.innerHeight - 0.5 })
+      );
     };
-
-    const animate = () => {
-      current.current.x +=
-        (target.current.x - current.current.x) * 0.035;
-      current.current.y +=
-        (target.current.y - current.current.y) * 0.035;
-
-      if (sceneRef.current) {
-        sceneRef.current.style.setProperty(
-          '--scene-x',
-          `${current.current.x * 18}px`
-        );
-        sceneRef.current.style.setProperty(
-          '--scene-y',
-          `${current.current.y * 14}px`
-        );
-        sceneRef.current.style.setProperty(
-          '--scene-x-soft',
-          `${current.current.x * -9}px`
-        );
-        sceneRef.current.style.setProperty(
-          '--scene-y-soft',
-          `${current.current.y * -7}px`
-        );
-      }
-
-      rafRef.current = requestAnimationFrame(animate);
-    };
-
-    window.addEventListener('pointermove', handlePointer, {
-      passive: true,
-    });
-
-    rafRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      window.removeEventListener('pointermove', handlePointer);
-
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-    };
+    window.addEventListener('mousemove', onMove, { passive: true });
+    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(raf.current); };
   }, []);
 
+  const t = (f: number) => ({
+    transform: `translate(${mouse.x * f}px, ${mouse.y * f}px)`,
+    transition: 'transform 0.9s cubic-bezier(0.16,1,0.3,1)',
+  });
+
   return (
-    <div
-      ref={sceneRef}
-      aria-hidden="true"
-      className="fixed inset-0 pointer-events-none -z-10 overflow-hidden bg-[#02040b]"
-    >
-      {/* Deep cinematic base */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_30%,rgba(28,91,190,0.16),transparent_34%),radial-gradient(circle_at_82%_52%,rgba(137,45,177,0.12),transparent_32%),radial-gradient(circle_at_18%_78%,rgba(17,66,155,0.12),transparent_35%),linear-gradient(180deg,#050a18_0%,#02040b_55%,#010207_100%)]" />
+    <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+      <div className="absolute inset-0 bg-[#030712]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#06102a] via-[#030712] to-[#02050f]" />
 
-      {/* Existing Core IQ cosmic artwork, used as atmosphere rather than a card/image */}
-      <div
-        className="absolute inset-[-8%] opacity-[0.13] mix-blend-screen transition-transform duration-1000 ease-out"
-        style={{
-          transform:
-            'translate3d(var(--scene-x-soft), var(--scene-y-soft), 0) scale(1.08)',
-        }}
-      >
-        <img
-          src={ASSETS.cosmicHorizon}
-          alt=""
-          className="h-full w-full object-cover object-center"
-        />
+      {/* Layer 1 — cyan/blue top-right */}
+      <div className="absolute -top-48 right-[-15%] w-[700px] h-[700px] rounded-full animate-ambient-drift-1 will-change-transform"
+        style={{ background:'radial-gradient(ellipse at center,rgba(25,217,255,0.16) 0%,rgba(57,123,255,0.10) 40%,transparent 70%)', filter:'blur(70px)', ...t(12) }} />
+
+      {/* Layer 2 — violet/magenta mid */}
+      <div className="absolute top-[20%] right-[0%] w-[600px] h-[600px] rounded-full animate-ambient-drift-2 will-change-transform"
+        style={{ background:'radial-gradient(ellipse at center,rgba(134,88,255,0.18) 0%,rgba(228,71,255,0.10) 45%,transparent 72%)', filter:'blur(80px)', ...t(-8) }} />
+
+      {/* Layer 3 — deep blue bottom-left */}
+      <div className="absolute top-[60%] -left-[12%] w-[650px] h-[650px] rounded-full animate-ambient-drift-3 will-change-transform"
+        style={{ background:'radial-gradient(ellipse at center,rgba(57,123,255,0.15) 0%,rgba(25,217,255,0.06) 50%,transparent 72%)', filter:'blur(75px)', ...t(6) }} />
+
+      {/* Layer 4 — warm bottom-right */}
+      <div className="absolute top-[75%] right-[10%] w-[350px] h-[350px] rounded-full animate-ambient-drift-1 will-change-transform"
+        style={{ background:'radial-gradient(ellipse at center,rgba(255,155,66,0.08) 0%,transparent 65%)', filter:'blur(60px)', animationDelay:'3s', ...t(4) }} />
+
+      {/* Layer 5 — magenta upper-left */}
+      <div className="absolute -top-20 -left-[5%] w-[500px] h-[500px] rounded-full animate-ambient-drift-2 will-change-transform"
+        style={{ background:'radial-gradient(ellipse at center,rgba(228,71,255,0.07) 0%,transparent 70%)', filter:'blur(90px)', animationDelay:'8s', ...t(-5) }} />
+
+      {/* Topology dot grid */}
+      <div className="absolute inset-0 opacity-[0.028]"
+        style={{ backgroundImage:'radial-gradient(circle at 1px 1px,rgba(56,189,248,0.5) 1px,transparent 0)', backgroundSize:'44px 44px' }} />
+
+      {/* Scan lines */}
+      <div className="absolute inset-0 opacity-[0.016]"
+        style={{ backgroundImage:'repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(25,217,255,0.08) 3px,rgba(25,217,255,0.08) 4px)' }} />
+
+      {/* Square particles */}
+      <div className="absolute inset-0 pointer-events-none opacity-50">
+        <div className="absolute top-[18%] left-[12%] w-[5px] h-[5px] bg-cyan-400 animate-particle-1 rotate-12" style={{boxShadow:'0 0 6px #19d9ff'}} />
+        <div className="absolute top-[42%] left-[78%] w-[3px] h-[3px] bg-blue-400 animate-particle-2" style={{boxShadow:'0 0 5px #397bff'}} />
+        <div className="absolute top-[72%] left-[28%] w-[4px] h-[4px] bg-cyan-300 animate-particle-3 -rotate-6" style={{boxShadow:'0 0 5px #19d9ff'}} />
+        <div className="absolute top-[30%] left-[52%] w-[3px] h-[3px] bg-violet-400 animate-particle-2" style={{animationDelay:'1s',boxShadow:'0 0 4px #8658ff'}} />
+        <div className="absolute top-[58%] left-[65%] w-[5px] h-[5px] bg-purple-400 animate-particle-1 rotate-45" style={{animationDelay:'2.5s',boxShadow:'0 0 6px #8658ff'}} />
+        <div className="absolute top-[85%] left-[45%] w-[3px] h-[3px] bg-pink-400 animate-particle-3" style={{animationDelay:'1.5s',boxShadow:'0 0 4px #e447ff'}} />
+        <div className="absolute top-[22%] left-[88%] w-[4px] h-[4px] bg-fuchsia-400 animate-particle-1 -rotate-12" style={{animationDelay:'4s',boxShadow:'0 0 5px #e447ff'}} />
+        <div className="absolute top-[65%] left-[8%] w-[3px] h-[3px] bg-orange-400 animate-particle-2" style={{animationDelay:'6s',boxShadow:'0 0 4px #ff9b42'}} />
       </div>
 
-      {/* Large spatial light fields */}
-      <div
-        className="absolute -top-[22%] right-[3%] h-[720px] w-[720px] rounded-full blur-[120px] opacity-60"
-        style={{
-          background:
-            'radial-gradient(circle, rgba(34,211,238,.20) 0%, rgba(37,99,235,.10) 35%, transparent 70%)',
-          transform:
-            'translate3d(var(--scene-x), var(--scene-y), 0)',
-        }}
-      />
-
-      <div
-        className="absolute top-[15%] right-[18%] h-[600px] w-[600px] rounded-full blur-[130px] opacity-50"
-        style={{
-          background:
-            'radial-gradient(circle, rgba(168,85,247,.18) 0%, rgba(236,72,153,.09) 38%, transparent 72%)',
-          transform:
-            'translate3d(var(--scene-x-soft), var(--scene-y-soft), 0)',
-        }}
-      />
-
-      <div
-        className="absolute bottom-[-25%] left-[-12%] h-[760px] w-[760px] rounded-full blur-[140px] opacity-45"
-        style={{
-          background:
-            'radial-gradient(circle, rgba(37,99,235,.20) 0%, rgba(6,182,212,.07) 40%, transparent 72%)',
-          transform:
-            'translate3d(var(--scene-x), var(--scene-y), 0)',
-        }}
-      />
-
-      {/* Fine atmospheric light streak */}
-      <div
-        className="absolute left-[-10%] top-[48%] h-px w-[120%] opacity-20"
-        style={{
-          background:
-            'linear-gradient(90deg, transparent, rgba(103,232,249,.55), rgba(167,139,250,.35), transparent)',
-          transform:
-            'translate3d(var(--scene-x-soft), var(--scene-y-soft), 0) rotate(-7deg)',
-        }}
-      />
-
-      {/* Sparse intelligent particles */}
-      <div className="absolute inset-0">
-        {Array.from({ length: 34 }).map((_, index) => {
-          const left = (index * 37) % 100;
-          const top = (index * 61) % 100;
-          const size = 1 + (index % 3);
-
-          return (
-            <span
-              key={index}
-              className="absolute rounded-full bg-cyan-200/40 animate-pulse"
-              style={{
-                left: `${left}%`,
-                top: `${top}%`,
-                width: `${size}px`,
-                height: `${size}px`,
-                animationDelay: `${(index % 9) * 0.55}s`,
-                animationDuration: `${3 + (index % 5)}s`,
-                transform:
-                  'translate3d(var(--scene-x-soft), var(--scene-y-soft), 0)',
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* Cinematic vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,.38)_100%)]" />
-
-      {/* Subtle lower horizon */}
-      <div className="absolute bottom-0 left-0 right-0 h-[28vh] bg-gradient-to-t from-[#010207] via-[#010207]/65 to-transparent" />
+      {/* Centre vignette */}
+      <div className="absolute inset-0"
+        style={{ background:'radial-gradient(ellipse 80% 80% at 50% 40%,transparent 40%,rgba(2,5,20,0.55) 100%)' }} />
     </div>
   );
 };
