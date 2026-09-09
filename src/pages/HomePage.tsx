@@ -143,7 +143,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                 {/* Core IQ Phoenix Energy Core Image */}
                 <div className="relative w-full h-full rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_0_65px_rgba(6,182,212,0.3)] animate-float-slow transition-shadow duration-500 hover:shadow-[0_0_90px_rgba(6,182,212,0.45)]">
                   <img
-                    src={ASSETS.energyCore}
+                    src="/logo.png"
                     alt="Core IQ Phoenix Energy Core"
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover object-center transform hover:scale-[1.02] transition-transform duration-700 ease-out"
