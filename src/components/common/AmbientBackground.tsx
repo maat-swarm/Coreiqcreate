@@ -24,6 +24,12 @@ export const AmbientBackground: React.FC = () => {
 
   return (
     <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+      <div style={{
+        position:'absolute',inset:0,
+        backgroundImage:'url(https://images.unsplash.com/photo-1744138147319-f86f8a0d9667?w=1920&q=80)',
+        backgroundSize:'cover',backgroundPosition:'center',
+        opacity:0.25,zIndex:0,pointerEvents:'none'
+      }} />
       <div className="absolute inset-0 bg-[#030712]" />
       <div className="absolute inset-0 bg-gradient-to-br from-[#06102a] via-[#030712] to-[#02050f]" />
 
