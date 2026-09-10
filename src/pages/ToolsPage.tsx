@@ -1,14 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Sparkles, 
   ArrowRight, 
-  FileText, 
-  Image, 
-  Code, 
-  Database, 
-  Terminal, 
-  Clock, 
-  GitBranch, 
   Copy, 
   Check, 
   Zap, 
@@ -18,6 +10,8 @@ import {
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
 import { CosmicCTABanner } from '../components/common/CosmicCTABanner';
+import { PageHeroVisual } from '../components/common/PageHeroVisual';
+import { ScrollReveal } from '../components/common/ScrollReveal';
 import { NavRoute } from '../types';
 import { TOOLS_LIST, TOOL_CATEGORIES, TOOL_PHILOSOPHY } from '../data/toolsData';
 
@@ -38,15 +32,14 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ onNavigate, onAsk }) => {
 
   const toolPills = [
     { label: 'Browse tools', query: 'Show me all tools in Core IQ' },
-    { label: 'Try a tool', query: 'I want to try the Prompt Enhancer tool' },
-    { label: 'See popular', query: 'Which Core IQ tools are most popular?' },
+    { label: 'Prompt Enhancer', query: 'I want to try the Prompt Enhancer tool' },
+    { label: 'Explore workflows', query: 'How can I connect tools into an automation workflow?' },
   ];
 
   const handleEnhancePrompt = (e: React.FormEvent) => {
     e.preventDefault();
     const raw = promptInput.trim() || 'Create an automated customer onboarding sequence for a SaaS platform';
     
-    // Generates a professional structured prompt
     const enhanced = `[ROLE & PERSONA]
 You are a Principal Product Strategist and Senior AI Automation Architect.
 
@@ -72,45 +65,31 @@ Provide an executive summary, followed by a chronological execution table with m
     }
   };
 
-  const getToolIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Sparkles': return Sparkles;
-      case 'FileText': return FileText;
-      case 'Image': return Image;
-      case 'Code': return Code;
-      case 'Database': return Database;
-      case 'Terminal': return Terminal;
-      case 'Clock': return Clock;
-      case 'GitBranch': return GitBranch;
-      default: return Sparkles;
-    }
-  };
-
   return (
     <div className="w-full relative">
       {/* 1. HERO SECTION */}
-      <section className="relative min-h-[85vh] flex items-center pt-8 pb-16 lg:py-20 overflow-hidden">
+      <section className="relative min-h-[75vh] flex items-center pt-8 pb-16 lg:py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
             {/* Left Content */}
             <div className="lg:col-span-7 space-y-7 z-10">
-              <span className="text-xs sm:text-sm font-semibold tracking-[0.25em] text-cyan-400 uppercase">
-                CORE IQ TOOLS
+              <span className="text-xs font-mono tracking-[0.3em] text-cyan-400 uppercase">
+                TOOLS / CORE IQ
               </span>
 
               <h1 className="text-5xl sm:text-6xl xl:text-7xl font-bold tracking-tight text-white font-display leading-[1.05]">
-                Single-purpose. <br />
-                <span className="gradient-text-phoenix">Infinitely useful.</span>
+                Intelligent tools <br />
+                <span className="gradient-text-phoenix">for real work.</span>
               </h1>
 
               <p className="text-slate-300 text-base sm:text-lg lg:text-xl max-w-xl leading-relaxed">
-                Fast, focused tools designed to do one thing exceptionally well. No setup required. Just open, create and get back to what you were doing.
+                A growing collection of AI-powered utilities. Start with one. Build a workflow.
               </p>
 
               <div className="pt-2">
                 <AskCoreIQBar
-                  placeholder="Ask Core IQ anything..."
+                  placeholder="Ask Core IQ to run a tool..."
                   pills={toolPills}
                   onAsk={onAsk}
                   size="large"
@@ -118,18 +97,120 @@ Provide an executive summary, followed by a chronological execution table with m
               </div>
             </div>
 
-            {/* Right Visual: Futuristic Glowing Cube Matrix */}
+            {/* Right Visual: Futuristic Precision Matrix */}
             <div className="lg:col-span-5 relative flex justify-center items-center">
-              <div className="relative w-full max-w-[480px] aspect-square flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full bg-cyan-500/20 blur-[90px] animate-pulse-glow" />
-                <div className="relative w-full h-full rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_0_60px_rgba(6,182,212,0.3)] animate-float-slow">
-                  <img
-                    src={ASSETS.toolsCube}
-                    alt="Core IQ Tools Cube"
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover object-center"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-40" />
+              <PageHeroVisual>
+                <div className="relative w-full max-w-[480px] aspect-square flex items-center justify-center">
+                  <div className="relative w-full h-full rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_0_60px_rgba(6,182,212,0.3)]">
+                    <img
+                      src={ASSETS.toolsCube}
+                      alt="Core IQ Tools Cube"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover object-center"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-40" />
+                  </div>
+                </div>
+              </PageHeroVisual>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* 2. FEATURED TOOL BLOCK */}
+      <section className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="full-width rounded-3xl bg-gradient-to-br from-slate-900 via-[#060d22] to-slate-950 border border-cyan-500/20 p-8 sm:p-12 relative overflow-hidden backdrop-blur-md shadow-[0_0_50px_rgba(6,182,212,0.12)]">
+          {/* Luminous aura behind */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-purple-600/10 rounded-full blur-[90px] pointer-events-none" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center relative z-10">
+            
+            {/* Left: Info */}
+            <div className="lg:col-span-6 space-y-4">
+              <span className="text-xs font-mono tracking-widest text-cyan-400 uppercase">
+                FEATURED TOOL
+              </span>
+
+              <h2 className="text-3xl sm:text-4xl font-bold text-white font-display leading-snug">
+                Prompt Enhancer
+              </h2>
+
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed max-w-xl">
+                Turn vague ideas into clear, effective prompts that get better results from any AI model. Describe what you're trying to do and get a polished, structured prompt instantly.
+              </p>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => onAsk('I want to test the Prompt Enhancer tool with a custom objective')}
+                  className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_25px_rgba(34,211,238,0.5)] transition-all duration-200"
+                >
+                  <span>Try Prompt Enhancer</span>
+                  <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              </div>
+            </div>
+
+            {/* Right: Mock Tool Interface with Input & Structured Output Preview */}
+            <div className="lg:col-span-6">
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/90 p-5 sm:p-6 space-y-4 backdrop-blur-md shadow-2xl">
+                {/* Input Area */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
+                    <span className="text-cyan-400 uppercase tracking-wider">Input / User Intent</span>
+                    <span className="text-slate-500">Raw prompt</span>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300">
+                    "Write an executive briefing for our AI infrastructure migration"
+                  </div>
+                </div>
+
+                {/* Center Transition */}
+                <div className="flex items-center justify-center py-0.5">
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-[11px] font-mono">
+                    <span>Structuring prompt parameters</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-cyan-400" />
+                  </div>
+                </div>
+
+                {/* Structured Output Preview with 3 labelled result rows */}
+                <div className="space-y-2.5 pt-1 border-t border-slate-800/80">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-cyan-400 uppercase tracking-wider">Structured Result</span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px]">
+                      Optimized
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-start gap-3">
+                      <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono shrink-0 mt-0.5">
+                        ROLE
+                      </span>
+                      <p className="text-xs text-slate-300 leading-relaxed font-mono">
+                        Principal Enterprise Architect & Technology Strategist
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-start gap-3">
+                      <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-mono shrink-0 mt-0.5">
+                        CONSTRAINTS
+                      </span>
+                      <p className="text-xs text-slate-300 leading-relaxed font-mono">
+                        Quantify ROI, outline roll-back contingencies, and cite latency SLA
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-start gap-3">
+                      <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-mono shrink-0 mt-0.5">
+                        FORMAT
+                      </span>
+                      <p className="text-xs text-slate-300 leading-relaxed font-mono">
+                        3-Tier executive matrix with decision milestones & telemetry triggers
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -138,101 +219,19 @@ Provide an executive summary, followed by a chronological execution table with m
         </div>
       </section>
 
-      {/* 2. FEATURED INTERACTIVE TOOL: Prompt Enhancer */}
-      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative rounded-3xl overflow-hidden border border-cyan-500/30 bg-gradient-to-br from-[#060e28] via-[#09153a] to-[#040817] p-8 sm:p-12 lg:p-14 shadow-[0_0_50px_rgba(34,211,238,0.15)]">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            
-            {/* Left: Info */}
-            <div className="lg:col-span-5 space-y-6">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-md text-[10px] font-bold tracking-widest text-cyan-300 bg-cyan-500/20 border border-cyan-400/40 uppercase">
-                  FEATURED TOOL
-                </span>
-                <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                  FAST & FOCUSED
-                </span>
-              </div>
-
-              <h2 className="text-3xl sm:text-4xl font-bold text-white font-display">
-                Prompt Enhancer
-              </h2>
-
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-                Turn vague ideas into clear, effective prompts that get better results from any AI model. Describe what you're trying to do and get a polished, structured prompt instantly.
-              </p>
-
-              <div className="flex items-center gap-4 text-xs text-slate-400">
-                <span className="flex items-center gap-1.5">
-                  <Zap className="w-4 h-4 text-cyan-400" />
-                  Instant Output
-                </span>
-                <span>•</span>
-                <span>Zero signup required</span>
-              </div>
-            </div>
-
-            {/* Right: Live Interactive Prompt Workbench */}
-            <div className="lg:col-span-7">
-              <div className="rounded-2xl border border-cyan-500/30 bg-slate-950/90 p-5 sm:p-6 space-y-4 shadow-xl">
-                <form onSubmit={handleEnhancePrompt} className="space-y-3">
-                  <label className="block text-xs font-semibold tracking-wider text-cyan-300 uppercase">
-                    Your Raw Idea or Prompt:
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={promptInput}
-                      onChange={(e) => setPromptInput(e.target.value)}
-                      placeholder="e.g. Write a cold outreach email for an automation audit"
-                      className="flex-1 rounded-xl bg-slate-900 border border-slate-700/80 px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                    />
-                    <button
-                      type="submit"
-                      className="px-6 py-3 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-semibold text-sm flex items-center gap-2 shrink-0 transition-all shadow-[0_0_15px_rgba(34,211,238,0.4)]"
-                    >
-                      <span>Enhance</span>
-                      <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-                    </button>
-                  </div>
-                </form>
-
-                {/* Enhanced Result Box */}
-                {enhancedOutput && (
-                  <div className="pt-3 space-y-2 animate-in fade-in duration-300">
-                    <div className="flex items-center justify-between text-xs text-slate-400">
-                      <span className="font-semibold text-cyan-300">Enhanced Prompt Output</span>
-                      <button
-                        onClick={handleCopy}
-                        className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
-                      >
-                        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copied ? 'Copied!' : 'Copy prompt'}</span>
-                      </button>
-                    </div>
-                    <pre className="p-4 rounded-xl bg-slate-900/80 border border-cyan-500/20 text-xs font-mono text-slate-200 whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto">
-                      {enhancedOutput}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
       {/* 3. EXPLORE TOOLS CATALOGUE */}
-      <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="space-y-6 mb-12">
-          <div className="space-y-2">
-            <span className="text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase">
-              EXPLORE TOOLS
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white font-display">
-              Explore the toolkit.
-            </h2>
-          </div>
+          <ScrollReveal>
+            <div className="space-y-2">
+              <span className="text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase">
+                EXPLORE TOOLS
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-bold text-white font-display">
+                Explore the toolkit.
+              </h2>
+            </div>
+          </ScrollReveal>
 
           {/* Category Filter Chips */}
           <div className="flex flex-wrap items-center gap-2 pt-2">
@@ -255,39 +254,45 @@ Provide an executive summary, followed by a chronological execution table with m
           </div>
         </div>
 
-        {/* 8 Tool Cards Grid */}
+        {/* Minimal Editorial Tool Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredTools.map((tool) => {
-            const Icon = getToolIcon(tool.iconName);
+          {filteredTools.map((tool, idx) => {
+            const isPro = tool.category === 'Automation' || tool.category === 'Code' || idx % 3 === 2;
             return (
               <div
                 key={tool.id}
-                onClick={() => onAsk(`Open and test the ${tool.title} tool. What does it do and how can I run it?`)}
-                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-64 relative border border-cyan-500/15"
+                onClick={() => onAsk(`Open and run the ${tool.title} tool. What does it do and how can I execute it?`)}
+                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-auto min-h-[200px] relative border border-slate-800 hover:border-cyan-500/30 transition-all duration-200"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <Icon className="w-5 h-5 text-cyan-400" />
-                    </div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-400">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400">
                       {tool.category}
+                    </span>
+                    <span
+                      className={`text-[10px] font-mono tracking-widest px-2 py-0.5 rounded-md ${
+                        isPro
+                          ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                          : 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
+                      }`}
+                    >
+                      {isPro ? 'PRO' : 'FREE'}
                     </span>
                   </div>
 
-                  <h3 className="text-white font-bold text-lg mb-1.5 group-hover:text-cyan-300 transition-colors">
+                  <h3 className="text-white font-bold text-lg mb-2 group-hover:text-cyan-300 transition-colors">
                     {tool.title}
                   </h3>
-                  <p className="text-slate-400 text-xs leading-relaxed">
+                  <p className="text-slate-400 text-sm leading-relaxed line-clamp-2">
                     {tool.description}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-slate-800/80 text-xs">
+                <div className="flex items-center justify-between pt-4 border-t border-slate-800/80 text-sm mt-4">
                   <span className="text-cyan-400 font-medium group-hover:underline">
-                    Use tool
+                    Open
                   </span>
-                  <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-300 group-hover:translate-x-1 transition-all" />
+                  <ArrowRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             );
@@ -295,7 +300,7 @@ Provide an executive summary, followed by a chronological execution table with m
         </div>
       </section>
 
-      {/* 4. "WHY SINGLE-PURPOSE TOOLS?" PHILOSOPHY */}
+      {/* 4. DESIGN PHILOSOPHY */}
       <section className="py-20 lg:py-28 border-t border-slate-800/60 bg-[#03081c]/50 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">

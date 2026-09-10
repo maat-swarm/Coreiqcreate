@@ -26,43 +26,45 @@ export const AmbientBackground: React.FC = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden bg-[#030712]">
-      {/* Deep gradient wash */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#050b1d] via-[#030712] to-[#02050f]" />
+    <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden bg-[#050814]">
+      {/* Layer 1 (deepest): Pure #050814 base */}
+      <div className="absolute inset-0 bg-[#050814]" />
 
-      {/* Primary Cyan volumetric glow (Top Right / Center) */}
-      <div 
-        className="absolute -top-40 right-[-10%] w-[650px] h-[650px] rounded-full bg-gradient-to-br from-cyan-500/15 via-blue-600/10 to-transparent blur-[130px] animate-ambient-drift-1 transition-transform duration-700 ease-out"
-        style={{ transform: `translate(${mouseOffset.x * 0.7}px, ${mouseOffset.y * 0.7}px)` }}
+      {/* Layer 2: Large radial gradient, deep violet-blue (#1a0a3e), positioned bottom-left, covering 60% of viewport */}
+      <div
+        className="absolute -bottom-[12%] -left-[12%] w-[60vw] h-[60vh] min-w-[520px] min-h-[520px] rounded-full pointer-events-none transition-transform duration-1000 ease-out"
+        style={{
+          background: 'radial-gradient(circle at 35% 65%, #1a0a3e 0%, rgba(26, 10, 62, 0.55) 40%, transparent 70%)',
+          filter: 'blur(90px)',
+          transform: `translate(${mouseOffset.x * 0.5}px, ${mouseOffset.y * 0.5}px)`,
+        }}
       />
 
-      {/* Violet / Magenta Core glow (Middle / Right) */}
-      <div 
-        className="absolute top-[25%] right-[5%] w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-purple-600/15 via-pink-600/10 to-transparent blur-[140px] animate-ambient-drift-2 transition-transform duration-1000 ease-out"
-        style={{ transform: `translate(${mouseOffset.x * -0.5}px, ${mouseOffset.y * -0.5}px)` }}
+      {/* Layer 3: Second radial gradient, deep cyan-blue (#0a1a3e), positioned top-right, 40% viewport */}
+      <div
+        className="absolute -top-[10%] -right-[10%] w-[40vw] h-[40vh] min-w-[380px] min-h-[380px] rounded-full pointer-events-none transition-transform duration-700 ease-out"
+        style={{
+          background: 'radial-gradient(circle at 65% 35%, #0a1a3e 0%, rgba(10, 26, 62, 0.6) 40%, transparent 70%)',
+          filter: 'blur(80px)',
+          transform: `translate(${mouseOffset.x * -0.6}px, ${mouseOffset.y * -0.6}px)`,
+        }}
       />
 
-      {/* Deep blue accent glow (Bottom Left) */}
-      <div 
-        className="absolute top-[65%] -left-[10%] w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-blue-700/15 via-indigo-600/10 to-transparent blur-[140px] animate-ambient-drift-3 transition-transform duration-700 ease-out"
-        style={{ transform: `translate(${mouseOffset.x * 0.4}px, ${mouseOffset.y * 0.4}px)` }}
+      {/* Layer 4: Animated SVG noise texture, 3% opacity, very slow drift (60s cycle) */}
+      <div
+        className="absolute -inset-[60px] opacity-[0.03] pointer-events-none animate-noise-drift"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: 'repeat',
+        }}
       />
 
-      {/* Subtle drifting micro-particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
-        <div className="absolute top-[20%] left-[15%] w-1.5 h-1.5 rounded-full bg-cyan-400 blur-[1px] animate-particle-1" />
-        <div className="absolute top-[45%] left-[80%] w-1 h-1 rounded-full bg-purple-400 blur-[1px] animate-particle-2" />
-        <div className="absolute top-[75%] left-[30%] w-1.5 h-1.5 rounded-full bg-blue-400 blur-[1px] animate-particle-3" />
-        <div className="absolute top-[35%] left-[55%] w-1 h-1 rounded-full bg-cyan-300 blur-[0.5px] animate-particle-2" />
-        <div className="absolute top-[60%] left-[65%] w-1.5 h-1.5 rounded-full bg-pink-400 blur-[1px] animate-particle-1" />
-      </div>
-
-      {/* Subtle digital grid texture */}
-      <div 
-        className="absolute inset-0 opacity-[0.035]"
+      {/* Subtle digital coordinate grid for high-tech spatial fidelity */}
+      <div
+        className="absolute inset-0 opacity-[0.025]"
         style={{
           backgroundImage: `radial-gradient(circle at 1px 1px, rgba(56, 189, 248, 0.4) 1px, transparent 0)`,
-          backgroundSize: '40px 40px',
+          backgroundSize: '48px 48px',
         }}
       />
     </div>

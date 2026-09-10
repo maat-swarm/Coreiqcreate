@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
 import { 
-  Sparkles, 
   ArrowRight, 
-  BookOpen, 
-  Layers, 
   Clock, 
-  CheckCircle2, 
   Compass, 
   Wrench, 
   Hammer, 
-  Target,
-  GraduationCap
+  Target
 } from 'lucide-react';
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
 import { CosmicCTABanner } from '../components/common/CosmicCTABanner';
+import { PageHeroVisual } from '../components/common/PageHeroVisual';
+import { ScrollReveal } from '../components/common/ScrollReveal';
 import { NavRoute } from '../types';
 import { LEARN_TOPICS, LEARN_CATEGORIES, FOUR_PILLARS } from '../data/learnData';
 
@@ -23,9 +20,21 @@ interface LearnPageProps {
   onAsk: (query: string) => void;
 }
 
+const EDITORIAL_TOPICS = [
+  { num: '01', label: 'AI News', query: 'What are the latest AI news and updates?' },
+  { num: '02', label: 'Models', query: 'How to select and evaluate frontier AI models' },
+  { num: '03', label: 'Agents', query: 'How do autonomous AI agents work?' },
+  { num: '04', label: 'Automation', query: 'How to design intelligent business automations' },
+  { num: '05', label: 'Workflows', query: 'Best practices for AI human-in-the-loop workflows' },
+  { num: '06', label: 'Prompting', query: 'Advanced prompting engineering and structured output' },
+  { num: '07', label: 'Business AI', query: 'How to implement AI across business operations' },
+  { num: '08', label: 'Tutorials', query: 'Show me step-by-step AI tutorials' },
+  { num: '09', label: 'Tools', query: 'What are the top AI tools and SDKs?' },
+  { num: '10', label: 'Guides', query: 'Show me comprehensive Core IQ guides' },
+];
+
 export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [activeArticle, setActiveArticle] = useState<string | null>(null);
 
   const filteredTopics = selectedCategory === 'All'
     ? LEARN_TOPICS
@@ -33,35 +42,35 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
 
   const learnPills = [
     { label: 'Browse all', query: 'Show me all available Core IQ learning guides' },
-    { label: 'Start with the basics', query: 'I want to learn the basics of AI and agents' },
-    { label: 'Explore topics', query: 'What AI topics can I learn about?' },
+    { label: 'Start with basics', query: 'I want to learn the basics of AI and agents' },
+    { label: 'Explore workflows', query: 'How to build production AI workflows' },
   ];
 
   return (
     <div className="w-full relative">
       {/* 1. HERO SECTION */}
-      <section className="relative min-h-[85vh] flex items-center pt-8 pb-16 lg:py-20 overflow-hidden">
+      <section className="relative min-h-[75vh] flex items-center pt-8 pb-16 lg:py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
             {/* Left Content */}
             <div className="lg:col-span-7 space-y-7 z-10">
-              <span className="text-xs sm:text-sm font-semibold tracking-[0.25em] text-cyan-400 uppercase">
-                LEARN WITH CORE IQ
+              <span className="text-xs tracking-[0.3em] text-cyan-400 uppercase font-mono">
+                LEARN / CORE IQ
               </span>
 
               <h1 className="text-5xl sm:text-6xl xl:text-7xl font-bold tracking-tight text-white font-display leading-[1.05]">
-                Knowledge that <br />
-                <span className="gradient-text-phoenix">empowers.</span>
+                Learn what matters. <br />
+                <span className="gradient-text-phoenix">Build what works.</span>
               </h1>
 
               <p className="text-slate-300 text-base sm:text-lg lg:text-xl max-w-xl leading-relaxed">
-                Explore practical guides, courses, frameworks and insights to master AI, automation and modern creation. Whether you're just starting or building advanced systems, there's always more to discover.
+                Practical AI education for people who want to build real things.
               </p>
 
               <div className="pt-2">
                 <AskCoreIQBar
-                  placeholder="Ask Core IQ anything..."
+                  placeholder="Ask Core IQ what you want to learn..."
                   pills={learnPills}
                   onAsk={onAsk}
                   size="large"
@@ -69,98 +78,89 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
               </div>
             </div>
 
-            {/* Right Visual: Luminous Open Celestial Book */}
+            {/* Right Visual: Celestial Learning Hologram */}
             <div className="lg:col-span-5 relative flex justify-center items-center">
-              <div className="relative w-full max-w-[480px] aspect-square flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full bg-cyan-500/20 blur-[90px] animate-pulse-glow" />
-                <div className="relative w-full h-full rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_0_60px_rgba(6,182,212,0.3)] animate-float-slow">
-                  <img
-                    src={ASSETS.learnBook}
-                    alt="Core IQ Knowledge & Learning"
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover object-center"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-40" />
+              <PageHeroVisual>
+                <div className="relative w-full max-w-[480px] aspect-square flex items-center justify-center">
+                  <div className="relative w-full h-full rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_0_60px_rgba(6,182,212,0.3)]">
+                    <img
+                      src={ASSETS.learnBook}
+                      alt="Core IQ Knowledge & Learning"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover object-center"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-40" />
+                  </div>
                 </div>
-              </div>
+              </PageHeroVisual>
             </div>
 
           </div>
         </div>
       </section>
 
-      {/* 2. FEATURED PATH: The Core IQ Creation Framework */}
-      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative rounded-3xl overflow-hidden border border-cyan-500/30 bg-gradient-to-br from-[#060e28] via-[#09153a] to-[#040817] p-8 sm:p-12 lg:p-14 shadow-[0_0_50px_rgba(34,211,238,0.15)]">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            
-            {/* Left Info */}
-            <div className="lg:col-span-6 space-y-6">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-md text-[10px] font-bold tracking-widest text-cyan-300 bg-cyan-500/20 border border-cyan-400/40 uppercase">
-                  FEATURED PATH
-                </span>
-                <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                  START HERE
-                </span>
-              </div>
+      {/* 2. FEATURED ARTICLE BLOCK */}
+      <section className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="full-width rounded-3xl bg-gradient-to-br from-slate-900 via-[#060d22] to-slate-950 border border-cyan-500/20 p-8 sm:p-12 relative overflow-hidden backdrop-blur-md shadow-[0_0_50px_rgba(6,182,212,0.12)]">
+          {/* Luminous aura behind */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-purple-600/10 rounded-full blur-[90px] pointer-events-none" />
 
-              <h2 className="text-3xl sm:text-4xl font-bold text-white font-display">
-                The Core IQ Creation Framework
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center relative z-10">
+            {/* Left side */}
+            <div className="lg:col-span-6 space-y-4">
+              <span className="text-xs font-mono tracking-widest text-cyan-400 uppercase">
+                FEATURED
+              </span>
+
+              <h2 className="text-3xl sm:text-4xl font-bold text-white font-display leading-snug">
+                How to turn an AI idea into a useful workflow.
               </h2>
 
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-                A complete, step-by-step methodology for going from raw idea to fully realized AI solution. Learn how to define problems, choose the right tools, build intelligent workflows and iterate with confidence.
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed max-w-xl">
+                A practical walkthrough of breaking down a business problem, choosing the right AI approach, and building a working automation.
               </p>
 
-              <div>
+              <div className="pt-2">
                 <button
-                  onClick={() => onAsk("I want to learn The Core IQ Creation Framework step by step")}
-                  className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_25px_rgba(34,211,238,0.5)] transition-all duration-200"
+                  onClick={() => onAsk('Guide: How to turn an AI idea into a useful workflow')}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all duration-200"
                 >
-                  <span>Start this path</span>
-                  <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                  <span>Read the guide</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Right: Step Progression Diagram */}
+            {/* Right side: 4-Box Connected Workflow Diagram */}
             <div className="lg:col-span-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-5 rounded-2xl bg-slate-950/80 border border-cyan-500/20 space-y-2">
-                  <div className="flex items-center justify-between text-xs text-cyan-400 font-bold">
-                    <span>STEP 01</span>
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
-                  </div>
-                  <h4 className="text-white font-semibold text-sm">Vision & Problem</h4>
-                  <p className="text-slate-400 text-xs">Isolate the root bottleneck and determine real value.</p>
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-950/80 p-6 sm:p-8 backdrop-blur-md">
+                <div className="flex items-center justify-between text-xs text-slate-500 font-mono mb-6">
+                  <span className="text-cyan-400 uppercase tracking-widest">Workflow Architecture</span>
+                  <span>4-Stage Pipeline</span>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-slate-950/80 border border-purple-500/20 space-y-2">
-                  <div className="flex items-center justify-between text-xs text-purple-400 font-bold">
-                    <span>STEP 02</span>
-                    <span className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_8px_#c084fc]" />
-                  </div>
-                  <h4 className="text-white font-semibold text-sm">Architecture</h4>
-                  <p className="text-slate-400 text-xs">Select models, tools, data memory, and security constraints.</p>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-slate-950/80 border border-indigo-500/20 space-y-2">
-                  <div className="flex items-center justify-between text-xs text-indigo-400 font-bold">
-                    <span>STEP 03</span>
-                    <span className="w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_8px_#818cf8]" />
-                  </div>
-                  <h4 className="text-white font-semibold text-sm">Execution</h4>
-                  <p className="text-slate-400 text-xs">Assemble agents, wire automations, and build UI touchpoints.</p>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-slate-950/80 border border-pink-500/20 space-y-2">
-                  <div className="flex items-center justify-between text-xs text-pink-400 font-bold">
-                    <span>STEP 04</span>
-                    <span className="w-2 h-2 rounded-full bg-pink-400 shadow-[0_0_8px_#f472b6]" />
-                  </div>
-                  <h4 className="text-white font-semibold text-sm">Scaling & Ops</h4>
-                  <p className="text-slate-400 text-xs">Monitor telemetry, add human feedback, and optimize throughput.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
+                  {[
+                    { step: '01', title: 'Problem', desc: 'Isolate root bottleneck & scope' },
+                    { step: '02', title: 'AI Approach', desc: 'Choose model & reasoning tools' },
+                    { step: '03', title: 'Build', desc: 'Wire agents & data bridges' },
+                    { step: '04', title: 'Result', desc: 'Working high-impact automation' },
+                  ].map((box, idx) => (
+                    <div
+                      key={box.step}
+                      className="relative p-4 rounded-xl bg-slate-900/90 border border-cyan-500/20 hover:border-cyan-400/40 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-mono text-[10px] text-cyan-400">STAGE {box.step}</span>
+                        {idx < 3 && (
+                          <span className="text-cyan-500/60 hidden sm:inline text-xs font-mono">→</span>
+                        )}
+                      </div>
+                      <h4 className="text-white font-bold text-sm mb-0.5">{box.title}</h4>
+                      <p className="text-slate-400 text-xs">{box.desc}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -169,17 +169,115 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
         </div>
       </section>
 
-      {/* 3. EXPLORE TOPICS & GUIDES */}
-      <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="space-y-6 mb-12">
-          <div className="space-y-2">
-            <span className="text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase">
-              EXPLORE TOPICS
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white font-display">
-              Curated guides for builders.
-            </h2>
+      {/* 3. TOPIC GRID (10 EDITORIAL TOPICS) */}
+      <section className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <span className="text-xs font-mono tracking-[0.25em] text-cyan-400 uppercase">
+            EXPLORE BY TOPIC
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white font-display mt-1">
+            Browse knowledge streams
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+          {EDITORIAL_TOPICS.map((topic) => (
+            <div
+              key={topic.num}
+              onClick={() => onAsk(topic.query)}
+              className="cursor-pointer rounded-xl border border-slate-800 hover:border-cyan-500/40 bg-slate-900/40 p-4 flex items-center justify-between transition-all duration-200 group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-xs text-slate-500 group-hover:text-cyan-400 transition-colors">
+                  {topic.num}
+                </span>
+                <span className="text-sm font-semibold text-white group-hover:text-cyan-200 transition-colors">
+                  {topic.label}
+                </span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 4. LEARNING PATHS */}
+      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <span className="text-xs font-mono tracking-[0.25em] text-cyan-400 uppercase">
+            STRUCTURED PATHWAYS
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white font-display mt-1">
+            Choose your direction
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Path 01 */}
+          <div 
+            onClick={() => onAsk('Start Path 01: Begin with the fundamentals of AI and work toward my first automation')}
+            className="cursor-pointer rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-cyan-500/30 p-8 transition-all duration-200 group flex flex-col justify-between"
+          >
+            <div>
+              <div className="text-5xl font-mono text-slate-800 group-hover:text-cyan-500/30 transition-colors mb-4">
+                01
+              </div>
+              <span className="text-xs font-mono tracking-wider text-cyan-400 uppercase">
+                FOUNDATIONS
+              </span>
+              <h3 className="text-2xl font-bold text-white mt-1 mb-3 group-hover:text-cyan-300 transition-colors font-display">
+                Start Here
+              </h3>
+              <p className="text-slate-400 text-sm leading-relaxed mb-6">
+                New to AI? Begin with the fundamentals and work toward your first automation.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-cyan-400 text-sm font-medium pt-4 border-t border-slate-800/80">
+              <span>Begin pathway</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
           </div>
+
+          {/* Path 02 */}
+          <div 
+            onClick={() => onAsk('Start Path 02: Deep dive into agents, workflows and real AI systems')}
+            className="cursor-pointer rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-cyan-500/30 p-8 transition-all duration-200 group flex flex-col justify-between"
+          >
+            <div>
+              <div className="text-5xl font-mono text-slate-800 group-hover:text-cyan-500/30 transition-colors mb-4">
+                02
+              </div>
+              <span className="text-xs font-mono tracking-wider text-cyan-400 uppercase">
+                ADVANCED SYSTEMS
+              </span>
+              <h3 className="text-2xl font-bold text-white mt-1 mb-3 group-hover:text-cyan-300 transition-colors font-display">
+                Build With AI
+              </h3>
+              <p className="text-slate-400 text-sm leading-relaxed mb-6">
+                Already know the basics? Go deeper into agents, workflows and real systems.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-cyan-400 text-sm font-medium pt-4 border-t border-slate-800/80">
+              <span>Begin pathway</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. CURATED GUIDES CATALOGUE */}
+      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-800/60">
+        <div className="space-y-6 mb-10">
+          <ScrollReveal>
+            <div className="space-y-2">
+              <span className="text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase">
+                CURATED GUIDES
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-bold text-white font-display">
+                Deep dives for builders.
+              </h2>
+            </div>
+          </ScrollReveal>
 
           {/* Category Chips */}
           <div className="flex flex-wrap items-center gap-2 pt-2">
@@ -202,12 +300,12 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
           </div>
         </div>
 
-        {/* 6 Learning Guides Grid */}
+        {/* Learning Guides Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTopics.map((topic) => (
             <div
               key={topic.id}
-              onClick={() => onAsk(`Teach me about: ${topic.title}. Explain the key concepts and practical implementation steps.`)}
+              onClick={() => onAsk(`Teach me about: ${topic.title}. Explain key concepts and practical execution.`)}
               className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-72 relative border border-cyan-500/15"
             >
               <div>
@@ -243,8 +341,8 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
         </div>
       </section>
 
-      {/* 4. "FOUR PILLARS OF AI MASTERY" */}
-      <section className="py-20 lg:py-28 border-t border-slate-800/60 bg-[#03081c]/50 relative">
+      {/* 6. FOUR PILLARS METHODOLOGY */}
+      <section className="py-20 border-t border-slate-800/60 bg-[#03081c]/50 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <span className="text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase">
@@ -286,7 +384,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
         </div>
       </section>
 
-      {/* 5. BOTTOM CTA BANNER */}
+      {/* 7. BOTTOM CTA BANNER */}
       <CosmicCTABanner
         eyebrow="GO FURTHER"
         headline="Keep learning. Keep building."

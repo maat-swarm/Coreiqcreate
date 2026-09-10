@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CoreIQLogo } from './CoreIQLogo';
@@ -21,6 +21,16 @@ const NAV_ITEMS: { id: NavRoute; label: string }[] = [
 export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 80);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleNavClick = (route: NavRoute) => {
     onNavigate(route);
@@ -32,7 +42,13 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
   const targetUnderlineId = hoveredNav || activeNavId;
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#030712]/80 backdrop-blur-xl border-b border-cyan-500/10 transition-colors">
+    <header
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+        isScrolled
+          ? 'bg-[#050814]/95 backdrop-blur-2xl border-b border-[rgba(150,185,255,0.1)] shadow-[0_12px_32px_rgba(0,0,0,0.6)]'
+          : 'bg-[#050814]/70 backdrop-blur-md border-b border-transparent'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Logo */}
         <div 
@@ -57,53 +73,38 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
                 onMouseEnter={() => setHoveredNav(item.id)}
-                className="group relative text-sm font-medium py-2 px-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-lg cursor-pointer select-none transition-transform duration-200"
+                className="group relative text-sm font-medium py-2 px-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-lg cursor-pointer select-none"
               >
-                {/* Sliding ambient backdrop highlight */}
-                <AnimatePresence>
-                  {isHovered && (
-                    <motion.span
-                      layoutId="navHoverBacklight"
-                      initial={{ opacity: 0, scale: 0.94 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.94 }}
-                      transition={{ type: 'spring', stiffness: 450, damping: 32 }}
-                      className="absolute inset-0 -my-1 -mx-2 rounded-xl bg-gradient-to-b from-cyan-500/[0.09] to-cyan-500/[0.02] border border-cyan-400/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] pointer-events-none -z-0"
-                    />
-                  )}
-                </AnimatePresence>
-
-                {/* Subtle text-gradient shift on hover and active */}
+                {/* Text with smooth 0.2s color transition to white on hover */}
                 <span 
-                  className={`relative z-10 transition-transform duration-200 inline-block group-hover:-translate-y-0.5 nav-text-gradient ${
-                    isActive ? 'is-active' : ''
-                  } ${isHovered ? 'is-hovered' : ''}`}
+                  className={`relative z-10 transition-colors duration-200 inline-block ${
+                    isActive
+                      ? 'text-white font-semibold'
+                      : isHovered
+                      ? 'text-white'
+                      : 'text-slate-400'
+                  }`}
                 >
                   {item.label}
                 </span>
 
-                {/* Sliding underline effect: glides between links with physics spring */}
+                {/* Active/Hover cyan underline with a soft glow */}
                 {isUnderlined && (
                   <motion.div
                     layoutId="navSlidingUnderline"
                     transition={{
                       type: 'spring',
-                      stiffness: 420,
-                      damping: 30,
-                      mass: 0.65,
+                      stiffness: 450,
+                      damping: 32,
+                      mass: 0.6,
                     }}
-                    className="absolute -bottom-1 left-1.5 right-1.5 h-[2.5px] pointer-events-none z-20"
-                  >
-                    {/* Luminous multi-stop gradient energy beam */}
-                    <div className="w-full h-full rounded-full bg-gradient-to-r from-transparent via-cyan-400 via-sky-300 to-transparent shadow-[0_0_12px_rgba(34,211,238,0.9),0_0_22px_rgba(6,182,212,0.45)]" />
-                    {/* High-intensity micro center beam pip */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-[3.5px] rounded-full bg-white shadow-[0_0_6px_#ffffff,0_0_12px_#22d3ee]" />
-                  </motion.div>
+                    className="absolute -bottom-1 left-2 right-2 h-[2px] rounded-full bg-[#19d9ff] shadow-[0_0_10px_#19d9ff,0_0_20px_rgba(25,217,255,0.6)] pointer-events-none z-20"
+                  />
                 )}
 
                 {/* Subtle persistent active beacon when hovered on another link */}
                 {isActive && !isUnderlined && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400/80 shadow-[0_0_6px_#22d3ee] pointer-events-none" />
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#19d9ff] shadow-[0_0_8px_#19d9ff] pointer-events-none" />
                 )}
               </button>
             );
@@ -117,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
             className={`group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 active:scale-95 cursor-pointer ${
               currentRoute === 'ask'
                 ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400 shadow-[0_0_24px_rgba(34,211,238,0.4)]'
-                : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white border border-cyan-500/30 hover:border-cyan-400 hover:shadow-[0_0_22px_rgba(34,211,238,0.3)]'
+                : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white border border-[rgba(150,185,255,0.2)] hover:border-cyan-400 hover:shadow-[0_0_22px_rgba(34,211,238,0.3)]'
             }`}
           >
             <Sparkles className="w-4 h-4 text-cyan-400 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
@@ -145,48 +146,43 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
         </div>
       </div>
 
-      {/* Mobile Menu Drawer with Smooth Animation */}
+      {/* Mobile Navigation Dropdown */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
-            className="md:hidden overflow-hidden bg-[#040816]/98 border-b border-cyan-500/20 backdrop-blur-2xl"
+            className="md:hidden border-b border-[rgba(150,185,255,0.1)] bg-[#050814]/95 backdrop-blur-2xl overflow-hidden"
           >
-            <div className="px-6 py-6 space-y-3">
-              {NAV_ITEMS.map((item, idx) => {
+            <div className="px-4 pt-3 pb-6 space-y-2">
+              {NAV_ITEMS.map((item) => {
                 const isActive = currentRoute === item.id;
                 return (
-                  <motion.button
+                  <button
                     key={item.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.03, duration: 0.2 }}
                     onClick={() => handleNavClick(item.id)}
-                    className={`flex items-center justify-between w-full text-left py-2.5 px-4 rounded-xl text-base font-medium transition-colors ${
+                    className={`flex items-center justify-between w-full px-4 py-3 rounded-xl text-base font-medium transition-colors ${
                       isActive
-                        ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.15)]'
-                        : 'text-slate-300 hover:bg-slate-800/60 active:bg-slate-800'
+                        ? 'bg-cyan-500/15 text-white border border-cyan-500/30'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-900/60'
                     }`}
                   >
                     <span>{item.label}</span>
-                    {isActive && <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />}
-                  </motion.button>
+                    {isActive && <span className="w-2 h-2 rounded-full bg-[#19d9ff] shadow-[0_0_8px_#19d9ff]" />}
+                  </button>
                 );
               })}
-
-              <motion.button
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.2 }}
-                onClick={() => handleNavClick('ask')}
-                className="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500/25 via-blue-600/25 to-purple-600/25 border border-cyan-400/50 text-cyan-200 font-semibold text-base shadow-[0_0_20px_rgba(34,211,238,0.25)] active:scale-95 transition-transform"
-              >
-                <Sparkles className="w-4 h-4 text-cyan-400" />
-                <span>Ask Core IQ</span>
-              </motion.button>
+              <div className="pt-4">
+                <button
+                  onClick={() => handleNavClick('ask')}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-sm shadow-[0_0_20px_rgba(34,211,238,0.4)] active:scale-98 transition-transform"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Ask Core IQ</span>
+                </button>
+              </div>
             </div>
           </motion.div>
         )}

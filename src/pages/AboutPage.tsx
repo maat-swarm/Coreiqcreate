@@ -1,216 +1,188 @@
 import React from 'react';
-import { 
-  Sparkles, 
-  Lightbulb, 
-  Cpu, 
-  Zap, 
-  ArrowRight, 
-  Compass, 
-  Layers, 
-  Clock, 
-  CheckCircle2 
-} from 'lucide-react';
-import { ASSETS } from '../assets/images';
-import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
-import { CosmicCTABanner } from '../components/common/CosmicCTABanner';
+import { ArrowRight } from 'lucide-react';
 import { NavRoute } from '../types';
-import { ABOUT_PILLARS, CORE_BELIEFS } from '../data/aboutData';
-import { PROCESS_STEPS } from '../data/solutionsData';
+import { ScrollReveal } from '../components/common/ScrollReveal';
 
 interface AboutPageProps {
   onNavigate: (route: NavRoute) => void;
   onAsk: (query: string) => void;
 }
 
+const MANIFESTO_PRINCIPLES = [
+  {
+    num: '01',
+    title: 'Start with the problem.',
+    desc: 'Never build technology looking for an application. We isolate root bottlenecks, quantifiable frictions, and user goals before writing a single line.',
+  },
+  {
+    num: '02',
+    title: 'Use the smallest useful system.',
+    desc: 'Complexity is the enemy of reliability. Deploy the leanest architecture that solves the objective, avoiding bloated dependencies and brittle abstraction layers.',
+  },
+  {
+    num: '03',
+    title: 'Connect capability to workflow.',
+    desc: 'Isolated AI demos are vanity. Real value occurs when intelligence directly hooks into data pipelines, webhooks, databases, and daily operations.',
+  },
+  {
+    num: '04',
+    title: 'Test in reality.',
+    desc: 'Synthetic benchmarks do not reflect live conditions. We stress-test workflows against edge cases, dirty inputs, real user friction, and latency demands.',
+  },
+  {
+    num: '05',
+    title: 'Improve continuously.',
+    desc: 'Launch is day zero. Autonomous agents and workflows must collect telemetry, monitor drift, adapt to new requirements, and compound value over time.',
+  },
+];
+
+const DELIVERY_STEPS = [
+  'UNDERSTAND',
+  'DESIGN',
+  'BUILD',
+  'CONNECT',
+  'LAUNCH',
+  'IMPROVE',
+];
+
 export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
-  const aboutPills = [
-    { label: 'Our philosophy', query: 'What is the philosophy behind Core IQ?' },
-    { label: 'How we build', query: 'How does Core IQ design and build solutions?' },
-    { label: 'The vision', query: 'What is the long term vision of Core IQ Create?' },
-  ];
-
-  const getPillarIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Lightbulb': return Lightbulb;
-      case 'Cpu': return Cpu;
-      case 'Zap': return Zap;
-      default: return Sparkles;
-    }
-  };
-
   return (
     <div className="w-full relative">
-      {/* 1. HERO SECTION */}
-      <section className="relative min-h-[85vh] flex items-center pt-8 pb-16 lg:py-20 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            
-            {/* Left Content */}
-            <div className="lg:col-span-7 space-y-7 z-10">
-              <span className="text-xs sm:text-sm font-semibold tracking-[0.25em] text-cyan-400 uppercase">
-                ABOUT CORE IQ
-              </span>
+      {/* 1. HERO SECTION: Full-viewport opening manifesto */}
+      <section className="relative min-h-[85vh] sm:min-h-screen flex items-center justify-center pt-16 pb-20 overflow-hidden">
+        {/* Subtle luminous core ambient glow behind text */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
 
-              <h1 className="text-5xl sm:text-6xl xl:text-7xl font-bold tracking-tight text-white font-display leading-[1.05]">
-                Intelligence should <br />
-                <span className="gradient-text-phoenix">help you create.</span>
-              </h1>
-
-              <p className="text-slate-300 text-base sm:text-lg lg:text-xl max-w-xl leading-relaxed">
-                We believe AI shouldn't just answer questions — it should help people build, automate, solve problems and bring meaningful ideas to life. That's why we created Core IQ.
-              </p>
-
-              <div className="pt-2">
-                <AskCoreIQBar
-                  placeholder="Ask Core IQ anything..."
-                  pills={aboutPills}
-                  onAsk={onAsk}
-                  size="large"
-                />
-              </div>
-            </div>
-
-            {/* Right Visual: Luminous Holographic AI Intelligence Profile */}
-            <div className="lg:col-span-5 relative flex justify-center items-center">
-              <div className="relative w-full max-w-[480px] aspect-square flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full bg-cyan-500/20 blur-[90px] animate-pulse-glow" />
-                <div className="relative w-full h-full rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_0_60px_rgba(6,182,212,0.3)] animate-float-slow">
-                  <img
-                    src={ASSETS.agentHead}
-                    alt="Core IQ Intelligence Mind"
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover object-center"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-40" />
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* 2. "IDEAS + INTELLIGENCE + ACTION" (3 PILLARS) */}
-      <section className="py-20 lg:py-28 border-t border-slate-800/60 bg-[#03081c]/50 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <span className="text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase">
-              OUR PHILOSOPHY
-            </span>
-            <h2 className="text-4xl sm:text-5xl font-bold text-white font-display">
-              Ideas. Intelligence. <span className="gradient-text-primary">Action.</span>
-            </h2>
-            <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
-              The formula behind everything we create. It's not enough to have an idea, or to have powerful technology. You need the bridge between them.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {ABOUT_PILLARS.map((pillar) => {
-              const Icon = getPillarIcon(pillar.iconName);
-              return (
-                <div 
-                  key={pillar.title}
-                  className="p-8 rounded-3xl coreiq-glass-card space-y-5 border border-cyan-500/20 relative"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center">
-                    <Icon className="w-6 h-6 text-cyan-300" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold tracking-wider text-cyan-400 uppercase block mb-1">
-                      {pillar.subtitle}
-                    </span>
-                    <h3 className="text-white font-bold text-2xl font-display">
-                      {pillar.title}
-                    </h3>
-                  </div>
-                  <p className="text-slate-300 text-sm leading-relaxed">
-                    {pillar.description}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* 3. CORE BELIEFS ("Built on first principles") */}
-      <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="space-y-4 mb-14">
-          <span className="text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase">
-            WHAT WE BELIEVE
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-center relative z-10 space-y-8">
+          <span className="text-xs font-mono tracking-[0.3em] text-cyan-400 uppercase">
+            CORE IQ CREATE / PHILOSOPHY
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white font-display">
-            Built on first principles.
-          </h2>
-          <p className="text-slate-300 text-base max-w-2xl leading-relaxed">
-            Honest craftsmanship and practical utility guide how we design, build, and interact.
+
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white font-display leading-[1.05]">
+            We build useful intelligence <br />
+            <span className="gradient-text-phoenix">into real work.</span>
+          </h1>
+
+          {/* Core Principle: IDEAS + INTELLIGENCE + ACTION */}
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 pt-4 text-xl sm:text-2xl md:text-3xl font-bold tracking-wider">
+            <span className="text-white">IDEAS</span>
+            <span className="text-cyan-500 font-normal">+</span>
+            <span className="text-white">INTELLIGENCE</span>
+            <span className="text-cyan-500 font-normal">+</span>
+            <span className="text-white">ACTION</span>
+          </div>
+
+          <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed pt-2">
+            The bridge between vision and working systems. We engineer focused artificial intelligence that powers real-world automation, tools, and platforms.
           </p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {CORE_BELIEFS.map((belief, idx) => (
-            <div
-              key={idx}
-              className="p-8 rounded-2xl coreiq-glass-card space-y-3 border border-slate-800 hover:border-cyan-500/30 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
-                <h3 className="text-white font-bold text-xl font-display">
-                  {belief.title}
-                </h3>
-              </div>
-              <p className="text-slate-400 text-sm sm:text-base leading-relaxed pl-5.5">
-                {belief.description}
-              </p>
-            </div>
-          ))}
-        </div>
       </section>
 
-      {/* 4. "FROM VISION TO WORKING REALITY" (Creation Model) */}
-      <section className="py-20 lg:py-28 border-t border-slate-800/60 bg-[#03081c]/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-4 mb-14 text-center max-w-2xl mx-auto">
-            <span className="text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase">
-              THE CREATION MODEL
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white font-display">
-              From vision to working reality.
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {PROCESS_STEPS.map((step) => (
-              <div 
-                key={step.number}
-                className="p-5 rounded-2xl coreiq-glass-card flex flex-col justify-between h-40 border border-cyan-500/15 text-center items-center"
-              >
-                <div className="w-9 h-9 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-xs font-mono font-bold text-cyan-300">
-                  {step.number}
+      {/* 2. DELIVERY LOOP JOURNEY STRIP */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="rounded-2xl bg-slate-900/40 border border-slate-800 py-6 px-6 sm:px-8 backdrop-blur-sm shadow-xl">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {DELIVERY_STEPS.map((step, idx) => (
+              <React.Fragment key={step}>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
+                  <span className="text-xs sm:text-sm font-mono tracking-widest text-slate-300 uppercase font-semibold">
+                    {step}
+                  </span>
                 </div>
-                <div>
-                  <div className="text-xs font-bold tracking-wider text-white uppercase mb-1">
-                    {step.label}
+                {idx < DELIVERY_STEPS.length - 1 && (
+                  <div className="hidden lg:flex items-center flex-1 mx-2">
+                    <div className="h-[1px] w-full bg-cyan-500/20" />
+                    <span className="text-cyan-500/40 text-xs font-mono ml-1">→</span>
                   </div>
-                  <p className="text-slate-400 text-[11px] leading-relaxed">
-                    {step.sublabel}
-                  </p>
-                </div>
-              </div>
+                )}
+              </React.Fragment>
             ))}
           </div>
         </div>
       </section>
 
-      {/* 5. BOTTOM CTA BANNER */}
-      <CosmicCTABanner
-        eyebrow="READY TO CREATE?"
-        headline="Let's create what matters."
-        subtext="Have an idea, a problem to solve, or something you want to build? Core IQ is ready."
-        inputPlaceholder="Ask Core IQ anything..."
-        onAsk={onAsk}
-      />
+      {/* 3. PRINCIPLES STREAM: 5 full-width numbered editorial rows */}
+      <section className="py-20 lg:py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <ScrollReveal>
+          <div className="space-y-3 mb-16">
+            <span className="text-xs font-mono tracking-[0.3em] text-cyan-400 uppercase">
+              FOUNDATIONAL PRINCIPLES
+            </span>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white font-display">
+              How we think. How we build.
+            </h2>
+            <p className="text-slate-400 text-base max-w-2xl">
+              Five core principles that determine every architectural decision, prompt, integration, and interface we deploy.
+            </p>
+          </div>
+        </ScrollReveal>
+
+        {/* Editorial Stream Container with animated vertical line */}
+        <div className="relative border-t border-slate-800/80">
+          <div className="absolute left-[38px] top-0 bottom-0 w-[1px] bg-gradient-to-b from-cyan-500/30 via-purple-500/20 to-transparent hidden lg:block animate-line-grow" />
+
+          {MANIFESTO_PRINCIPLES.map((principle) => (
+            <div
+              key={principle.num}
+              className="group py-10 sm:py-12 border-b border-slate-800/80 transition-all duration-200 hover:bg-slate-900/30 px-4 sm:px-6 -mx-4 sm:-mx-6 rounded-xl"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 items-center">
+                {/* Large Monospace Number */}
+                <div className="md:col-span-2">
+                  <span className="font-mono text-5xl sm:text-6xl text-slate-800 group-hover:text-cyan-500 transition-colors duration-200 select-none">
+                    {principle.num}
+                  </span>
+                </div>
+
+                {/* Principle Statement */}
+                <div className="md:col-span-4">
+                  <h3 className="text-2xl sm:text-3xl font-bold text-white group-hover:text-cyan-300 transition-colors duration-200 font-display">
+                    {principle.title}
+                  </h3>
+                </div>
+
+                {/* Description */}
+                <div className="md:col-span-6">
+                  <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
+                    {principle.desc}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 4. CLOSING CTA */}
+      <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center border-t border-slate-800/80">
+        <div className="max-w-2xl mx-auto space-y-6">
+          <span className="text-xs font-mono tracking-[0.3em] text-cyan-400 uppercase">
+            COLLABORATE
+          </span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white font-display">
+            Ready to build what's next?
+          </h2>
+          <p className="text-slate-400 text-base leading-relaxed">
+            Bring your hardest problem or ambitious concept. Core IQ will help you map the architecture and build the solution.
+          </p>
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => onNavigate('ask')}
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_25px_rgba(34,211,238,0.5)] transition-all duration-200"
+            >
+              Ask Core IQ
+            </button>
+            <button
+              onClick={() => onNavigate('ask')}
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-semibold text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 hover:bg-cyan-500/10 transition-all duration-200"
+            >
+              Start a project
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

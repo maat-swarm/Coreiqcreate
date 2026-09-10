@@ -19,6 +19,8 @@ import {
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
 import { CosmicCTABanner } from '../components/common/CosmicCTABanner';
+import { PageHeroVisual } from '../components/common/PageHeroVisual';
+import { ScrollReveal } from '../components/common/ScrollReveal';
 import { NavRoute } from '../types';
 import { APPS_LIST, APP_CATEGORIES, PRO_TIERS } from '../data/appsData';
 
@@ -92,93 +94,101 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
 
             {/* Right Visual: Floating Multi-Screen Showcase */}
             <div className="lg:col-span-5 relative flex justify-center items-center">
-              <div className="relative w-full max-w-[480px] aspect-square flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full bg-cyan-500/20 blur-[90px] animate-pulse-glow" />
-                <div className="relative w-full h-full rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_0_60px_rgba(6,182,212,0.3)] animate-float-slow">
-                  <img
-                    src={ASSETS.appsShowcase}
-                    alt="Core IQ Apps Showcase"
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover object-center"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-40" />
+              <PageHeroVisual>
+                <div className="relative w-full max-w-[480px] aspect-square flex items-center justify-center">
+                  <div className="relative w-full h-full rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_0_60px_rgba(6,182,212,0.3)]">
+                    <img
+                      src={ASSETS.appsShowcase}
+                      alt="Core IQ Apps Showcase"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover object-center"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-40" />
+                  </div>
                 </div>
-              </div>
+              </PageHeroVisual>
             </div>
 
           </div>
         </div>
       </section>
 
-      {/* 2. FEATURED APPLICATION: ImageForge */}
-      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative rounded-3xl overflow-hidden border border-cyan-500/30 bg-gradient-to-br from-[#060e28] via-[#09153a] to-[#040817] p-8 sm:p-12 lg:p-14 shadow-[0_0_50px_rgba(34,211,238,0.15)]">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            
-            {/* Left: Interactive Mock Canvas */}
-            <div className="lg:col-span-7 relative">
-              <div className="rounded-2xl overflow-hidden border border-cyan-400/30 bg-slate-950/90 shadow-2xl p-4">
-                {/* Header bar */}
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4 text-xs text-slate-400">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                    <span className="font-semibold text-white ml-2">ImageForge Studio</span>
-                  </div>
-                  <span className="text-[11px] font-mono text-cyan-400">v2.4 Live</span>
-                </div>
+      {/* 2. FEATURED APPLICATION: CORE BRIEF HERO BLOCK */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="rounded-3xl bg-gradient-to-br from-slate-900/80 via-slate-900/40 to-slate-950/90 border border-slate-700/50 p-8 sm:p-12 mb-16 relative overflow-hidden backdrop-blur-md shadow-[0_0_50px_rgba(34,211,238,0.12)]">
+          {/* Subtle luminous background aura */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-purple-600/10 rounded-full blur-[90px] pointer-events-none" />
 
-                {/* Studio Canvas Preview */}
-                <div className="relative aspect-[16/10] rounded-xl overflow-hidden border border-slate-800">
-                  <img
-                    src={ASSETS.imageforgeArt}
-                    alt="ImageForge Generation"
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute bottom-3 left-3 right-3 p-3 rounded-lg bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 flex items-center justify-between text-xs text-white">
-                    <span className="truncate pr-2 font-mono text-[11px] text-cyan-200">
-                      Prompt: "Luminous hyper-space nebula mountain peak"
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-semibold shrink-0">
-                      Generated 1.2s
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Info */}
-            <div className="lg:col-span-5 space-y-6">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-md text-[10px] font-bold tracking-widest text-cyan-300 bg-cyan-500/20 border border-cyan-400/40 uppercase">
-                  FEATURED
-                </span>
-                <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                  AI POWERED
-                </span>
-              </div>
-
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white font-display">
-                ImageForge
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center relative z-10">
+            {/* Left side (roughly 55%) */}
+            <div className="lg:col-span-7 space-y-4">
+              <span className="text-xs font-mono tracking-widest text-cyan-400 uppercase">
+                FEATURED / CORE BRIEF
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-bold text-white mt-3 mb-4 font-display">
+                From rough idea to usable brief.
               </h2>
-
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-                Turn your ideas into stunning visuals. Create, edit and transform images with the power of AI. Perfect for marketers, creators and businesses who need high-quality visuals, fast.
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed mb-6 max-w-xl">
+                Paste messy notes, voice transcripts or bullet points. Core Brief extracts goals, constraints, technical requirements and produces a structured build plan.
               </p>
-
               <div>
                 <button
-                  onClick={() => onAsk("I want to launch and test ImageForge")}
+                  onClick={() => onAsk('I want to try Core Brief to create a structured build plan')}
                   className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_25px_rgba(34,211,238,0.5)] transition-all duration-200"
                 >
-                  <span>Try it</span>
+                  <span>Try it free</span>
                   <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                 </button>
               </div>
             </div>
 
+            {/* Right side (roughly 45%) */}
+            <div className="lg:col-span-5 relative">
+              <div className="rounded-2xl border border-slate-700/70 bg-slate-950/90 p-5 sm:p-6 shadow-2xl backdrop-blur-md space-y-4">
+                {/* Raw input textarea mockup */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="font-mono text-[11px] text-cyan-400 uppercase">Raw Input</span>
+                    <span className="text-[10px] text-slate-500 font-mono">Unstructured text</span>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-mono text-slate-300 leading-relaxed select-none">
+                    Notes: Need a client portal. Must sync with Airtable, send email receipts, support 3 user roles, mobile friendly, launch in 3 weeks...
+                  </div>
+                </div>
+
+                {/* Arrow pointing to structured output */}
+                <div className="flex items-center justify-center py-0.5">
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-[11px] font-mono">
+                    <span>Extracting architecture</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-cyan-400" />
+                  </div>
+                </div>
+
+                {/* Structured output section */}
+                <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[11px] text-cyan-400 uppercase">Structured Output</span>
+                    <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Brief ready</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <span className="px-3 py-1 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-200 text-xs font-mono">
+                      Scope: 3 weeks
+                    </span>
+                    <span className="px-3 py-1 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-200 text-xs font-mono">
+                      Airtable Sync
+                    </span>
+                    <span className="px-3 py-1 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-200 text-xs font-mono">
+                      RBAC: 3 Roles
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -186,14 +196,16 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
       {/* 3. EXPLORE APPS CATALOGUE */}
       <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="space-y-6 mb-12">
-          <div className="space-y-2">
-            <span className="text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase">
-              EXPLORE APPS
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white font-display">
-              Find the right app for your needs.
-            </h2>
-          </div>
+          <ScrollReveal>
+            <div className="space-y-2">
+              <span className="text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase">
+                EXPLORE APPS
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-bold text-white font-display">
+                Find the right app for your needs.
+              </h2>
+            </div>
+          </ScrollReveal>
 
           {/* Category Filter Chips */}
           <div className="flex flex-wrap items-center gap-2 pt-2">
@@ -224,7 +236,7 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
               <div
                 key={app.id}
                 onClick={() => onAsk(`Tell me about the ${app.title} application and how I can use it.`)}
-                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-64 relative border border-cyan-500/15"
+                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-auto min-h-[180px] relative border border-cyan-500/15 transition-all duration-200 hover:border-cyan-400/40 hover:-translate-y-1"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">

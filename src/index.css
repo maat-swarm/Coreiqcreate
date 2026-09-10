@@ -3,7 +3,7 @@
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #020617;
+    background-color: #050814;
     color: #f8fafc;
   }
 
@@ -13,43 +13,341 @@
   }
 }
 
-@keyframes pulseGlow {
+/* ==========================================================================
+   1. GLOBAL ATMOSPHERE & NOISE DRIFT (60s cycle)
+   ========================================================================== */
+@keyframes noiseDrift {
+  0% {
+    transform: translate(0px, 0px);
+  }
+  25% {
+    transform: translate(-30px, 20px);
+  }
+  50% {
+    transform: translate(25px, -35px);
+  }
+  75% {
+    transform: translate(-20px, -20px);
+  }
+  100% {
+    transform: translate(0px, 0px);
+  }
+}
+
+.animate-noise-drift {
+  animation: noiseDrift 60s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ==========================================================================
+   2. HERO PHOENIX / ORB VISUAL ANIMATIONS
+   ========================================================================== */
+
+/* Outer ribbon elements: 8s linear continuous rotation */
+@keyframes rotateRibbon {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes rotateRibbonReverse {
+  0% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-rotate-ribbon {
+  animation: rotateRibbon 8s linear infinite;
+  transform-origin: center center;
+}
+
+.animate-rotate-ribbon-reverse {
+  animation: rotateRibbonReverse 10s linear infinite;
+  transform-origin: center center;
+}
+
+/* Central core orb breathing glow: 0 0 40px #19d9ff to 0 0 80px #8658ff over 3s */
+@keyframes coreOrbBreathe {
   0%, 100% {
-    opacity: 0.6;
+    box-shadow: 0 0 40px #19d9ff, inset 0 0 30px rgba(25, 217, 255, 0.4);
+    transform: scale(0.96);
+  }
+  50% {
+    box-shadow: 0 0 80px #8658ff, inset 0 0 50px rgba(134, 88, 255, 0.5);
+    transform: scale(1.05);
+  }
+}
+
+.animate-orb-pulse {
+  animation: coreOrbBreathe 3s ease-in-out infinite;
+  will-change: transform, box-shadow;
+}
+
+/* Small square particles drifting outward then fading (opacity 1 -> 0 over 4s) */
+@keyframes squareDriftTR {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(45px, -45px) rotate(45deg);
+    opacity: 0;
+  }
+}
+
+@keyframes squareDriftTL {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-45px, -40px) rotate(-35deg);
+    opacity: 0;
+  }
+}
+
+@keyframes squareDriftBR {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(50px, 35px) rotate(40deg);
+    opacity: 0;
+  }
+}
+
+@keyframes squareDriftBL {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-40px, 45px) rotate(-45deg);
+    opacity: 0;
+  }
+}
+
+.animate-square-tr-1 { animation: squareDriftTR 4s ease-out infinite; }
+.animate-square-tr-2 { animation: squareDriftTR 4s ease-out infinite 1.8s; }
+.animate-square-tl-1 { animation: squareDriftTL 4s ease-out infinite 0.9s; }
+.animate-square-tl-2 { animation: squareDriftTL 4s ease-out infinite 2.7s; }
+.animate-square-br-1 { animation: squareDriftBR 4s ease-out infinite 1.3s; }
+.animate-square-br-2 { animation: squareDriftBR 4s ease-out infinite 3.1s; }
+.animate-square-bl-1 { animation: squareDriftBL 4s ease-out infinite 0.5s; }
+.animate-square-bl-2 { animation: squareDriftBL 4s ease-out infinite 2.2s; }
+
+/* ==========================================================================
+   3. CAPABILITY STRIP ICON GLOW
+   ========================================================================== */
+@keyframes capabilityIconGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 6px rgba(25, 217, 255, 0.3));
     transform: scale(1);
   }
   50% {
-    opacity: 0.9;
-    transform: scale(1.04);
+    filter: drop-shadow(0 0 16px rgba(134, 88, 255, 0.65));
+    transform: scale(1.03);
   }
 }
 
-@keyframes floatSlow {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-8px) rotate(1deg);
-  }
+.animate-icon-glow {
+  animation: capabilityIconGlow 2.8s ease-in-out infinite;
 }
 
-@keyframes shimmer {
+/* ==========================================================================
+   4. PROCESS SECTION FLOW & TOPOGRAPHY
+   ========================================================================== */
+@keyframes journeyLineParticle {
   0% {
-    background-position: -200% 0;
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
   }
   100% {
-    background-position: 200% 0;
+    offset-distance: 100%;
+    opacity: 0;
   }
 }
 
-.animate-pulse-glow {
-  animation: pulseGlow 6s ease-in-out infinite;
+@keyframes nodeJourneyPulse {
+  0%, 100% {
+    box-shadow: none;
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(25, 217, 255, 0.45);
+    border-color: rgba(25, 217, 255, 0.6);
+  }
 }
 
-.animate-float-slow {
-  animation: floatSlow 7s ease-in-out infinite;
+.animate-node-journey-0 { animation: nodeJourneyPulse 3s ease-in-out infinite 0s; }
+.animate-node-journey-1 { animation: nodeJourneyPulse 3s ease-in-out infinite 0.75s; }
+.animate-node-journey-2 { animation: nodeJourneyPulse 3s ease-in-out infinite 1.5s; }
+.animate-node-journey-3 { animation: nodeJourneyPulse 3s ease-in-out infinite 2.25s; }
+
+@keyframes topographyDrift {
+  0% {
+    background-position: 0px 0px;
+  }
+  100% {
+    background-position: 240px 0px;
+  }
 }
 
+.animate-topography-drift {
+  animation: topographyDrift 60s linear infinite;
+  will-change: background-position;
+}
+
+/* ==========================================================================
+   5. ALL PAGES — CARD HOVER STATES
+   - Default: dark glass surface, border 1px rgba(150,185,255,0.16)
+   - Hover: border brightens to rgba(25,217,255,0.4), translateY(-4px), 
+     subtle inner glow appears (box-shadow inset)
+   - Transition: 0.25s ease-out on all properties
+   - Shimmer effect sweeps left to right in 0.6s
+   ========================================================================== */
+.coreiq-glass-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(13, 23, 52, 0.7) 0%, rgba(6, 12, 28, 0.85) 100%);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(150, 185, 255, 0.16);
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.5);
+  transition: transform 0.25s ease-out, 
+              border-color 0.25s ease-out, 
+              box-shadow 0.25s ease-out;
+  will-change: transform, box-shadow, border-color;
+}
+
+.coreiq-glass-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  transform: skewX(-22deg);
+  pointer-events: none;
+  transition: none;
+}
+
+.coreiq-glass-card:hover {
+  border-color: rgba(25, 217, 255, 0.4);
+  transform: translateY(-4px);
+  box-shadow: inset 0 0 20px rgba(25, 217, 255, 0.14), 
+              0 14px 34px -8px rgba(0, 0, 0, 0.65), 
+              0 0 24px -4px rgba(25, 217, 255, 0.2);
+}
+
+.coreiq-glass-card:hover::after {
+  left: 170%;
+  transition: left 0.6s ease;
+}
+
+.coreiq-glass-card:active {
+  transform: translateY(-2px);
+}
+
+.coreiq-glass-panel {
+  background: rgba(8, 15, 36, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(150, 185, 255, 0.16);
+}
+
+/* ==========================================================================
+   6. ASK CORE IQ INPUT (Gradient background shift + Focus states)
+   ========================================================================== */
+@keyframes subtleGradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-input-gradient {
+  background: linear-gradient(135deg, rgba(14, 23, 52, 0.95), rgba(9, 16, 38, 0.92), rgba(18, 28, 62, 0.95));
+  background-size: 200% 200%;
+  animation: subtleGradientShift 14s ease infinite;
+}
+
+/* ==========================================================================
+   7. PAGE HERO VISUAL FLOATING & PARTICLES (Solutions, Apps, Learn, Tools)
+   translateY -8px -> 8px, 4s ease-in-out infinite
+   ========================================================================== */
+@keyframes heroFloat {
+  0%, 100% {
+    transform: translateY(-8px);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+@keyframes heroFloatBreath {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes glowShift {
+  0%, 100% {
+    background: radial-gradient(circle, rgba(25, 217, 255, 0.32) 0%, rgba(134, 88, 255, 0.1) 55%, transparent 75%);
+  }
+  50% {
+    background: radial-gradient(circle, rgba(134, 88, 255, 0.32) 0%, rgba(236, 72, 153, 0.12) 55%, transparent 75%);
+  }
+}
+
+.animate-hero-float {
+  animation: heroFloatBreath 6s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes particleUpDrift {
+  0% {
+    transform: translateY(0px) scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-75px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.animate-particle-up-1 { animation: particleUpDrift 3.4s ease-out infinite; }
+.animate-particle-up-2 { animation: particleUpDrift 4.0s ease-out infinite 0.9s; }
+.animate-particle-up-3 { animation: particleUpDrift 4.4s ease-out infinite 1.8s; }
+.animate-particle-up-4 { animation: particleUpDrift 3.7s ease-out infinite 2.6s; }
+
+/* ==========================================================================
+   8. MISCELLANEOUS HELPERS & GRADIENTS
+   ========================================================================== */
 .gradient-text-primary {
   background: linear-gradient(135deg, #38bdf8 0%, #818cf8 35%, #c084fc 65%, #f472b6 100%);
   -webkit-background-clip: text;
@@ -68,61 +366,51 @@
   -webkit-text-fill-color: transparent;
 }
 
-.glow-cyan {
-  box-shadow: 0 0 40px -10px rgba(6, 182, 212, 0.45);
+/* Ambient Pulse Glow */
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
 }
 
-.glow-purple {
-  box-shadow: 0 0 50px -10px rgba(168, 85, 247, 0.4);
+.animate-pulse-glow {
+  animation: pulseGlow 5s ease-in-out infinite;
 }
 
-.glow-pink {
-  box-shadow: 0 0 50px -10px rgba(236, 72, 153, 0.35);
+/* Slow Float fallback */
+.animate-float-slow {
+  animation: heroFloat 6s ease-in-out infinite;
 }
 
-.coreiq-glass-panel {
-  background: rgba(8, 15, 36, 0.72);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(56, 189, 248, 0.15);
+/* Navigation Link Text Styling */
+.nav-text-item {
+  color: #94a3b8;
+  transition: color 0.2s ease;
 }
 
-.coreiq-glass-card {
-  background: linear-gradient(145deg, rgba(13, 23, 52, 0.7) 0%, rgba(6, 12, 28, 0.85) 100%);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(56, 189, 248, 0.12);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
-              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
-              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, box-shadow;
+.nav-text-item:hover {
+  color: #ffffff;
 }
 
-.coreiq-glass-card:hover {
-  border-color: rgba(56, 189, 248, 0.4);
-  box-shadow: 0 12px 35px -8px rgba(34, 211, 238, 0.22), 0 0 25px -4px rgba(168, 85, 247, 0.18);
-  transform: translateY(-3px) scale(1.008);
-}
-
-.coreiq-glass-card:active {
-  transform: translateY(-1px) scale(0.995);
+.nav-text-item.is-active {
+  color: #ffffff;
+  font-weight: 600;
 }
 
 /* Traveling energy line animations */
 @keyframes flowDash {
-  0% {
-    stroke-dashoffset: 48;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
+  0% { stroke-dashoffset: 48; }
+  100% { stroke-dashoffset: 0; }
 }
 
 @keyframes reverseFlowDash {
-  0% {
-    stroke-dashoffset: 0;
-  }
-  100% {
-    stroke-dashoffset: 48;
-  }
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 48; }
 }
 
 .animate-flow-dash {
@@ -135,207 +423,83 @@
   animation: reverseFlowDash 4s linear infinite;
 }
 
-/* Ambient Volumetric Drift */
-@keyframes ambientDrift1 {
-  0%, 100% {
-    transform: translate(0px, 0px) scale(1);
-  }
-  33% {
-    transform: translate(25px, -30px) scale(1.05);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.95);
-  }
-}
-
-@keyframes ambientDrift2 {
-  0%, 100% {
-    transform: translate(0px, 0px) scale(1);
-  }
-  40% {
-    transform: translate(-30px, 25px) scale(1.08);
-  }
-  80% {
-    transform: translate(20px, -15px) scale(0.92);
-  }
-}
-
-@keyframes ambientDrift3 {
-  0%, 100% {
-    transform: translate(0px, 0px) scale(1);
-  }
-  50% {
-    transform: translate(35px, 20px) scale(1.06);
-  }
-}
-
-.animate-ambient-drift-1 {
-  animation: ambientDrift1 22s ease-in-out infinite;
-}
-
-.animate-ambient-drift-2 {
-  animation: ambientDrift2 26s ease-in-out infinite;
-}
-
-.animate-ambient-drift-3 {
-  animation: ambientDrift3 30s ease-in-out infinite;
-}
-
-/* Organic Micro-Particle Floating */
-@keyframes particleDrift {
-  0% {
-    transform: translateY(0px) translateX(0px);
-    opacity: 0.2;
-  }
-  50% {
-    transform: translateY(-40px) translateX(15px);
-    opacity: 0.7;
-  }
-  100% {
-    transform: translateY(-80px) translateX(-10px);
-    opacity: 0;
-  }
-}
-
-.animate-particle-1 {
-  animation: particleDrift 8s ease-in-out infinite;
-}
-
-.animate-particle-2 {
-  animation: particleDrift 11s ease-in-out infinite 2s;
-}
-
-.animate-particle-3 {
-  animation: particleDrift 14s ease-in-out infinite 4s;
-}
-
-/* Orbiting Capability Nodes Breathing */
-@keyframes orbitalBreathe {
-  0%, 100% {
-    transform: scale(1) translateY(0);
-  }
-  50% {
-    transform: scale(1.04) translateY(-3px);
-  }
-}
-
-.animate-orbital-breathe {
-  animation: orbitalBreathe 5s ease-in-out infinite;
-}
-
-/* Beacon Ping for Operational Indicators */
-@keyframes beaconSoft {
-  0% {
-    transform: scale(1);
-    opacity: 0.9;
-  }
-  50% {
-    transform: scale(1.5);
-    opacity: 0.3;
-  }
-  100% {
-    transform: scale(2);
-    opacity: 0;
-  }
-}
-
-.animate-beacon {
-  animation: beaconSoft 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-/* Gradient Energy Shift */
-@keyframes gradientCycle {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-.animate-gradient-shift {
-  background-size: 200% 200%;
-  animation: gradientCycle 8s ease infinite;
-}
-
-/* Navigation Link Sophisticated Text Gradient & Hover Shift */
-.nav-text-gradient {
-  color: #94a3b8;
-  background-image: linear-gradient(
-    115deg,
-    rgba(148, 163, 184, 0.9) 0%,
-    rgba(203, 213, 225, 0.95) 25%,
-    #ffffff 45%,
-    #38bdf8 68%,
-    #22d3ee 85%,
-    #c084fc 100%
-  );
-  background-size: 260% 100%;
-  background-position: 0% 50%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  transition: background-position 0.42s cubic-bezier(0.16, 1, 0.3, 1),
-              filter 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-              color 0.3s ease;
-  display: inline-block;
-  will-change: background-position, filter;
-}
-
-.nav-text-gradient.is-hovered,
-.nav-text-gradient:hover {
-  background-position: 70% 50%;
-  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.45));
-}
-
-.nav-text-gradient.is-active {
-  color: #ffffff;
-  background-image: linear-gradient(
-    115deg,
-    #ffffff 0%,
-    #e0f2fe 30%,
-    #38bdf8 65%,
-    #c084fc 100%
-  );
-  background-size: 100% 100%;
-  background-position: 50% 50%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.4));
-}
-
-.nav-text-gradient.is-active.is-hovered {
-  background-position: 70% 50%;
-  filter: drop-shadow(0 0 14px rgba(34, 211, 238, 0.65));
-}
-
-/* Accessibility: respect user prefers-reduced-motion */
+/* ==========================================================================
+   10. REDUCED MOTION MANDATE
+   ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
   ::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 0.1s !important;
     scroll-behavior: auto !important;
   }
+
+  /* Remove all continuous animations (particles, orbits, pulses, drifts) */
+  .animate-noise-drift,
+  .animate-rotate-ribbon,
+  .animate-rotate-ribbon-reverse,
+  .animate-orb-pulse,
+  .animate-hero-float,
+  .animate-icon-glow,
+  .animate-node-journey-0,
+  .animate-node-journey-1,
+  .animate-node-journey-2,
+  .animate-node-journey-3,
+  .animate-topography-drift,
   .animate-pulse-glow,
   .animate-float-slow,
-  .animate-ambient-drift-1,
-  .animate-ambient-drift-2,
-  .animate-ambient-drift-3,
-  .animate-particle-1,
-  .animate-particle-2,
-  .animate-particle-3,
+  .animate-input-gradient,
+  .animate-square-tr-1,
+  .animate-square-tr-2,
+  .animate-square-tl-1,
+  .animate-square-tl-2,
+  .animate-square-br-1,
+  .animate-square-br-2,
+  .animate-square-bl-1,
+  .animate-square-bl-2,
+  .animate-particle-up-1,
+  .animate-particle-up-2,
+  .animate-particle-up-3,
+  .animate-particle-up-4,
   .animate-flow-dash,
-  .animate-reverse-flow-dash,
-  .animate-beacon,
-  .animate-orbital-breathe {
+  .animate-reverse-flow-dash {
     animation: none !important;
     transform: none !important;
   }
+
+  /* Keep hover states (border colour change, lift) with duration max 0.1s */
+  .coreiq-glass-card:hover {
+    transform: translateY(-4px) !important;
+    transition: transform 0.1s ease-out, border-color 0.1s ease-out, box-shadow 0.1s ease-out !important;
+  }
+
+  .coreiq-glass-card:hover::after {
+    display: none !important;
+  }
+}
+
+@keyframes lineGrow {
+  from { transform: scaleY(0); opacity: 0; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+.animate-line-grow {
+  animation: lineGrow 0.6s ease-out forwards;
+  transform-origin: top;
+}
+
+.coreiq-capability-row {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.coreiq-capability-row:hover {
+  background: rgba(15, 23, 42, 0.3);
+  padding-left: 0.5rem;
+  border-radius: 0.5rem;
 }
