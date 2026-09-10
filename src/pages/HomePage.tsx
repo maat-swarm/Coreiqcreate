@@ -8,7 +8,7 @@ import { NavRoute } from '../types';
 const BackgroundLayers = () => (
   <div style={{position:'fixed',inset:0,zIndex:0,overflow:'hidden',pointerEvents:'none'}}>
     <img src="https://images.unsplash.com/photo-1744138147319-f86f8a0d9667?w=1920&q=80"
-      style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:0.22,mixBlendMode:'lighten'}} alt="" />
+      style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:0.30,mixBlendMode:'normal'}} alt="" />
     <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(5,8,20,0.95) 0%,rgba(26,10,62,0.7) 50%,rgba(5,8,20,0.95) 100%)'}} />
   </div>
 );
