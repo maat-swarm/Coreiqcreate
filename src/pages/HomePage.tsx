@@ -119,17 +119,24 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
       <section className="py-24 lg:py-32 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-            <div className="lg:col-span-5 space-y-6">
-              <span className="reveal-up text-[11px] font-semibold tracking-[0.25em] text-cyan-400 uppercase block">The Core IQ Process</span>
-              <h2 className="reveal-up text-3xl sm:text-4xl lg:text-5xl font-bold text-white font-display">From idea to reality</h2>
-              <p className="reveal-up text-slate-300 text-base leading-relaxed">You bring the vision. Core IQ handles the rest — analysing, planning, integrating and building with the power of AI, automation and the swarm.</p>
-              <div className="reveal-up">
-                <button onClick={() => onNavigate('solutions')}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium text-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/40 hover:border-cyan-400 transition-all duration-200">
-                  <span>See how it works</span><ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
+            <div className="lg:col-span-5 flex items-center justify-center">
+          <div className="relative w-full rounded-3xl overflow-hidden border border-cyan-500/20 shadow-[0_0_60px_rgba(25,217,255,0.15)]" style={{aspectRatio:'16/9'}}>
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            >
+              <source src="/hero-bg.mp4" type="video/mp4" />
+            </video>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050814]/60 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute bottom-4 left-4 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="text-[10px] font-mono text-cyan-400 tracking-widest">CORE IQ RUNTIME</span>
             </div>
+          </div>
+        </div>
 
             <div className="lg:col-span-7 reveal-up">
               <div className="relative p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900/90 via-[#060c22] to-slate-950 border border-cyan-500/20 shadow-[0_0_55px_rgba(6,182,212,0.14)] overflow-hidden">
