@@ -1,3 +1,4 @@
+import { SplashScreen } from './components/common/SplashScreen';
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
@@ -26,6 +27,7 @@ export default function App() {
 
   const [currentRoute, setCurrentRoute] = useState<NavRoute>(getRoute);
   const [activePrompt, setActivePrompt] = useState('');
+  const [showSplash, setShowSplash] = React.useState(true);
   const [pageKey, setPageKey] = useState(0);
 
   useScrollReveal();
@@ -43,6 +45,8 @@ export default function App() {
     window.history.pushState({}, '', route === 'home' ? '/' : `/${route}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
 
   return (
     <div className="min-h-screen bg-[#050814] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
