@@ -93,7 +93,17 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                   transformStyle:'preserve-3d',
                   transition:'transform 0.55s cubic-bezier(0.16,1,0.3,1)',
                 }}>
-                <CoreIQMark3D size={480} />
+                <div className="relative w-full rounded-2xl overflow-hidden border border-cyan-500/20 shadow-[0_0_50px_rgba(25,217,255,0.2)]" style={{aspectRatio:'16/9'}}>
+              <video autoPlay loop muted playsInline
+                className="w-full h-full object-cover">
+                <source src="/hero-bg-clean.mp4" type="video/mp4" />
+              </video>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#050814]/40 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                <span className="text-[9px] font-mono text-cyan-400 tracking-widest uppercase">Core IQ Runtime</span>
+              </div>
+            </div>
               </div>
             </div>
           </div>
