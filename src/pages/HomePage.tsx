@@ -37,7 +37,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
     <div className="w-full relative">
 
       {/* HERO */}
-      <section ref={heroRef} onMouseMove={onMove} onMouseLeave={() => setTilt({ x:0, y:0, on:false })}
+      <section ref={heroRef} onMouseMove={onMove} onMouseLeave={() =>
+      {/* HERO VIDEO BACKGROUND */}
+      <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
+        <video autoPlay loop muted playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-55">
+          <source src="/hero-bg-clean.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#050814]/70 via-[#050814]/30 to-[#050814]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#050814]/80 via-transparent to-transparent" />
+      </div> setTilt({ x:0, y:0, on:false })}
         className="relative min-h-[90vh] flex items-center pt-8 pb-16 lg:py-20 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none"
           style={{ background:'radial-gradient(ellipse 65% 65% at 70% 50%,rgba(57,123,255,0.10) 0%,transparent 70%)' }} />
