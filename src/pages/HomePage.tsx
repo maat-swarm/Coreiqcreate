@@ -37,73 +37,64 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
     <div className="w-full relative">
 
       {/* HERO */}
-      <section ref={heroRef} onMouseMove={onMove} onMouseLeave={() =>
-      {/* HERO VIDEO BACKGROUND */}
-      <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
-        <video autoPlay loop muted playsInline
-          className="absolute inset-0 w-full h-full object-cover opacity-55">
-          <source src="/hero-bg-clean.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#050814]/70 via-[#050814]/30 to-[#050814]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#050814]/80 via-transparent to-transparent" />
-      </div> setTilt({ x:0, y:0, on:false })}
-        className="relative min-h-[90vh] flex items-center pt-8 pb-16 lg:py-20 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background:'radial-gradient(ellipse 65% 65% at 70% 50%,rgba(57,123,255,0.10) 0%,transparent 70%)' }} />
+      <section
+        ref={heroRef}
+        onMouseMove={onMove}
+        onMouseLeave={() => setTilt({ x: 0, y: 0, active: false })}
+        className="relative min-h-[90vh] flex items-center pt-8 pb-16 lg:py-20 overflow-hidden"
+      >
+        {/* VIDEO BACKGROUND */}
+        <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
+          <video autoPlay loop muted playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{opacity: 0.45}}>
+            <source src="/hero-bg-clean.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#050814]/70 via-[#050814]/20 to-[#050814]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#050814]/80 via-transparent to-transparent" />
+        </div>
+
+        <div className="absolute inset-0 w-full h-full pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 65% 65% at 70% 50%,rgba(57,123,255,0.10) 0%,transparent 70%)' }} />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-
-            {/* Left */}
-            <div className="lg:col-span-6 xl:col-span-7 space-y-8 z-10">
-              <div className="reveal-up inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/[0.08] backdrop-blur-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee] animate-beacon" />
-                <span className="text-xs font-semibold tracking-[0.2em] text-cyan-300/80 uppercase">Ideas · Intelligence · Action</span>
+            <div className="lg:col-span-7 space-y-7 z-10">
+              <div className="inline-flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                <span className="text-xs sm:text-sm font-semibold tracking-[0.25em] text-slate-400 uppercase">IDEAS · INTELLIGENCE · ACTION</span>
               </div>
-
-              <div className="space-y-1">
-                <h1 className="reveal-up text-5xl sm:text-6xl xl:text-[72px] font-bold tracking-tight text-white font-display leading-[1.02]">
-                  Build what
-                </h1>
-                <h1 className="reveal-up text-5xl sm:text-6xl xl:text-[72px] font-bold tracking-tight font-display leading-[1.02] gradient-text-phoenix">
-                  matters.
-                </h1>
-              </div>
-
-              <p className="reveal-up text-slate-300 text-base sm:text-lg lg:text-xl max-w-lg leading-relaxed">
+              <h1 className="text-5xl sm:text-6xl xl:text-7xl font-bold tracking-tight text-white font-display leading-[1.05] reveal-up is-revealed">
+                Build what <br />
+                <span className="gradient-text-phoenix">matters.</span>
+              </h1>
+              <p className="text-slate-300 text-base sm:text-lg lg:text-xl font-normal max-w-xl leading-relaxed reveal-up is-revealed">
                 Core IQ is your AI partner for building, automating and scaling what's next. Describe your vision and let's create it — together.
               </p>
-
-              <div className="reveal-up pt-1">
-                <AskCoreIQBar placeholder="Tell us what you're trying to accomplish..." pills={pills} onAsk={onAsk} size="large" />
+              <div className="pt-2 reveal-up is-revealed">
+                <AskCoreIQBar
+                  placeholder="Tell us what you're trying to accomplish..."
+                  pills={homePills}
+                  onAsk={onAsk}
+                  size="large"
+                />
               </div>
-
-              <div className="reveal-up pt-6 flex items-center gap-3 text-xs tracking-widest text-slate-600 uppercase font-medium">
-                <span className="w-8 h-[1px] bg-slate-800" />
+              <div className="pt-4 flex items-center gap-3 text-xs tracking-widest text-slate-500 uppercase font-medium">
+                <span className="w-8 h-[1px] bg-slate-700" />
                 <span>Scroll to explore</span>
               </div>
             </div>
-
-            {/* Right — 3D mark with tilt */}
-            <div className="lg:col-span-6 xl:col-span-5 flex justify-center items-center select-none reveal-fade"
-              style={{ perspective:'1000px' }}>
-              <div
-                style={{
-                  transform: tilt.on ? `rotateY(${tilt.x*7}deg) rotateX(${-tilt.y*7}deg)` : 'none',
-                  transformStyle:'preserve-3d',
-                  transition:'transform 0.55s cubic-bezier(0.16,1,0.3,1)',
-                }}>
-                <div className="relative w-full rounded-2xl overflow-hidden border border-cyan-500/20 shadow-[0_0_50px_rgba(25,217,255,0.2)]" style={{aspectRatio:'16/9'}}>
-              <video autoPlay loop muted playsInline
-                className="w-full h-full object-cover">
-                <source src="/hero-bg-clean.mp4" type="video/mp4" />
-              </video>
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050814]/40 via-transparent to-transparent pointer-events-none" />
-              <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                <span className="text-[9px] font-mono text-cyan-400 tracking-widest uppercase">Core IQ Runtime</span>
-              </div>
-            </div>
+            <div className="lg:col-span-5 flex items-center justify-center">
+              <div className="relative w-full rounded-2xl overflow-hidden border border-cyan-500/20 shadow-[0_0_50px_rgba(25,217,255,0.2)]" style={{aspectRatio:'16/9'}}>
+                <video autoPlay loop muted playsInline
+                  className="w-full h-full object-cover">
+                  <source src="/hero-bg-clean.mp4" type="video/mp4" />
+                </video>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050814]/40 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="text-[9px] font-mono text-cyan-400 tracking-widest uppercase">Core IQ Runtime</span>
+                </div>
               </div>
             </div>
           </div>
