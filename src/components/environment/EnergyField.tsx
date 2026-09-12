@@ -72,7 +72,7 @@ export const EnergyField: React.FC<EnergyFieldProps> = ({
           strokeLinecap="round"
           filter="url(#ribbon-glow)"
           style={{
-            strokeDasharray: '300 250',
+            strokeDasharray: '300 300',
             animation: isReducedMotion ? 'none' : 'journeyLineStream 24s linear infinite',
             opacity: 0.8 * intensity,
           }}
@@ -96,7 +96,7 @@ export const EnergyField: React.FC<EnergyFieldProps> = ({
           strokeLinecap="round"
           filter="url(#ribbon-glow)"
           style={{
-            strokeDasharray: '240 280',
+            strokeDasharray: '250 250',
             animation: isReducedMotion ? 'none' : 'journeyLineStreamReverse 28s linear infinite',
             opacity: 0.7 * intensity,
           }}
@@ -110,7 +110,7 @@ export const EnergyField: React.FC<EnergyFieldProps> = ({
           strokeLinecap="round"
           filter="url(#ribbon-glow)"
           style={{
-            strokeDasharray: '180 320',
+            strokeDasharray: '200 400',
             animation: isReducedMotion ? 'none' : 'journeyLineStream 18s linear infinite',
             opacity: 0.65 * intensity,
           }}
@@ -124,7 +124,7 @@ export const EnergyField: React.FC<EnergyFieldProps> = ({
           strokeOpacity="0.45"
           strokeLinecap="round"
           style={{
-            strokeDasharray: '150 400',
+            strokeDasharray: '150 450',
             animation: isReducedMotion ? 'none' : 'journeyLineStream 35s linear infinite',
           }}
         />

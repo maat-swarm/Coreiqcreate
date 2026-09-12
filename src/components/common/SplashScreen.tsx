@@ -14,9 +14,16 @@ export function SplashScreen({ onComplete }: Props) {
   useEffect(() => {
     const v = ref.current;
     // Safety net: if video never loads/plays, don't strand the user
-    const fallback = setTimeout(finish, 6000);
+    const fallback = setTimeout(finish, 4000);
 
     if (!v) return () => clearTimeout(fallback);
+    v.muted = true;
+    v.defaultMuted = true;
+    v.playsInline = true;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    v.setAttribute('muted', '');
+
     v.play().catch(() => finish());
     v.onended = () => { clearTimeout(fallback); finish(); };
     v.onerror = () => { clearTimeout(fallback); finish(); };

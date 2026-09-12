@@ -424,19 +424,12 @@
 }
 
 /* ==========================================================================
-   10. REDUCED MOTION MANDATE
+   10. REDUCED MOTION & MOBILE PERFORMANCE PRUNING
+   Prune high-cost requestAnimationFrame / canvas loops & offload layering
+   to GPU-composited CSS transitions
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  ::before,
-  ::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.1s !important;
-    scroll-behavior: auto !important;
-  }
-
-  /* Remove all continuous animations (particles, orbits, pulses, drifts) */
+  /* Suppress continuous jarring or rapid animations */
   .animate-noise-drift,
   .animate-rotate-ribbon,
   .animate-rotate-ribbon-reverse,
@@ -466,18 +459,95 @@
   .animate-flow-dash,
   .animate-reverse-flow-dash {
     animation: none !important;
+  }
+
+  /* Maintain elegant, smooth transitions without visual jarring */
+  .reveal-up, .reveal-fade {
+    opacity: 1 !important;
     transform: none !important;
+    transition: opacity 0.4s ease !important;
   }
 
-  /* Keep hover states (border colour change, lift) with duration max 0.1s */
   .coreiq-glass-card:hover {
-    transform: translateY(-4px) !important;
-    transition: transform 0.1s ease-out, border-color 0.1s ease-out, box-shadow 0.1s ease-out !important;
+    transform: translateY(-2px) !important;
+    transition: transform 0.2s ease-out, border-color 0.2s ease-out, box-shadow 0.2s ease-out !important;
   }
+}
 
-  .coreiq-glass-card:hover::after {
-    display: none !important;
+/* Specific media query for mobile devices & reduced-motion environments to offload layering to CSS transitions */
+@media (prefers-reduced-motion: reduce), (max-width: 820px) and (pointer: coarse) {
+  .css-layer-transition {
+    will-change: transform, opacity;
+    transform: translate3d(0, 0, 0);
+    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
+}
+
+/* GPU-accelerated CSS particle animations for mobile and reduced-motion environments */
+@keyframes cssMoteDrift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translate3d(14px, -32px, 0) scale(1.2);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate3d(-10px, -68px, 0) scale(0.9);
+    opacity: 0.2;
+  }
+}
+
+@keyframes cssPixelDrift {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate3d(-12px, -36px, 0) rotate(45deg);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(8px, -72px, 0) rotate(90deg);
+    opacity: 0.25;
+  }
+}
+
+@keyframes cssSparkPulse {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(0.85);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate3d(6px, -24px, 0) scale(1.25);
+    opacity: 0.85;
+  }
+}
+
+.ambient-css-mote {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: cssMoteDrift 16s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.ambient-css-pixel {
+  position: absolute;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: cssPixelDrift 20s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.ambient-css-spark {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: cssSparkPulse 12s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes lineGrow {
@@ -674,7 +744,7 @@
     stroke-dashoffset: 0;
   }
   100% {
-    stroke-dashoffset: 1200;
+    stroke-dashoffset: 1000;
   }
 }
 

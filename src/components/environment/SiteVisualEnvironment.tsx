@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavRoute } from '../../types';
+import { useMotionPruning } from '../../hooks/useMotionPruning';
 import { VideoBackground } from './VideoBackground';
 import { AtmosphericLayer } from './AtmosphericLayer';
 import { AmbientParticles } from './AmbientParticles';
@@ -16,23 +17,20 @@ export const SiteVisualEnvironment: React.FC<SiteVisualEnvironmentProps> = ({
   currentRoute,
 }) => {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [isReducedMotion, setIsReducedMotion] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const rafRef = useRef<number>(0);
 
-  // 1. Detect prefers-reduced-motion
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setIsReducedMotion(mq.matches);
+  // 1. Detect prefers-reduced-motion and mobile device constraints
+  const { isReducedMotion, shouldPruneRAF } = useMotionPruning();
 
-    const onChange = (e: MediaQueryListEvent) => setIsReducedMotion(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-
-  // 2. Track pointer position with gentle normalization (-0.5 to 0.5)
+  // 2. Track pointer position via requestAnimationFrame on desktop only.
+  // On mobile devices (Android Chrome, etc.) or when reduced-motion is requested,
+  // we prune this high-cost rAF listener to avoid continuous React re-renders during touch scrolling.
   useEffect(() => {
-    if (isReducedMotion) return;
+    if (isReducedMotion || shouldPruneRAF) {
+      setMousePos({ x: 0, y: 0 });
+      return;
+    }
 
     const handlePointerMove = (e: MouseEvent) => {
       cancelAnimationFrame(rafRef.current);
@@ -45,11 +43,12 @@ export const SiteVisualEnvironment: React.FC<SiteVisualEnvironmentProps> = ({
     };
 
     window.addEventListener('mousemove', handlePointerMove, { passive: true });
+
     return () => {
       window.removeEventListener('mousemove', handlePointerMove);
       cancelAnimationFrame(rafRef.current);
     };
-  }, [isReducedMotion]);
+  }, [isReducedMotion, shouldPruneRAF]);
 
   // 3. Listen for Ask Core IQ focus & submit events
   useEffect(() => {
@@ -66,9 +65,12 @@ export const SiteVisualEnvironment: React.FC<SiteVisualEnvironmentProps> = ({
     <div
       id="site-visual-environment"
       aria-hidden="true"
-      className="fixed inset-0 pointer-events-none -z-10 overflow-hidden select-none bg-[#030712]"
+      className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none bg-[#030712]"
     >
-      <ScrollVisualController isReducedMotion={isReducedMotion}>
+      <ScrollVisualController
+        isReducedMotion={isReducedMotion}
+        shouldPruneRAF={shouldPruneRAF}
+      >
         {({ scrollProgress }) => (
           <>
             {/* LAYER 1: Core IQ Living World Video / Artwork Foundation */}
@@ -100,9 +102,10 @@ export const SiteVisualEnvironment: React.FC<SiteVisualEnvironmentProps> = ({
               scrollProgress={scrollProgress}
             />
 
-            {/* LAYER 5: Crystalline Particles, Pixel Fragments & Ambient Motes */}
+            {/* LAYER 5: Crystalline Particles, Pixel Fragments & Ambient Motes (Offloaded to CSS on mobile) */}
             <AmbientParticles
               isReducedMotion={isReducedMotion}
+              shouldPruneRAF={shouldPruneRAF}
               mousePos={mousePos}
               intensity={currentRoute === 'learn' ? 0.8 : 1}
             />
@@ -110,6 +113,7 @@ export const SiteVisualEnvironment: React.FC<SiteVisualEnvironmentProps> = ({
             {/* LAYER 6: Interactive Cursor Light Bloom & Resonant Input Reaction */}
             <InteractiveLightField
               isReducedMotion={isReducedMotion}
+              shouldPruneRAF={shouldPruneRAF}
               mousePos={mousePos}
               isInputFocused={isInputFocused}
             />

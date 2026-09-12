@@ -49,8 +49,7 @@ export const ImageBackground: React.FC<ImageBackgroundProps> = ({
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'linear-gradient(180deg, rgba(3, 7, 18, 0.45) 0%, rgba(3, 7, 18, 0.20) 40%, rgba(3, 7, 18, 0.65) 85%, #030712 100%)',
-          mixBlendMode: 'multiply',
+          background: 'linear-gradient(180deg, rgba(3, 7, 18, 0.20) 0%, rgba(3, 7, 18, 0.05) 40%, rgba(3, 7, 18, 0.45) 85%, #030712 100%)',
         }}
       />
     </div>

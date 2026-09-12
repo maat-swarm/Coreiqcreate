@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 
 interface InteractiveLightFieldProps {
   isReducedMotion: boolean;
+  shouldPruneRAF?: boolean;
   mousePos: { x: number; y: number };
   isInputFocused: boolean;
 }
 
 export const InteractiveLightField: React.FC<InteractiveLightFieldProps> = ({
   isReducedMotion,
+  shouldPruneRAF = false,
   mousePos,
   isInputFocused,
 }) => {
@@ -33,20 +35,22 @@ export const InteractiveLightField: React.FC<InteractiveLightFieldProps> = ({
 
   return (
     <div className="absolute inset-0 pointer-events-none z-[3] overflow-hidden select-none">
-      {/* 1. Dynamic Cursor Light Bloom (Follows cursor smoothly) */}
-      <div
-        className="absolute w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none transition-all duration-700 ease-out will-change-transform"
-        style={{
-          left: `${posX}%`,
-          top: `${posY}%`,
-          background: isInputFocused
-            ? 'radial-gradient(circle, rgba(25, 217, 255, 0.18) 0%, rgba(134, 88, 255, 0.12) 40%, transparent 70%)'
-            : 'radial-gradient(circle, rgba(25, 217, 255, 0.10) 0%, rgba(57, 123, 255, 0.05) 45%, transparent 70%)',
-          filter: 'blur(50px)',
-          transform: `translate(-50%, -50%) scale(${isInputFocused ? 1.35 : pulseActive ? 1.6 : 1})`,
-          opacity: isInputFocused ? 0.95 : pulseActive ? 1 : 0.75,
-        }}
-      />
+      {/* 1. Dynamic Cursor Light Bloom (Follows cursor smoothly on desktop; pruned on mobile to conserve GPU fill rate) */}
+      {!shouldPruneRAF && (
+        <div
+          className="absolute w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none transition-all duration-700 ease-out will-change-transform"
+          style={{
+            left: `${posX}%`,
+            top: `${posY}%`,
+            background: isInputFocused
+              ? 'radial-gradient(circle, rgba(25, 217, 255, 0.18) 0%, rgba(134, 88, 255, 0.12) 40%, transparent 70%)'
+              : 'radial-gradient(circle, rgba(25, 217, 255, 0.10) 0%, rgba(57, 123, 255, 0.05) 45%, transparent 70%)',
+            filter: 'blur(50px)',
+            transform: `translate(-50%, -50%) scale(${isInputFocused ? 1.35 : pulseActive ? 1.6 : 1})`,
+            opacity: isInputFocused ? 0.95 : pulseActive ? 1 : 0.75,
+          }}
+        />
+      )}
 
       {/* 2. Focused Input Resonating Wave */}
       {isInputFocused && (

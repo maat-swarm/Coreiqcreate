@@ -39,11 +39,10 @@ export const MascotEnvironment: React.FC<MascotEnvironmentProps> = ({
   return (
     <div className="absolute inset-0 pointer-events-none z-[2] overflow-hidden select-none">
       {/* Container anchored to the Mascot's position on the right ridge */}
-      {/* Desktop coordinates: around right 24% - 32%, bottom 22% - 35% */}
       <div
-        className="absolute right-[14%] sm:right-[18%] lg:right-[26%] bottom-[18%] sm:bottom-[22%] lg:bottom-[28%] w-48 h-48 sm:w-56 sm:h-56 pointer-events-none"
+        className="absolute left-[64%] sm:left-[68%] lg:left-[71%] top-[55%] sm:top-[55%] lg:top-[56%] -translate-x-1/2 -translate-y-1/2 w-64 h-64 sm:w-72 sm:h-72 pointer-events-none"
         style={{
-          transform: `translate3d(${gazeX * 0.5}px, ${-scrollOffset * 0.4 + gazeY * 0.5}px, 0)`,
+          transform: `translate3d(calc(-50% + ${gazeX * 0.5}px), calc(-50% + ${-scrollOffset * 0.4 + gazeY * 0.5}px), 0)`,
           transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
@@ -52,19 +51,19 @@ export const MascotEnvironment: React.FC<MascotEnvironmentProps> = ({
             ========================================================================= */}
         {/* Ambient chest illumination cast onto armor */}
         <div
-          className="absolute top-[48%] left-[45%] -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full pointer-events-none transition-all duration-500 will-change-transform"
+          className="absolute top-[58%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full pointer-events-none transition-all duration-500 will-change-transform"
           style={{
             background: isInputFocused
-              ? 'radial-gradient(circle, rgba(25, 217, 255, 0.65) 0%, rgba(134, 88, 255, 0.4) 40%, transparent 70%)'
-              : `radial-gradient(circle, rgba(25, 217, 255, ${0.35 + proximityGlow * 0.25}) 0%, rgba(134, 88, 255, 0.2) 45%, transparent 70%)`,
-            filter: 'blur(18px)',
-            transform: `scale(${isInputFocused ? 1.5 : pulseActive ? 1.8 : 1 + proximityGlow * 0.3})`,
+              ? 'radial-gradient(circle, rgba(25, 217, 255, 0.70) 0%, rgba(134, 88, 255, 0.45) 40%, transparent 70%)'
+              : `radial-gradient(circle, rgba(25, 217, 255, ${0.35 + proximityGlow * 0.28}) 0%, rgba(134, 88, 255, 0.22) 45%, transparent 70%)`,
+            filter: 'blur(20px)',
+            transform: `scale(${isInputFocused ? 1.5 : pulseActive ? 1.85 : 1 + proximityGlow * 0.3})`,
           }}
         />
 
         {/* Luminous Inner Core Heart Emblem */}
         <div
-          className="absolute top-[48%] left-[45%] -translate-x-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center pointer-events-none"
+          className="absolute top-[58%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center pointer-events-none"
           style={{
             animation: isReducedMotion ? 'none' : 'coreOrbBreathe 3.2s ease-in-out infinite',
           }}
@@ -97,18 +96,18 @@ export const MascotEnvironment: React.FC<MascotEnvironmentProps> = ({
             ========================================================================= */}
         {/* Subtle luminous visor flare that aligns with his eyes */}
         <div
-          className="absolute top-[28%] left-[45%] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          className="absolute top-[34%] left-[50%] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
           style={{
-            transform: `translate(${gazeX}px, ${gazeY}px)`,
+            transform: `translate(calc(-50% + ${gazeX}px), ${gazeY}px)`,
             transition: 'transform 0.3s ease-out',
           }}
         >
           <div
-            className="w-5 h-2 rounded-full blur-[3px] transition-opacity duration-300"
+            className="w-6 h-2 rounded-full blur-[3px] transition-opacity duration-300"
             style={{
               background: 'linear-gradient(90deg, #19d9ff 0%, #8658ff 100%)',
               opacity: isInputFocused ? 0.95 : 0.65 + proximityGlow * 0.25,
-              boxShadow: '0 0 10px #19d9ff',
+              boxShadow: '0 0 12px #19d9ff',
             }}
           />
         </div>
@@ -118,7 +117,7 @@ export const MascotEnvironment: React.FC<MascotEnvironmentProps> = ({
             ========================================================================= */}
         {/* Organic trailing light aura along his scarf */}
         <div
-          className="absolute top-[38%] left-[10%] w-24 h-12 pointer-events-none opacity-50"
+          className="absolute top-[48%] left-[24%] w-24 h-12 pointer-events-none opacity-50"
           style={{
             background: 'radial-gradient(ellipse at center, rgba(25, 217, 255, 0.25) 0%, rgba(134, 88, 255, 0.15) 50%, transparent 80%)',
             filter: 'blur(8px)',
@@ -128,7 +127,7 @@ export const MascotEnvironment: React.FC<MascotEnvironmentProps> = ({
       </div>
 
       {/* 4. Subtle Cybernetic Agent Status HUD (Discrete indicator near bottom-right) */}
-      <div className="hidden xl:flex absolute bottom-6 right-8 items-center gap-2.5 px-3 py-1.5 rounded-full border border-cyan-500/20 bg-[#030712]/75 backdrop-blur-md text-[11px] font-mono tracking-widest text-cyan-300/80 shadow-[0_0_20px_rgba(25,217,255,0.08)]">
+      <div className="flex absolute bottom-3 sm:bottom-6 right-3 sm:right-8 items-center gap-2 sm:gap-2.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-cyan-500/20 bg-[#030712]/85 backdrop-blur-md text-[9px] sm:text-[11px] font-mono tracking-wider sm:tracking-widest text-cyan-300/80 shadow-[0_0_20px_rgba(25,217,255,0.08)]">
         <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#19d9ff] animate-pulse" />
         <span className="text-slate-400">CORE IQ AGENT //</span>
         <span className="text-cyan-300 font-semibold">{isInputFocused ? 'RESONATING' : 'SENTINEL ACTIVE'}</span>

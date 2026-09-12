@@ -49,10 +49,10 @@ export default function App() {
   if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
 
   return (
-    <div className="min-h-screen bg-[#050814] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
+    <div className="min-h-screen bg-transparent text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
       <SiteVisualEnvironment currentRoute={currentRoute} />
       <Header currentRoute={currentRoute} onNavigate={navigateTo} />
-      <main key={pageKey} className="flex-1 w-full flex flex-col page-enter">
+      <main key={pageKey} className="relative z-10 flex-1 w-full flex flex-col page-enter">
         {currentRoute === 'home'      && <HomePage      onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
         {currentRoute === 'solutions' && <SolutionsPage onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
         {currentRoute === 'apps'      && <AppsPage      onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}

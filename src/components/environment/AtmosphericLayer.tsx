@@ -61,25 +61,25 @@ export const AtmosphericLayer: React.FC<AtmosphericLayerProps> = ({
     <div className="absolute inset-0 pointer-events-none overflow-hidden select-none">
       {/* 1. Deep Midnight Base Vignette */}
       <div 
-        className="absolute inset-0 bg-[#030712]/40"
+        className="absolute inset-0 bg-[#030712]/20"
         style={{
-          background: 'radial-gradient(circle at 50% 40%, transparent 20%, rgba(3, 7, 18, 0.75) 85%, #030712 100%)',
+          background: 'radial-gradient(circle at 50% 40%, transparent 35%, rgba(3, 7, 18, 0.45) 85%, rgba(3, 7, 18, 0.85) 100%)',
         }}
       />
 
       {/* 2. Mandatory Typography Protection Gradient (Desktop Left Side & Mobile Top) */}
-      {/* On desktop: heavy dark shield on left side so headlines like "Build what matters." always pass WCAG contrast */}
+      {/* On desktop: balanced dark shield on left side so headlines like "Build what matters." always pass WCAG contrast */}
       <div 
         className="absolute inset-0 hidden lg:block"
         style={{
-          background: 'linear-gradient(90deg, rgba(3,7,18,0.92) 0%, rgba(3,7,18,0.82) 38%, rgba(3,7,18,0.45) 60%, rgba(3,7,18,0.12) 80%, transparent 100%)',
+          background: 'linear-gradient(90deg, rgba(3,7,18,0.85) 0%, rgba(3,7,18,0.70) 38%, rgba(3,7,18,0.30) 60%, rgba(3,7,18,0.05) 80%, transparent 100%)',
         }}
       />
-      {/* On mobile/tablet: dark protection shield on top 70% of viewport */}
+      {/* On mobile/tablet: translucent atmospheric shield on top of viewport allowing artwork and video colors to pop */}
       <div 
         className="absolute inset-0 lg:hidden"
         style={{
-          background: 'linear-gradient(180deg, rgba(3,7,18,0.90) 0%, rgba(3,7,18,0.80) 45%, rgba(3,7,18,0.40) 75%, rgba(3,7,18,0.85) 100%)',
+          background: 'linear-gradient(180deg, rgba(3,7,18,0.60) 0%, rgba(3,7,18,0.30) 38%, rgba(3,7,18,0.12) 65%, rgba(3,7,18,0.55) 100%)',
         }}
       />
 

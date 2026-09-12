@@ -9,10 +9,11 @@ export const CoreIQMark3D: React.FC<CoreIQMark3DProps> = ({ className = '', size
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce), (max-width: 820px) and (pointer: coarse)');
     if (mq.matches) return;
     const el = svgRef.current;
     if (!el) return;
+    el.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
     let raf: number;
     const onMove = (e: MouseEvent) => {
       cancelAnimationFrame(raf);

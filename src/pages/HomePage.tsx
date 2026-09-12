@@ -68,54 +68,62 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 
             {/* Right — Environmental Viewport framing the Living Mascot */}
             <div className="lg:col-span-6 xl:col-span-5 flex justify-center lg:justify-end items-center select-none reveal-fade">
-              <div className="relative w-full max-w-[460px] aspect-square flex items-center justify-center pointer-events-auto">
-                {/* Subtle Interactive Holo-Ring */}
+              <div className="relative w-full max-w-[480px] h-[360px] sm:h-[420px] lg:h-[460px] flex flex-col justify-end p-4 sm:p-6 pointer-events-auto">
+                {/* Ethereal HUD Viewfinder Corner Ticks */}
                 <div 
-                  className="absolute inset-2 sm:inset-6 rounded-full border border-cyan-500/20 pointer-events-none transition-transform duration-700 ease-out"
+                  className="absolute inset-0 pointer-events-none transition-transform duration-700 ease-out"
                   style={{
                     transform: tilt.on ? `translate3d(${tilt.x * 12}px, ${tilt.y * 12}px, 0)` : 'none',
-                    boxShadow: 'inset 0 0 50px rgba(25, 217, 255, 0.04)',
                   }}
-                />
-                <div className="absolute inset-10 sm:inset-14 rounded-full border border-purple-500/15 pointer-events-none" />
+                >
+                  {/* Top-left corner tick */}
+                  <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-cyan-400/40 rounded-tl-lg" />
+                  {/* Top-right corner tick */}
+                  <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-cyan-400/40 rounded-tr-lg" />
+                  {/* Bottom-left corner tick */}
+                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-cyan-400/40 rounded-bl-lg" />
+                  {/* Bottom-right corner tick */}
+                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-cyan-400/40 rounded-br-lg" />
 
-                {/* Agent Sentinel Focus Telemetry Node */}
+                  {/* Subtle Central Target Reticle */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full border border-cyan-500/10" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-purple-500/10 animate-spin-slow" />
+                </div>
+
+                {/* Docked Agent Sentinel Telemetry HUD (Anchored to lower edge to keep mascot face & chest visible) */}
                 <div 
-                  className="relative p-6 sm:p-7 rounded-2xl border border-cyan-500/25 bg-[#030712]/60 backdrop-blur-xl shadow-[0_0_60px_rgba(25,217,255,0.08)] max-w-sm w-full text-left space-y-3.5 transition-all duration-500 hover:border-cyan-400/50"
+                  className="relative p-4 sm:p-5 rounded-xl border border-cyan-500/25 bg-[#030712]/70 backdrop-blur-xl shadow-[0_0_40px_rgba(25,217,255,0.06)] w-full text-left space-y-3 transition-all duration-500 hover:border-cyan-400/50"
                   style={{
-                    transform: tilt.on ? `translate3d(${tilt.x * 10}px, ${tilt.y * 10}px, 0)` : 'none',
+                    transform: tilt.on ? `translate3d(${tilt.x * 8}px, ${tilt.y * 8}px, 0)` : 'none',
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#19d9ff] animate-pulse" />
-                      <span className="text-[11px] font-mono tracking-widest text-cyan-300 font-semibold uppercase">AGENT ACTIVE</span>
+                      <span className="text-[11px] font-mono tracking-widest text-cyan-300 font-semibold uppercase">CORE IQ SENTINEL</span>
                     </div>
-                    <span className="text-[10px] font-mono text-slate-400 tracking-wider">ENV // ONLINE</span>
+                    <span className="text-[10px] font-mono text-slate-400 tracking-wider">SYSTEM // ONLINE</span>
                   </div>
 
-                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
-                    Observing environmental parameters. Synthesizing AI agents, apps, voice, and automated workflows.
+                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                    Intelligent environmental presence active. Connect your intent to synthesize agents, workflows, and tools.
                   </p>
 
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
-                    <span className="text-slate-400 font-mono">ENERGY RESONANCE</span>
-                    <span className="text-cyan-400 font-mono font-medium">99.8%</span>
-                  </div>
-
-                  {/* Micro Quick Actions connected to agent */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  {/* Micro Quick Actions connected to Ask Core IQ */}
+                  <div className="grid grid-cols-2 gap-2 pt-0.5">
                     <button
                       onClick={() => onAsk("I want to build an AI agent")}
-                      className="text-left px-3 py-2 rounded-lg bg-slate-900/70 hover:bg-cyan-950/60 border border-slate-800 hover:border-cyan-500/50 text-[11px] text-slate-300 hover:text-cyan-200 transition-colors truncate"
+                      className="text-left px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-cyan-950/60 border border-slate-800 hover:border-cyan-500/50 text-[11px] text-slate-300 hover:text-cyan-200 transition-colors truncate flex items-center gap-1.5"
                     >
-                      + AI Agent
+                      <span className="text-cyan-400 font-mono text-[10px]">01</span>
+                      <span>AI Agent</span>
                     </button>
                     <button
                       onClick={() => onAsk("I want to build a custom web app")}
-                      className="text-left px-3 py-2 rounded-lg bg-slate-900/70 hover:bg-purple-950/60 border border-slate-800 hover:border-purple-500/50 text-[11px] text-slate-300 hover:text-purple-200 transition-colors truncate"
+                      className="text-left px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-purple-950/60 border border-slate-800 hover:border-purple-500/50 text-[11px] text-slate-300 hover:text-purple-200 transition-colors truncate flex items-center gap-1.5"
                     >
-                      + Web App
+                      <span className="text-purple-400 font-mono text-[10px]">02</span>
+                      <span>Web App</span>
                     </button>
                   </div>
                 </div>

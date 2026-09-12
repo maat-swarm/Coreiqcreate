@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 
 interface AmbientParticlesProps {
   isReducedMotion: boolean;
+  shouldPruneRAF?: boolean;
   mousePos: { x: number; y: number };
   intensity?: number;
 }
@@ -22,15 +23,110 @@ interface Particle {
   phase: number;
 }
 
+/**
+ * Lightweight, GPU-accelerated CSS particle layer.
+ * Replaces high-cost requestAnimationFrame canvas drawing on mobile devices & reduced-motion,
+ * maintaining the Core IQ celestial aesthetic while offloading animation to the hardware compositor.
+ */
+const CSSAmbientParticles: React.FC<{ intensity?: number }> = ({ intensity = 1 }) => {
+  const cssParticles = [
+    // Cyan pixel fragments
+    { top: '18%', left: '22%', size: 4, type: 'pixel', color: 'rgba(25, 217, 255, 0.7)', delay: '0s', duration: '18s' },
+    { top: '65%', left: '15%', size: 3, type: 'pixel', color: 'rgba(25, 217, 255, 0.6)', delay: '3s', duration: '22s' },
+    { top: '42%', left: '82%', size: 3.5, type: 'pixel', color: 'rgba(25, 217, 255, 0.75)', delay: '7s', duration: '19s' },
+    // Violet / Magenta sparks
+    { top: '28%', left: '74%', size: 5, type: 'spark', color: 'rgba(134, 88, 255, 0.8)', delay: '2s', duration: '14s' },
+    { top: '80%', left: '68%', size: 4, type: 'spark', color: 'rgba(228, 71, 255, 0.75)', delay: '5s', duration: '16s' },
+    { top: '50%', left: '35%', size: 4.5, type: 'spark', color: 'rgba(57, 123, 255, 0.8)', delay: '9s', duration: '15s' },
+    // Warm celestial motes
+    { top: '35%', left: '55%', size: 3, type: 'mote', color: 'rgba(255, 180, 80, 0.7)', delay: '1s', duration: '17s' },
+    { top: '72%', left: '42%', size: 3.5, type: 'mote', color: 'rgba(255, 180, 80, 0.65)', delay: '6s', duration: '21s' },
+    { top: '15%', left: '60%', size: 2.5, type: 'mote', color: 'rgba(25, 217, 255, 0.55)', delay: '4s', duration: '20s' },
+  ];
+
+  return (
+    <div
+      aria-hidden="true"
+      className="absolute inset-0 pointer-events-none z-[2] select-none overflow-hidden css-particles-container"
+      style={{ opacity: intensity }}
+    >
+      {cssParticles.map((p, idx) => {
+        if (p.type === 'pixel') {
+          return (
+            <div
+              key={idx}
+              className="ambient-css-pixel"
+              style={{
+                top: p.top,
+                left: p.left,
+                width: `${p.size}px`,
+                height: `${p.size}px`,
+                backgroundColor: p.color,
+                boxShadow: `0 0 8px ${p.color}`,
+                animationDelay: p.delay,
+                animationDuration: p.duration,
+              }}
+            />
+          );
+        }
+
+        if (p.type === 'spark') {
+          return (
+            <div
+              key={idx}
+              className="ambient-css-spark"
+              style={{
+                top: p.top,
+                left: p.left,
+                width: `${p.size}px`,
+                height: `${p.size}px`,
+                backgroundColor: p.color,
+                boxShadow: `0 0 10px ${p.color}`,
+                animationDelay: p.delay,
+                animationDuration: p.duration,
+              }}
+            />
+          );
+        }
+
+        return (
+          <div
+            key={idx}
+            className="ambient-css-mote"
+            style={{
+              top: p.top,
+              left: p.left,
+              width: `${p.size}px`,
+              height: `${p.size}px`,
+              backgroundColor: p.color,
+              boxShadow: `0 0 6px ${p.color}`,
+              animationDelay: p.delay,
+              animationDuration: p.duration,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
 export const AmbientParticles: React.FC<AmbientParticlesProps> = ({
   isReducedMotion,
+  shouldPruneRAF = false,
   mousePos,
   intensity = 1,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const mousePosRef = useRef(mousePos);
+
+  // Keep mousePos updated without re-running the animation setup effect
+  useEffect(() => {
+    mousePosRef.current = mousePos;
+  }, [mousePos]);
 
   useEffect(() => {
-    if (isReducedMotion) return;
+    // If high-cost rAF should be pruned (mobile devices or reduced-motion), skip canvas initialization completely
+    if (isReducedMotion || shouldPruneRAF) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -38,20 +134,30 @@ export const AmbientParticles: React.FC<AmbientParticlesProps> = ({
     if (!ctx) return;
 
     let animId = 0;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const setupCanvas = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    setupCanvas();
 
     const onResize = () => {
       if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      setupCanvas();
     };
 
     window.addEventListener('resize', onResize);
 
-    // Responsive particle count: fewer on mobile screens, restrained overall
-    const isMobile = width < 768;
-    const count = isMobile ? 24 : 45;
+    const count = 40;
 
     const colors = [
       'rgba(25, 217, 255, ',   // Electric Cyan
@@ -75,7 +181,7 @@ export const AmbientParticles: React.FC<AmbientParticlesProps> = ({
         y: Math.random() * height,
         size: type === 'pixel' ? Math.random() * 3 + 2.5 : type === 'spark' ? Math.random() * 2 + 1.5 : Math.random() * 3 + 1,
         speedX: (Math.random() - 0.5) * 0.35,
-        speedY: -(Math.random() * 0.4 + 0.15), // Gentle upward drift
+        speedY: -(Math.random() * 0.4 + 0.15),
         opacity: Math.random() * maxOp,
         maxOpacity: maxOp,
         type,
@@ -95,8 +201,9 @@ export const AmbientParticles: React.FC<AmbientParticlesProps> = ({
 
       ctx.clearRect(0, 0, width, height);
 
-      const mouseWorldX = (mousePos.x + 0.5) * width;
-      const mouseWorldY = (mousePos.y + 0.5) * height;
+      const currentMouse = mousePosRef.current;
+      const mouseWorldX = (currentMouse.x + 0.5) * width;
+      const mouseWorldY = (currentMouse.y + 0.5) * height;
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
@@ -135,21 +242,17 @@ export const AmbientParticles: React.FC<AmbientParticlesProps> = ({
         ctx.rotate(p.rotation);
 
         if (p.type === 'pixel') {
-          // Sharp cybernetic pixel fragment
           ctx.fillStyle = `${p.color}${currentOpacity})`;
           ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-          // Subtle glow edge
           ctx.strokeStyle = `${p.color}${currentOpacity * 0.4})`;
           ctx.lineWidth = 0.5;
           ctx.strokeRect(-p.size / 2, -p.size / 2, p.size, p.size);
         } else if (p.type === 'spark') {
-          // Luminous starlight spark with cross glare
           ctx.fillStyle = `${p.color}${currentOpacity})`;
           ctx.beginPath();
           ctx.arc(0, 0, p.size * 0.8, 0, Math.PI * 2);
           ctx.fill();
 
-          // Horizontal/vertical micro glares
           ctx.strokeStyle = `${p.color}${currentOpacity * 0.6})`;
           ctx.lineWidth = 0.75;
           ctx.beginPath();
@@ -159,7 +262,6 @@ export const AmbientParticles: React.FC<AmbientParticlesProps> = ({
           ctx.lineTo(0, p.size * 2);
           ctx.stroke();
         } else {
-          // Soft atmospheric mote
           ctx.fillStyle = `${p.color}${currentOpacity})`;
           ctx.beginPath();
           ctx.arc(0, 0, p.size, 0, Math.PI * 2);
@@ -178,9 +280,12 @@ export const AmbientParticles: React.FC<AmbientParticlesProps> = ({
       window.removeEventListener('resize', onResize);
       cancelAnimationFrame(animId);
     };
-  }, [isReducedMotion, mousePos, intensity]);
+  }, [isReducedMotion, shouldPruneRAF, intensity]);
 
-  if (isReducedMotion) return null;
+  // When high-cost rAF should be pruned, offload particles to GPU-composited CSS transitions/animations
+  if (isReducedMotion || shouldPruneRAF) {
+    return <CSSAmbientParticles intensity={intensity} />;
+  }
 
   return (
     <canvas
