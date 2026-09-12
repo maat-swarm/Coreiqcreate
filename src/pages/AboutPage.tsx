@@ -56,7 +56,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-center relative z-10 space-y-8">
           <span className="text-xs font-mono tracking-[0.3em] text-cyan-400 uppercase">
-            CORE IQ CREATE / PHILOSOPHY
+            COREIQ CREATE / PHILOSOPHY
           </span>
 
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white font-display leading-[1.05]">
@@ -165,14 +165,14 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
             Ready to build what's next?
           </h2>
           <p className="text-slate-400 text-base leading-relaxed">
-            Bring your hardest problem or ambitious concept. Core IQ will help you map the architecture and build the solution.
+            Bring your hardest problem or ambitious concept. CoreIQ will help you map the architecture and build the solution.
           </p>
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => onNavigate('ask')}
               className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_25px_rgba(34,211,238,0.5)] transition-all duration-200"
             >
-              Ask Core IQ
+              Ask CoreIQ
             </button>
             <button
               onClick={() => onNavigate('ask')}

@@ -22,7 +22,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <CoreIQLogo size="lg" />
             </div>
             <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
-              Core IQ is an intelligent creation environment. We connect ideas with intelligence and action to help you build software, autonomous agents, and scalable automations.
+              CoreIQ is an intelligent creation environment. We connect ideas with intelligence and action to help you build software, autonomous agents, and scalable automations.
             </p>
             <div className="flex items-center gap-3 text-xs text-slate-500 tracking-wider uppercase font-semibold">
               <span>Ideas</span>
@@ -97,7 +97,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   className="flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Ask Core IQ</span>
+                  <span>Ask CoreIQ</span>
                 </button>
               </li>
               <li>
@@ -122,7 +122,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         {/* Bottom divider & copyright */}
         <div className="mt-16 pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div>
-            &copy; {new Date().getFullYear()} Core IQ Create. All rights reserved.
+            &copy; {new Date().getFullYear()} CoreIQ Create. All rights reserved.
           </div>
           <div className="flex items-center gap-6">
             <span>Intelligent Creation Environment</span>

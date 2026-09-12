@@ -111,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
           })}
         </nav>
 
-        {/* Action Button: Ask Core IQ */}
+        {/* Action Button: Ask CoreIQ */}
         <div className="hidden md:flex items-center gap-4">
           <button
             onClick={() => handleNavClick('ask')}
@@ -122,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
             }`}
           >
             <Sparkles className="w-4 h-4 text-cyan-400 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
-            <span className="relative z-10 font-semibold tracking-wide">Ask Core IQ</span>
+            <span className="relative z-10 font-semibold tracking-wide">Ask CoreIQ</span>
             <span className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/0 via-cyan-400/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           </button>
         </div>
@@ -132,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
           <button
             onClick={() => handleNavClick('ask')}
             className="p-2 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 active:scale-90 transition-transform"
-            aria-label="Ask Core IQ"
+            aria-label="Ask CoreIQ"
           >
             <Sparkles className="w-4 h-4 animate-pulse" />
           </button>
@@ -180,7 +180,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-sm shadow-[0_0_20px_rgba(34,211,238,0.4)] active:scale-98 transition-transform"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>Ask Core IQ</span>
+                  <span>Ask CoreIQ</span>
                 </button>
               </div>
             </div>

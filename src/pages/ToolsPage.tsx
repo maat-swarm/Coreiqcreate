@@ -75,7 +75,7 @@ Provide an executive summary, followed by a chronological execution table with m
             {/* Left Content */}
             <div className="lg:col-span-7 space-y-7 z-10">
               <span className="text-xs font-mono tracking-[0.3em] text-cyan-400 uppercase">
-                TOOLS / CORE IQ
+                TOOLS / COREIQ
               </span>
 
               <h1 className="text-5xl sm:text-6xl xl:text-7xl font-bold tracking-tight text-white font-display leading-[1.05]">
@@ -89,7 +89,7 @@ Provide an executive summary, followed by a chronological execution table with m
 
               <div className="pt-2">
                 <AskCoreIQBar
-                  placeholder="Ask Core IQ to run a tool..."
+                  placeholder="Ask CoreIQ to run a tool..."
                   pills={toolPills}
                   onAsk={onAsk}
                   size="large"
@@ -347,7 +347,7 @@ Provide an executive summary, followed by a chronological execution table with m
         eyebrow="HAVE SOMETHING SPECIFIC IN MIND?"
         headline="Let's build it."
         subtext="Tell Core IQ what you need and we'll help you find the right tool, or create something custom."
-        inputPlaceholder="Ask Core IQ anything..."
+        inputPlaceholder="Ask CoreIQ anything..."
         onAsk={onAsk}
       />
     </div>

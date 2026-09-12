@@ -69,7 +69,7 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
             {/* Left Content */}
             <div className="lg:col-span-7 space-y-7 z-10">
               <span className="text-xs sm:text-sm font-semibold tracking-[0.25em] text-cyan-400 uppercase">
-                CORE IQ APPS
+                COREIQ APPS
               </span>
 
               <h1 className="text-5xl sm:text-6xl xl:text-7xl font-bold tracking-tight text-white font-display leading-[1.05]">
@@ -84,7 +84,7 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
               {/* Input Bar */}
               <div className="pt-2">
                 <AskCoreIQBar
-                  placeholder="Ask Core IQ anything..."
+                  placeholder="Ask CoreIQ anything..."
                   pills={appPills}
                   onAsk={onAsk}
                   size="large"

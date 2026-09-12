@@ -53,7 +53,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
               </div>
 
               <p className="reveal-up text-slate-300 text-base sm:text-lg lg:text-xl max-w-lg leading-relaxed">
-                Core IQ is your AI partner for building, automating and scaling what's next. Describe your vision and let's create it — together.
+                CoreIQ is your AI partner for building, automating and scaling what's next. Describe your vision and let's create it — together.
               </p>
 
               <div className="reveal-up pt-1">
@@ -100,7 +100,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#19d9ff] animate-pulse" />
-                      <span className="text-[11px] font-mono tracking-widest text-cyan-300 font-semibold uppercase">CORE IQ SENTINEL</span>
+                      <span className="text-[11px] font-mono tracking-widest text-cyan-300 font-semibold uppercase">COREIQ SENTINEL</span>
                     </div>
                     <span className="text-[10px] font-mono text-slate-400 tracking-wider">SYSTEM // ONLINE</span>
                   </div>
@@ -109,7 +109,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                     Intelligent environmental presence active. Connect your intent to synthesize agents, workflows, and tools.
                   </p>
 
-                  {/* Micro Quick Actions connected to Ask Core IQ */}
+                  {/* Micro Quick Actions connected to Ask CoreIQ */}
                   <div className="grid grid-cols-2 gap-2 pt-0.5">
                     <button
                       onClick={() => onAsk("I want to build an AI agent")}
@@ -138,11 +138,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 stagger-children">
             {[
-              { Icon:Sparkles, c:'cyan',   label:'AI Agents',      desc:'Specialised agents working together to get real results.', r:'solutions' },
-              { Icon:Cpu,      c:'indigo', label:'Integrations',   desc:'Connect your tools, data and systems effortlessly.',        r:'solutions' },
-              { Icon:Zap,      c:'blue',   label:'Automation',     desc:'Remove the busy work and focus on what matters.',           r:'solutions' },
-              { Icon:LayoutGrid,c:'purple',label:'Apps & Websites',desc:'Custom solutions built for your unique needs.',             r:'apps'      },
-              { Icon:GraduationCap,c:'pink',label:'Learn & Grow',  desc:'Build your skills with courses, guides and more.',         r:'learn'     },
+              { Icon:Sparkles, c:'cyan',   label:'AI Agents',      desc:'Autonomous systems that reason, act and deliver — without you lifting a finger.', r:'solutions' },
+              { Icon:Cpu,      c:'indigo', label:'Integrations',   desc:'Every tool, API and platform — unified into one intelligent ecosystem.',        r:'solutions' },
+              { Icon:Zap,      c:'blue',   label:'Automation',     desc:'Eliminate repetitive work. Let intelligent workflows run your operations.',           r:'solutions' },
+              { Icon:LayoutGrid,c:'purple',label:'Apps & Websites',desc:'Digital experiences that don't just look premium — they perform.',             r:'apps'      },
+              { Icon:GraduationCap,c:'pink',label:'Learn & Grow',  desc:'Practical AI education for people who want to build real things.',         r:'learn'     },
             ].map(({ Icon, c, label, desc, r }) => (
               <div key={label} onClick={() => onNavigate(r as NavRoute)}
                 className={`reveal-up group cursor-pointer p-4 rounded-2xl hover:bg-slate-900/40 border border-transparent hover:border-${c}-500/20 transition-all duration-300`}>
@@ -175,7 +175,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
             <div className="absolute inset-0 bg-gradient-to-t from-[#050814]/60 via-transparent to-transparent pointer-events-none" />
             <div className="absolute bottom-4 left-4 flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="text-[10px] font-mono text-cyan-400 tracking-widest">CORE IQ RUNTIME</span>
+              <span className="text-[10px] font-mono text-cyan-400 tracking-widest">COREIQ RUNTIME</span>
             </div>
           </div>
         </div>
@@ -238,7 +238,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
               <div className="w-20 h-[2px] bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full mt-4" />
             </div>
             <div className="lg:col-span-5 space-y-5">
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">Core IQ isn't just a website — it's a living, evolving platform where ideas become solutions, powered by AI, the swarm and a universe of integrations.</p>
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">CoreIQ isn't just a website — it's a living, evolving platform where ideas become solutions, powered by AI, the swarm and a universe of integrations.</p>
               <button onClick={() => onNavigate('solutions')} className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm font-semibold group transition-colors">
                 <span>Explore Core IQ</span><ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>

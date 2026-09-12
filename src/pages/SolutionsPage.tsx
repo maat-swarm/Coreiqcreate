@@ -89,7 +89,7 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
             {/* Left Content */}
             <div className="lg:col-span-7 space-y-7 z-10">
               <span className="text-xs tracking-[0.3em] text-cyan-400 uppercase font-semibold">
-                CAPABILITIES / CORE IQ
+                CAPABILITIES / COREIQ
               </span>
 
               <h1 className="text-5xl sm:text-6xl xl:text-7xl font-bold tracking-tight text-white font-display leading-[1.05]">
@@ -105,7 +105,7 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
                 <div className="flex-1 max-w-lg">
                   <AskCoreIQBar
-                    placeholder="Ask Core IQ anything..."
+                    placeholder="Ask CoreIQ anything..."
                     onAsk={onAsk}
                   />
                 </div>
@@ -294,7 +294,7 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
               onClick={() => onNavigate('ask')}
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-base font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:shadow-[0_0_40px_rgba(34,211,238,0.6)] transition-all duration-200"
             >
-              <span>Ask Core IQ</span>
+              <span>Ask CoreIQ</span>
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>

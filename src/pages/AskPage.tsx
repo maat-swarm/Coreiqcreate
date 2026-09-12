@@ -219,7 +219,7 @@ export const AskPage: React.FC<AskPageProps> = ({ onNavigate }) => {
               value={input}
               onChange={e => { setInput(e.target.value); autoResize(); }}
               onKeyDown={handleKey}
-              placeholder="Ask Core IQ anything..."
+              placeholder="Ask CoreIQ anything..."
               rows={1}
               className="flex-1 bg-transparent text-white placeholder-slate-500 text-sm resize-none outline-none leading-relaxed max-h-40 py-1"
             />
@@ -240,7 +240,7 @@ export const AskPage: React.FC<AskPageProps> = ({ onNavigate }) => {
           </div>
 
           <p className="text-center text-[11px] text-slate-600 mt-2">
-            Core IQ can make mistakes. Verify important information.
+            CoreIQ can make mistakes. Verify important information.
           </p>
         </div>
       </div>

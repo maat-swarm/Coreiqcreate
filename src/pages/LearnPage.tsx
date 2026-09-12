@@ -56,7 +56,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
             {/* Left Content */}
             <div className="lg:col-span-7 space-y-7 z-10">
               <span className="text-xs tracking-[0.3em] text-cyan-400 uppercase font-mono">
-                LEARN / CORE IQ
+                LEARN / COREIQ
               </span>
 
               <h1 className="text-5xl sm:text-6xl xl:text-7xl font-bold tracking-tight text-white font-display leading-[1.05]">
@@ -70,7 +70,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
 
               <div className="pt-2">
                 <AskCoreIQBar
-                  placeholder="Ask Core IQ what you want to learn..."
+                  placeholder="Ask CoreIQ what you want to learn..."
                   pills={learnPills}
                   onAsk={onAsk}
                   size="large"
@@ -389,7 +389,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
         eyebrow="GO FURTHER"
         headline="Keep learning. Keep building."
         subtext="The best creators never stop learning. Tell Core IQ what you want to understand, and we'll guide you to the right resource."
-        inputPlaceholder="Ask Core IQ anything..."
+        inputPlaceholder="Ask CoreIQ anything..."
         onAsk={onAsk}
       />
     </div>
