@@ -656,3 +656,54 @@
 .coreiq-glass-card--featured::after {
   box-shadow: inset 0px -10px 20px 0px rgba(0, 0, 0, 0.6);
 }
+
+/* ==========================================================================
+   LIVING ENVIRONMENT ANIMATIONS
+   ========================================================================== */
+@keyframes journeyLineStream {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -1200;
+  }
+}
+
+@keyframes journeyLineStreamReverse {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 1200;
+  }
+}
+
+@keyframes scarfFlutter {
+  0% {
+    transform: scale(0.96) skewX(0deg);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.08) skewX(-3deg);
+    opacity: 0.65;
+  }
+  100% {
+    transform: scale(1) skewX(2deg);
+    opacity: 0.45;
+  }
+}
+
+@keyframes pulseBloom {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+.animate-pulse-bloom {
+  animation: pulseBloom 1.2s ease-out forwards;
+}

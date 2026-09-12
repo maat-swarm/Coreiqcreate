@@ -2,16 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Sparkles, Zap, LayoutGrid, GraduationCap, ArrowRight, Cpu, Layers, Monitor, CheckCircle2, Loader2, Search, Link as LinkIcon } from 'lucide-react';
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
-import { CoreIQMark3D } from '../components/common/CoreIQMark3D';
 import { NavRoute } from '../types';
-
-const BackgroundLayers = () => (
-  <div style={{position:'fixed',inset:0,zIndex:0,overflow:'hidden',pointerEvents:'none'}}>
-    <img src="https://images.unsplash.com/photo-1744138147319-f86f8a0d9667?w=1920&q=80"
-      style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:0.30,mixBlendMode:'normal'}} alt="" />
-    <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(5,8,20,0.95) 0%,rgba(26,10,62,0.7) 50%,rgba(5,8,20,0.95) 100%)'}} />
-  </div>
-);
 
 
 interface HomePageProps { onNavigate: (r: NavRoute) => void; onAsk: (q: string) => void; }
@@ -75,16 +66,59 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
               </div>
             </div>
 
-            {/* Right — 3D mark with tilt */}
-            <div className="lg:col-span-6 xl:col-span-5 flex justify-center items-center select-none reveal-fade"
-              style={{ perspective:'1000px' }}>
-              <div
-                style={{
-                  transform: tilt.on ? `rotateY(${tilt.x*7}deg) rotateX(${-tilt.y*7}deg)` : 'none',
-                  transformStyle:'preserve-3d',
-                  transition:'transform 0.55s cubic-bezier(0.16,1,0.3,1)',
-                }}>
-                <CoreIQMark3D size={480} />
+            {/* Right — Environmental Viewport framing the Living Mascot */}
+            <div className="lg:col-span-6 xl:col-span-5 flex justify-center lg:justify-end items-center select-none reveal-fade">
+              <div className="relative w-full max-w-[460px] aspect-square flex items-center justify-center pointer-events-auto">
+                {/* Subtle Interactive Holo-Ring */}
+                <div 
+                  className="absolute inset-2 sm:inset-6 rounded-full border border-cyan-500/20 pointer-events-none transition-transform duration-700 ease-out"
+                  style={{
+                    transform: tilt.on ? `translate3d(${tilt.x * 12}px, ${tilt.y * 12}px, 0)` : 'none',
+                    boxShadow: 'inset 0 0 50px rgba(25, 217, 255, 0.04)',
+                  }}
+                />
+                <div className="absolute inset-10 sm:inset-14 rounded-full border border-purple-500/15 pointer-events-none" />
+
+                {/* Agent Sentinel Focus Telemetry Node */}
+                <div 
+                  className="relative p-6 sm:p-7 rounded-2xl border border-cyan-500/25 bg-[#030712]/60 backdrop-blur-xl shadow-[0_0_60px_rgba(25,217,255,0.08)] max-w-sm w-full text-left space-y-3.5 transition-all duration-500 hover:border-cyan-400/50"
+                  style={{
+                    transform: tilt.on ? `translate3d(${tilt.x * 10}px, ${tilt.y * 10}px, 0)` : 'none',
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#19d9ff] animate-pulse" />
+                      <span className="text-[11px] font-mono tracking-widest text-cyan-300 font-semibold uppercase">AGENT ACTIVE</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400 tracking-wider">ENV // ONLINE</span>
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
+                    Observing environmental parameters. Synthesizing AI agents, apps, voice, and automated workflows.
+                  </p>
+
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                    <span className="text-slate-400 font-mono">ENERGY RESONANCE</span>
+                    <span className="text-cyan-400 font-mono font-medium">99.8%</span>
+                  </div>
+
+                  {/* Micro Quick Actions connected to agent */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      onClick={() => onAsk("I want to build an AI agent")}
+                      className="text-left px-3 py-2 rounded-lg bg-slate-900/70 hover:bg-cyan-950/60 border border-slate-800 hover:border-cyan-500/50 text-[11px] text-slate-300 hover:text-cyan-200 transition-colors truncate"
+                    >
+                      + AI Agent
+                    </button>
+                    <button
+                      onClick={() => onAsk("I want to build a custom web app")}
+                      className="text-left px-3 py-2 rounded-lg bg-slate-900/70 hover:bg-purple-950/60 border border-slate-800 hover:border-purple-500/50 text-[11px] text-slate-300 hover:text-purple-200 transition-colors truncate"
+                    >
+                      + Web App
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

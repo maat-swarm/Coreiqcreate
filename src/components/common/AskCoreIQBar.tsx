@@ -20,16 +20,26 @@ export const AskCoreIQBar: React.FC<AskCoreIQBarProps> = ({
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      onAsk(query.trim());
-    } else {
-      onAsk("Tell me what I can build with Core IQ");
+  const handleFocusChange = (focused: boolean) => {
+    setIsFocused(focused);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('coreiq:focus', { detail: { focused } }));
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetQuery = query.trim() || "Tell me what I can build with Core IQ";
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('coreiq:submit', { detail: { query: targetQuery } }));
+    }
+    onAsk(targetQuery);
+  };
+
   const handlePillClick = (pillQuery: string) => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('coreiq:submit', { detail: { query: pillQuery } }));
+    }
     onAsk(pillQuery);
   };
 
@@ -104,8 +114,8 @@ export const AskCoreIQBar: React.FC<AskCoreIQBarProps> = ({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onFocus={() => handleFocusChange(true)}
+            onBlur={() => handleFocusChange(false)}
             placeholder={placeholder}
             className="w-full bg-transparent text-white placeholder-slate-400 focus:outline-none text-sm sm:text-base font-medium pr-3"
           />

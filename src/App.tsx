@@ -2,7 +2,7 @@ import { SplashScreen } from './components/common/SplashScreen';
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
-import { AmbientBackground } from './components/common/AmbientBackground';
+import { SiteVisualEnvironment } from './components/environment/SiteVisualEnvironment';
 import { HomePage } from './pages/HomePage';
 import { SolutionsPage } from './pages/SolutionsPage';
 import { AppsPage } from './pages/AppsPage';
@@ -50,7 +50,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#050814] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
-      <AmbientBackground />
+      <SiteVisualEnvironment currentRoute={currentRoute} />
       <Header currentRoute={currentRoute} onNavigate={navigateTo} />
       <main key={pageKey} className="flex-1 w-full flex flex-col page-enter">
         {currentRoute === 'home'      && <HomePage      onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
