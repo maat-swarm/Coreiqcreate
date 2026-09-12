@@ -1,4 +1,4 @@
-import React, { useRef, useState, useLayoutEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   motion,
   AnimatePresence,
@@ -6,6 +6,7 @@ import {
   useScroll,
   useTransform,
   useMotionValue,
+  useMotionValueEvent,
   useSpring,
 } from 'motion/react';
 import type { MotionValue } from 'motion/react';
@@ -26,9 +27,6 @@ import {
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
 import { NavRoute } from '../types';
-import { PhoenixCoreScene } from '../components/three/PhoenixCoreScene';
-import { useClipReveal } from '../hooks/useClipReveal';
-import { gsap, ScrollTrigger, ensureScrollTrigger, prefersReducedMotion } from '../lib/scroll';
 
 interface HomePageProps {
   onNavigate: (route: NavRoute) => void;
@@ -270,22 +268,12 @@ const PROCESS_NODES: { label: string; icon: React.ElementType; accent: NodeAccen
 
 export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
   const heroRef = useRef<HTMLDivElement>(null);
-  const heroLeftRef = useRef<HTMLDivElement>(null);
-  const heroRightRef = useRef<HTMLDivElement>(null);
-  const heroScrollHintRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   const processRef = useRef<HTMLDivElement>(null);
-  const processFlowCardRef = useRef<HTMLDivElement>(null);
-  const intentFillRef = useRef<HTMLDivElement>(null);
-  const flowWrapRef = useRef<HTMLDivElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
-  const bannerCardRef = useRef<HTMLDivElement>(null);
-  const exploreHeaderRef = useRef<HTMLDivElement>(null);
   const exploreRef = useRef<HTMLDivElement>(null);
 
   const [heroTilt, setHeroTilt] = useState({ x: 0, y: 0, active: false });
-  const [activeNode, setActiveNode] = useState(0);
-  const [reducedMotion, setReducedMotion] = useState(false);
 
   // Cursor-reactive energy field for the phoenix core — smoothed with a
   // spring so the light trails the pointer instead of snapping to it.
@@ -321,9 +309,26 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 
   const tiltMagnitude = Math.min(1, Math.sqrt(heroTilt.x * heroTilt.x + heroTilt.y * heroTilt.y));
 
-  // ---- Capability strip: staggered rise driven by scroll into view (Framer
-  // is sufficient here — no pin, just a progress-driven stagger). ----
+  // ---- Hero exit choreography: the hero recedes, parallaxing at two
+  // different depths, as the user scrolls past it. ----
+  const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
+  const heroOpacity = useTransform(heroProgress, [0, 0.65, 1], [1, 0.55, 0]);
+  const heroLeftY = useTransform(heroProgress, [0, 1], [0, -90]);
+  const heroRightY = useTransform(heroProgress, [0, 1], [0, -40]);
+  const heroRightScale = useTransform(heroProgress, [0, 1], [1, 1.08]);
+
+  // ---- Capability strip: staggered rise driven by scroll into view. ----
   const { scrollYProgress: stripProgress } = useScroll({ target: stripRef, offset: ['start 0.92', 'start 0.4'] });
+
+  // ---- Process section: scroll progress cascades node activation. ----
+  const { scrollYProgress: processProgress } = useScroll({ target: processRef, offset: ['start 0.75', 'start 0.1'] });
+  const [activeNode, setActiveNode] = useState(0);
+  useMotionValueEvent(processProgress, 'change', (latest) => {
+    const clamped = Math.min(1, Math.max(0, latest));
+    setActiveNode(Math.min(3, Math.floor(clamped * 4)));
+  });
+  const intentFillWidth = useTransform(processProgress, [0, 1], ['18%', '100%']);
+  const flowOpacity = useTransform(processProgress, [0, 1], [0.22, 0.6]);
 
   // ---- Banner: parallaxing cosmic backdrop + headline reveal. ----
   const { scrollYProgress: bannerProgress } = useScroll({ target: bannerRef, offset: ['start end', 'end start'] });
@@ -334,123 +339,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 
   // ---- Explore cards: tilt-in staggered by scroll. ----
   const { scrollYProgress: exploreProgress } = useScroll({ target: exploreRef, offset: ['start 0.9', 'start 0.35'] });
-
-  // ---- GSAP: section-boundary clip-path/mask reveals (structural, not
-  // opacity/translate fades). ----
-  useClipReveal(stripRef, 'wipe-up', { start: 'top 90%' });
-  useClipReveal(bannerCardRef, 'radial', { start: 'top 85%', duration: 1.3 });
-  useClipReveal(exploreHeaderRef, 'wipe-left', { start: 'top 88%' });
-
-  // ---- prefers-reduced-motion: GSAP does not respect this automatically,
-  // so every pinned/scrubbed sequence below branches on it explicitly. ----
-  useLayoutEffect(() => {
-    setReducedMotion(prefersReducedMotion());
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const handler = () => setReducedMotion(media.matches);
-    media.addEventListener('change', handler);
-    return () => media.removeEventListener('change', handler);
-  }, []);
-
-  // ---- GSAP ScrollTrigger: hero pins in place while its content transforms
-  // and exits, then releases into the capability strip. Desktop only —
-  // pinning a full-viewport hero on small screens fights the keyboard/URL
-  // bar and reflow, so mobile gets a simple static hero instead. ----
-  useLayoutEffect(() => {
-    if (prefersReducedMotion()) return;
-    ensureScrollTrigger();
-
-    const mm = gsap.matchMedia();
-
-    mm.add('(min-width: 768px)', () => {
-      if (!heroRef.current || !heroLeftRef.current || !heroRightRef.current) return;
-
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: heroRef.current,
-          start: 'top top',
-          end: '+=100%',
-          scrub: 1,
-          pin: true,
-          anticipatePin: 1,
-        },
-      });
-
-      tl.to(heroLeftRef.current, { y: -110, opacity: 0, ease: 'none' }, 0)
-        .to(heroRightRef.current, { y: -50, scale: 1.12, opacity: 0, ease: 'none' }, 0)
-        .to(heroScrollHintRef.current, { opacity: 0, ease: 'none' }, 0);
-
-      return () => {
-        tl.scrollTrigger?.kill();
-        tl.kill();
-      };
-    });
-
-    return () => mm.revert();
-  }, []);
-
-  // ---- GSAP ScrollTrigger: the process section pins while a scrubbed
-  // timeline mechanically ties node activation to the scrollbar. Desktop
-  // gets the pinned scrub; mobile gets a lighter one-shot sequence so the
-  // pin doesn't fight small-viewport scroll behaviour. ----
-  useLayoutEffect(() => {
-    if (prefersReducedMotion()) return;
-    ensureScrollTrigger();
-
-    const mm = gsap.matchMedia();
-
-    mm.add('(min-width: 768px)', () => {
-      if (!processRef.current) return;
-
-      const setNode = (n: number) => setActiveNode((prev) => (prev === n ? prev : n));
-
-      const st = ScrollTrigger.create({
-        trigger: processRef.current,
-        start: 'top top',
-        end: '+=140%',
-        scrub: true,
-        pin: true,
-        anticipatePin: 1,
-        onUpdate: (self) => {
-          const progress = self.progress;
-          if (intentFillRef.current) {
-            intentFillRef.current.style.width = `${18 + progress * 82}%`;
-          }
-          if (flowWrapRef.current) {
-            flowWrapRef.current.style.opacity = `${0.22 + progress * 0.38}`;
-          }
-          setNode(Math.min(3, Math.floor(progress * 4)));
-        },
-      });
-
-      return () => st.kill();
-    });
-
-    mm.add('(max-width: 767px)', () => {
-      if (!processRef.current) return;
-      // Lighter, non-pinned fallback: play the sequence once as the section
-      // enters view, still visibly cause-and-effect, just not scrubbed.
-      let i = 0;
-      const st = ScrollTrigger.create({
-        trigger: processRef.current,
-        start: 'top 70%',
-        onEnter: () => {
-          const step = () => {
-            setActiveNode(i);
-            if (intentFillRef.current) intentFillRef.current.style.width = `${18 + (i / 3) * 82}%`;
-            if (flowWrapRef.current) flowWrapRef.current.style.opacity = `${0.22 + (i / 3) * 0.38}`;
-            i += 1;
-            if (i <= 3) window.setTimeout(step, 550);
-          };
-          step();
-        },
-        once: true,
-      });
-
-      return () => st.kill();
-    });
-
-    return () => mm.revert();
-  }, []);
 
   const capabilities: {
     icon: React.ElementType;
@@ -602,7 +490,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
 
             {/* Left Content Column */}
-            <div ref={heroLeftRef} className="lg:col-span-6 space-y-7 z-10">
+            <motion.div
+              style={{ opacity: heroOpacity, y: heroLeftY }}
+              className="lg:col-span-6 space-y-7 z-10"
+            >
               {/* Eyebrow */}
               <div className="inline-flex items-center gap-2">
                 <span className="text-xs sm:text-sm font-semibold tracking-[0.25em] text-cyan-400 uppercase drop-shadow-[0_0_10px_rgba(34,211,238,0.4)]">
@@ -632,16 +523,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
               </div>
 
               {/* Scroll to explore */}
-              <div ref={heroScrollHintRef} className="pt-8 flex items-center gap-3 text-xs tracking-widest text-slate-500 uppercase font-medium">
+              <div className="pt-8 flex items-center gap-3 text-xs tracking-widest text-slate-500 uppercase font-medium">
                 <span className="w-8 h-[1px] bg-slate-700" />
                 <span>SCROLL TO EXPLORE</span>
               </div>
-            </div>
+            </motion.div>
 
-            {/* Right Visual Column: The Live 3D Core IQ Energy Core, with autonomous
-                drift plus cursor-driven camera parallax */}
-            <div
-              ref={heroRightRef}
+            {/* Right Visual Column: The Iconic Core IQ Phoenix Energy Core with 3D Parallax & Depth */}
+            <motion.div
+              style={{ opacity: heroOpacity, y: heroRightY, scale: heroRightScale }}
               className="lg:col-span-6 relative flex justify-center items-center select-none"
             >
               <div className="relative w-full flex justify-center items-center" style={{ perspective: '1000px' }}>
@@ -713,16 +603,18 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                   <div className="absolute top-[20%] right-[8%] w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#67e8f9] animate-particle-2 pointer-events-none" />
                   <div className="absolute bottom-[24%] left-[6%] w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_#60a5fa] animate-particle-3 pointer-events-none" />
 
-                  {/* Core IQ Energy Core — a real WebGL scene, not an image.
-                      Autonomous drift keeps it alive at rest; the scene's own
-                      camera rig adds a second, independent layer of cursor
-                      parallax on top of the CSS tilt above. */}
-                  <div className="relative w-full h-full">
-                    <PhoenixCoreScene reducedMotion={reducedMotion} className="w-full h-full" />
+                  {/* Core IQ Phoenix Energy Core Image — displayed large and uncropped */}
+                  <div className="relative w-full h-full animate-float-slow">
+                    <img
+                      src="/logo.png"
+                      alt="Core IQ Phoenix Energy Core"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-contain object-center drop-shadow-[0_0_45px_rgba(6,182,212,0.4)] transform hover:scale-[1.03] transition-transform duration-700 ease-out"
+                    />
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
           </div>
         </div>
@@ -782,10 +674,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 
             {/* Right Connected Flow Visualization */}
             <div className="lg:col-span-7 relative">
-              <div ref={processFlowCardRef} className="relative p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900/90 via-[#060c22] to-slate-950 border border-cyan-500/25 shadow-[0_0_60px_rgba(6,182,212,0.18)] overflow-hidden">
-                {/* Luminous background wave lines — brightness mechanically tied
-                    to scroll position via GSAP ScrollTrigger scrub, not Framer */}
-                <div ref={flowWrapRef} style={{ opacity: 0.22 }} className="absolute inset-0 pointer-events-none">
+              <div className="relative p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900/90 via-[#060c22] to-slate-950 border border-cyan-500/25 shadow-[0_0_60px_rgba(6,182,212,0.18)] overflow-hidden">
+                {/* Luminous background wave lines — brighten as the process progresses */}
+                <motion.div style={{ opacity: flowOpacity }} className="absolute inset-0 pointer-events-none">
                   <svg className="w-full h-full" viewBox="0 0 500 350" fill="none">
                     <path
                       d="M 50 180 C 150 100, 300 260, 450 160"
@@ -801,7 +692,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                       className="animate-reverse-flow-dash"
                     />
                   </svg>
-                </div>
+                </motion.div>
 
                 <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
 
@@ -817,14 +708,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                     <p className="text-white text-sm font-medium leading-relaxed">
                       "I want to automate my customer support process."
                     </p>
-                    {/* Progress fill mechanically scrubbed to the scrollbar via
-                        GSAP ScrollTrigger — the "build" advances as you scroll */}
+                    {/* Progress fill tied directly to scroll — the "build" advances as you scroll */}
                     <div className="pt-1">
                       <div className="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
-                        <div
-                          ref={intentFillRef}
-                          style={{ width: '18%' }}
-                          className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-[width] duration-100 ease-linear"
+                        <motion.div
+                          style={{ width: intentFillWidth }}
+                          className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500"
                         />
                       </div>
                     </div>
@@ -889,7 +778,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 
       {/* 4. BANNER: MORE THAN A WEBSITE ("It's an intelligent creation environment.") */}
       <section ref={bannerRef} className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={bannerCardRef} className="relative rounded-3xl overflow-hidden border border-cyan-500/20 p-8 sm:p-12 lg:p-16 bg-gradient-to-r from-[#071330] via-[#0b102b] to-[#040817]">
+        <div className="relative rounded-3xl overflow-hidden border border-cyan-500/20 p-8 sm:p-12 lg:p-16 bg-gradient-to-r from-[#071330] via-[#0b102b] to-[#040817]">
           {/* Cosmic backdrop light — parallaxes against the foreground copy while scrolling */}
           <motion.div
             style={{ y: bannerImageY }}
@@ -939,7 +828,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 
       {/* 5. EXPLORE CORE IQ ("What would you like to create?") */}
       <section ref={exploreRef} className="py-20 lg:py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={exploreHeaderRef} className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
           <div>
             <span className="text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase">
               EXPLORE CORE IQ
