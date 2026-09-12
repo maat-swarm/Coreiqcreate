@@ -24,9 +24,6 @@ export const AmbientBackground: React.FC = () => {
 
   return (
     <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-      <video autoPlay muted loop playsInline style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:0.35}}>
-        <source src="/hero-bg.mp4" type="video/mp4" />
-      </video>
       <div style={{
         position:'absolute',inset:0,
         backgroundImage:'url(https://images.unsplash.com/photo-1744138147319-f86f8a0d9667?w=1920&q=80)',
