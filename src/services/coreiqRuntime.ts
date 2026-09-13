@@ -13,6 +13,7 @@ export interface CoreIQAnalysisResponse {
 
 export interface ICoreIQRuntime {
   analyzeIntent(prompt: string): Promise<CoreIQAnalysisResponse>;
+  processQuery(content: string): Promise<{ assistantMessage: string }>;
 }
 
 class LocalCoreIQRuntime implements ICoreIQRuntime {
@@ -182,6 +183,10 @@ class LocalCoreIQRuntime implements ICoreIQRuntime {
       ],
       responseMessage: "Core IQ has synthesized your objective into an actionable creation path. Here is the recommended blueprint:",
     };
+  }
+  async processQuery(content: string): Promise<{ assistantMessage: string }> {
+    const analysis = await this.analyzeIntent(content);
+    return { assistantMessage: analysis.responseMessage };
   }
 }
 

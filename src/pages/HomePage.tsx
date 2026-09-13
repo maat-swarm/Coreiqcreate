@@ -141,7 +141,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
               { Icon:Sparkles, c:'cyan',   label:'AI Agents',      desc:'Autonomous systems that reason, act and deliver — without you lifting a finger.', r:'solutions' },
               { Icon:Cpu,      c:'indigo', label:'Integrations',   desc:'Every tool, API and platform — unified into one intelligent ecosystem.',        r:'solutions' },
               { Icon:Zap,      c:'blue',   label:'Automation',     desc:'Eliminate repetitive work. Let intelligent workflows run your operations.',           r:'solutions' },
-              { Icon:LayoutGrid,c:'purple',label:'Apps & Websites',desc:'Digital experiences that don't just look premium — they perform.',             r:'apps'      },
+              { Icon:LayoutGrid,c:'purple',label:'Apps & Websites',desc:"Digital experiences that don't just look premium — they perform.",             r:'apps'      },
               { Icon:GraduationCap,c:'pink',label:'Learn & Grow',  desc:'Practical AI education for people who want to build real things.',         r:'learn'     },
             ].map(({ Icon, c, label, desc, r }) => (
               <div key={label} onClick={() => onNavigate(r as NavRoute)}

@@ -4,7 +4,7 @@ import {
   Zap, Globe, Code, ChevronDown, X
 } from 'lucide-react';
 import { CoreIQLogo } from '../components/common/CoreIQLogo';
-import { coreiqRuntime } from '../services/coreiqRuntime';
+import { coreIQRuntime } from '../services/coreiqRuntime';
 
 interface Message {
   id: string;
@@ -68,7 +68,7 @@ export const AskPage: React.FC<AskPageProps> = ({ onNavigate }) => {
     setLoading(true);
 
     try {
-      const response = await coreiqRuntime.processQuery(content);
+      const response = await coreIQRuntime.processQuery(content);
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
