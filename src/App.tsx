@@ -10,12 +10,14 @@ import { LearnPage } from './pages/LearnPage';
 import { ToolsPage } from './pages/ToolsPage';
 import { AboutPage } from './pages/AboutPage';
 import { AskPage } from './pages/AskPage';
+import { CommandDashboardPage } from './pages/CommandDashboardPage';
 import { NavRoute } from './types';
 import { useScrollReveal } from './hooks/useScrollReveal';
 
 export default function App() {
   const getRoute = (): NavRoute => {
     const p = window.location.pathname.replace(/^\//, '').toLowerCase();
+    if (p === 'command' || window.location.hash === '#command') return 'command';
     if (p === 'solutions') return 'solutions';
     if (p === 'apps') return 'apps';
     if (p === 'learn') return 'learn';
@@ -47,6 +49,10 @@ export default function App() {
   };
 
   if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
+
+  if (currentRoute === 'command') {
+    return <CommandDashboardPage onExitToWebsite={() => navigateTo('home')} />;
+  }
 
   return (
     <div className="min-h-screen bg-transparent text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">

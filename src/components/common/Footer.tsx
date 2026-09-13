@@ -101,6 +101,15 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 </button>
               </li>
               <li>
+                <button 
+                  onClick={() => onNavigate('command')} 
+                  className="flex items-center gap-1.5 text-slate-300 hover:text-cyan-300 transition-colors font-mono text-xs"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                  <span>CoreIQ Command</span>
+                </button>
+              </li>
+              <li>
                 <button onClick={() => onNavigate('about')} className="hover:text-cyan-300 transition-colors">
                   About Philosophy
                 </button>
