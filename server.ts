@@ -25,7 +25,23 @@ const localStore: Record<string, any[]> = {
   tasks: [],
   clients: [],
   content: [],
-  api_keys: [],
+  api_keys: [
+    {
+      id: 'key_local_dev_master',
+      name: 'System Local Master Key',
+      key_prefix: 'ciq_live_devmaster...',
+      key_hash: crypto.createHash('sha256').update('ciq_live_devmaster_00000000000000000000000000000000').digest('hex'),
+      scopes: [
+        'READ_LEADS', 'WRITE_LEADS',
+        'READ_TASKS', 'WRITE_TASKS',
+        'READ_CLIENTS', 'WRITE_CLIENTS',
+        'READ_CONTENT', 'WRITE_CONTENT',
+        'READ_CONFIG', 'WRITE_CONFIG'
+      ],
+      revoked: false,
+      created_at: new Date().toISOString(),
+    }
+  ],
   agent_config: [
     {
       id: 'coreiq_primary_mind',
