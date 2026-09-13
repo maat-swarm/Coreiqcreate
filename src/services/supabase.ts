@@ -1,4 +1,4 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
 import {
   LeadItem,
   SocialMessageItem,
@@ -9,6 +9,8 @@ import {
   PlatformRegistryItem,
   CommandContentItem,
   SwarmCommsMessage,
+  ApiKeyItem,
+  ApiScope,
 } from '../types/command';
 
 // Storage keys
@@ -94,32 +96,93 @@ export function getSupabaseCredentials() {
   return currentCredentials;
 }
 
-export async function testSupabaseConnection(): Promise<{ success: boolean; message: string }> {
+export async function testSupabaseConnection(): Promise<{ 
+  success: boolean; 
+  tablesFound: boolean; 
+  message: string; 
+  missingTables?: string[];
+  activeTableCount?: number;
+}> {
   const client = getSupabase();
   if (!client) {
     return {
       success: false,
+      tablesFound: false,
       message: 'Supabase URL and Anon Key are not configured yet.',
     };
   }
 
   try {
-    // Attempt a light ping by querying the public schema or auth health
-    const { error } = await client.from('agent_config').select('id').limit(1);
-    if (error && error.code !== 'PGRST116' && !error.message.includes('relation "public.agent_config" does not exist')) {
-      // If error is strictly network / auth
-      if (error.code === '401' || error.message.toLowerCase().includes('jwt') || error.message.toLowerCase().includes('apikey')) {
-        return { success: false, message: `Authentication error: ${error.message}` };
+    const requiredTables = [
+      'leads',
+      'tasks',
+      'clients',
+      'agent_config',
+      'social_messages',
+      'agent_tools',
+      'platforms',
+      'content',
+      'swarm_comms',
+      'api_keys'
+    ];
+
+    const missingTables: string[] = [];
+    let foundCount = 0;
+
+    // Test a sample of critical tables
+    for (const table of requiredTables) {
+      const { error } = await client.from(table).select('id').limit(1);
+      if (error) {
+        if (
+          error.code === '42P01' || 
+          error.code === 'PGRST205' || 
+          error.message.includes('does not exist') ||
+          error.message.includes('schema cache')
+        ) {
+          missingTables.push(table);
+        } else if (error.code === '401' || error.message.toLowerCase().includes('jwt') || error.message.toLowerCase().includes('apikey')) {
+          return { 
+            success: false, 
+            tablesFound: false, 
+            message: `Authentication error: ${error.message}` 
+          };
+        }
+      } else {
+        foundCount++;
       }
+    }
+
+    if (missingTables.length === requiredTables.length) {
+      return {
+        success: true, // Network/API key valid
+        tablesFound: false,
+        message: 'Connected to Supabase endpoint, but database tables are missing. Run the SQL schema migration in Supabase SQL Editor.',
+        missingTables,
+        activeTableCount: 0,
+      };
+    }
+
+    if (missingTables.length > 0) {
+      return {
+        success: true,
+        tablesFound: false,
+        message: `Connected, but ${missingTables.length} tables are missing (${missingTables.join(', ')}). Update schema in Supabase SQL Editor.`,
+        missingTables,
+        activeTableCount: foundCount,
+      };
     }
 
     return {
       success: true,
-      message: 'Supabase connection verified successfully.',
+      tablesFound: true,
+      message: `Live Supabase active: All ${foundCount}/${requiredTables.length} tables verified with Row Level Security.`,
+      missingTables: [],
+      activeTableCount: foundCount,
     };
   } catch (err: any) {
     return {
       success: false,
+      tablesFound: false,
       message: err?.message || 'Network connection to Supabase failed.',
     };
   }
@@ -190,6 +253,56 @@ function setLocalTable<T>(table: string, data: T[]) {
 // ==========================================
 
 export const CoreIQData = {
+  async isLiveSupabaseActive(): Promise<boolean> {
+    const client = getSupabase();
+    if (!client) return false;
+    try {
+      const { error } = await client.from('leads').select('id').limit(1);
+      return !error;
+    } catch {
+      return false;
+    }
+  },
+
+  async checkDatabaseStatus(): Promise<{ isLiveDb: boolean; details: string; missingTables?: string[] }> {
+    const client = getSupabase();
+    if (!client) {
+      return {
+        isLiveDb: false,
+        details: 'Supabase credentials not configured in environment. Running in Local Reactive Mode.',
+      };
+    }
+    try {
+      const tables = ['leads', 'agent_config', 'tasks', 'clients', 'api_keys'];
+      const missing: string[] = [];
+
+      for (const t of tables) {
+        const { error } = await client.from(t).select('id').limit(1);
+        if (error && (error.code === '42P01' || error.message?.toLowerCase().includes('does not exist') || error.message?.toLowerCase().includes('relation'))) {
+          missing.push(t);
+        }
+      }
+
+      if (missing.length > 0) {
+        return {
+          isLiveDb: false,
+          missingTables: missing,
+          details: `Connected to Supabase, but schema not executed (${missing.join(', ')} missing). Run the SQL Schema in Supabase SQL editor.`,
+        };
+      }
+
+      return {
+        isLiveDb: true,
+        details: 'Connected to Supabase Unified Brain with all tables verified and Realtime active.',
+      };
+    } catch (e: any) {
+      return {
+        isLiveDb: false,
+        details: `Connection test: ${e?.message || 'Check network / project status'}`,
+      };
+    }
+  },
+
   // --- INBOX: LEADS ---
   async getLeads(): Promise<LeadItem[]> {
     const client = getSupabase();
@@ -232,6 +345,31 @@ export const CoreIQData = {
     setLocalTable('leads', updated);
     window.dispatchEvent(new CustomEvent('coreiq_new_inbox_item', { detail: newLead }));
     return newLead;
+  },
+
+  async updateLead(id: string, updates: Partial<LeadItem>): Promise<LeadItem | null> {
+    const client = getSupabase();
+    if (client) {
+      try {
+        const { data, error } = await client.from('leads').update(updates).eq('id', id).select().single();
+        if (!error && data) {
+          return data as LeadItem;
+        }
+      } catch (e) {
+        console.warn('Supabase updateLead error:', e);
+      }
+    }
+    const current = getLocalTable<LeadItem>('leads');
+    let updatedLead: LeadItem | null = null;
+    const updated = current.map((item) => {
+      if (item.id === id) {
+        updatedLead = { ...item, ...updates };
+        return updatedLead;
+      }
+      return item;
+    });
+    setLocalTable('leads', updated);
+    return updatedLead;
   },
 
   async updateLeadStatus(id: string, status: LeadItem['status']): Promise<void> {
@@ -764,6 +902,74 @@ export const CoreIQData = {
     return newMsg;
   },
 
+  // --- API KEYS (Machine credentials for external agents) ---
+  async getApiKeys(): Promise<ApiKeyItem[]> {
+    const client = getSupabase();
+    if (client) {
+      try {
+        const { data, error } = await client
+          .from('api_keys')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!error && data) return data as ApiKeyItem[];
+      } catch (e) {
+        console.warn('Using local api_keys fallback:', e);
+      }
+    }
+    return getLocalTable<ApiKeyItem>('api_keys');
+  },
+
+  async insertApiKey(key: Omit<ApiKeyItem, 'id' | 'created_at'>): Promise<ApiKeyItem> {
+    const newKey: ApiKeyItem = {
+      ...key,
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `key_${Date.now()}`,
+      created_at: new Date().toISOString(),
+    };
+
+    const client = getSupabase();
+    if (client) {
+      try {
+        const { data, error } = await client.from('api_keys').insert([newKey]).select().single();
+        if (!error && data) return data as ApiKeyItem;
+      } catch (e) {
+        console.warn('Supabase api_key insert error:', e);
+      }
+    }
+
+    const current = getLocalTable<ApiKeyItem>('api_keys');
+    const updated = [newKey, ...current];
+    setLocalTable('api_keys', updated);
+    return newKey;
+  },
+
+  async revokeApiKey(id: string): Promise<void> {
+    const client = getSupabase();
+    if (client) {
+      try {
+        await client.from('api_keys').update({ revoked: true }).eq('id', id);
+      } catch (e) {
+        console.warn('Supabase api_key revoke error:', e);
+      }
+    }
+    const current = getLocalTable<ApiKeyItem>('api_keys');
+    const updated = current.map((item) => (item.id === id ? { ...item, revoked: true } : item));
+    setLocalTable('api_keys', updated);
+  },
+
+  async deleteApiKey(id: string): Promise<void> {
+    const client = getSupabase();
+    if (client) {
+      try {
+        await client.from('api_keys').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase api_key delete error:', e);
+      }
+    }
+    const current = getLocalTable<ApiKeyItem>('api_keys');
+    const updated = current.filter((item) => item.id !== id);
+    setLocalTable('api_keys', updated);
+  },
+
   // --- REALTIME SUBSCRIPTIONS ---
   subscribe(table: string, onUpdate: () => void): () => void {
     const client = getSupabase();
@@ -801,50 +1007,49 @@ export const CoreIQData = {
 };
 
 // ==========================================
-// SUPABASE AUTH UTILITY (SINGLE OPERATOR)
+// SUPABASE AUTH UTILITY (AUTHENTICATED OPERATOR ONLY)
 // ==========================================
 export const CoreIQAuth = {
-  isDevSessionActive(): boolean {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem(LS_DEV_AUTH_KEY) === 'true';
-  },
-
-  setDevSession(active: boolean) {
-    if (typeof window === 'undefined') return;
-    if (active) {
-      localStorage.setItem(LS_DEV_AUTH_KEY, 'true');
-    } else {
-      localStorage.removeItem(LS_DEV_AUTH_KEY);
-    }
-    window.dispatchEvent(new CustomEvent('coreiq_auth_state_change'));
-  },
-
-  async getSession() {
+  async getSession(): Promise<Session | null> {
     const client = getSupabase();
     if (client) {
       try {
-        const { data } = await client.auth.getSession();
-        if (data.session) return data.session;
+        const { data, error } = await client.auth.getSession();
+        if (!error && data?.session) return data.session;
       } catch (e) {
         console.warn('Auth getSession check:', e);
       }
     }
-    if (this.isDevSessionActive()) {
-      return { user: { email: 'operator@coreiq.create' } } as any;
-    }
     return null;
+  },
+
+  onAuthStateChange(callback: (session: Session | null) => void): () => void {
+    const client = getSupabase();
+    if (client) {
+      const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+        callback(session);
+      });
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+    return () => {};
   },
 
   async signIn(email: string, pass: string) {
     const client = getSupabase();
-    if (client) {
-      const res = await client.auth.signInWithPassword({ email, password: pass });
-      if (res.error) throw res.error;
-      return res.data;
+    if (!client) {
+      throw new Error('Supabase client is not configured. Please enter project URL and anon key.');
     }
-    // If Supabase is not connected yet, enable operator dev session
-    this.setDevSession(true);
-    return { user: { email } };
+    const res = await client.auth.signInWithPassword({ 
+      email: email.trim(), 
+      password: pass 
+    });
+    if (res.error) {
+      throw res.error;
+    }
+    window.dispatchEvent(new CustomEvent('coreiq_auth_state_change'));
+    return res.data;
   },
 
   async signOut() {
@@ -856,7 +1061,7 @@ export const CoreIQAuth = {
         console.warn('Sign out warning:', e);
       }
     }
-    this.setDevSession(false);
+    window.dispatchEvent(new CustomEvent('coreiq_auth_state_change'));
   },
 };
 
@@ -864,10 +1069,12 @@ export const CoreIQAuth = {
 // READY-TO-RUN SUPABASE SQL SCHEMA GENERATOR
 // ==========================================
 export const SUPABASE_SQL_SCHEMA = `-- =========================================================================
--- CORE IQ CREATE: PRODUCTION SUPABASE SQL MIGRATION SCRIPT
--- Run this in your Supabase Project's SQL Editor to bootstrap all tables,
--- row-level security (RLS), and Realtime replication for CoreIQ Command.
+-- CORE IQ CREATE // PRODUCTION SUPABASE SQL MIGRATION
+-- Target Project: https://irrpqqxetyfbafjpjtpt.supabase.co
+-- Features: 10 Operational Tables, RLS Enabled on ALL tables, Realtime Replication
 -- =========================================================================
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- 1. LEADS (Website & Public inquiries)
 CREATE TABLE IF NOT EXISTS public.leads (
@@ -886,7 +1093,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
     notes TEXT
 );
 
--- 2. SOCIAL MESSAGES (Meta Graph API, Instagram, X, LinkedIn webhooks)
+-- 2. SOCIAL MESSAGES (Meta, Instagram, X, LinkedIn webhooks)
 CREATE TABLE IF NOT EXISTS public.social_messages (
     id TEXT PRIMARY KEY,
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -949,43 +1156,131 @@ CREATE TABLE IF NOT EXISTS public.platforms (
     name TEXT NOT NULL,
     url TEXT NOT NULL,
     platform_type TEXT DEFAULT 'website' NOT NULL,
+    category TEXT,
     notes TEXT
 );
 
--- 8. CONTENT (Website news, learning, case studies & storage references)
+-- 8. CONTENT (CMS items & storage references)
 CREATE TABLE IF NOT EXISTS public.content (
     id TEXT PRIMARY KEY,
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
-    title TEXT NOT NULL,
+    title TEXT,
     body TEXT,
     category TEXT DEFAULT 'general' NOT NULL,
     media_reference TEXT,
-    published BOOLEAN DEFAULT false NOT NULL
+    published BOOLEAN DEFAULT true NOT NULL,
+    key TEXT,
+    value TEXT,
+    type TEXT DEFAULT 'text'
 );
 
--- 9. SWARM COMMS (COMMS messages ONLY, Vault is read-only by standing protocol)
+-- 9. SWARM COMMS (Autonomous swarm node telemetry)
 CREATE TABLE IF NOT EXISTS public.swarm_comms (
     id TEXT PRIMARY KEY,
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
-    sender_node TEXT NOT NULL,
-    target_node TEXT NOT NULL,
-    subject TEXT NOT NULL,
-    message TEXT NOT NULL,
+    sender_node TEXT,
+    target_node TEXT,
+    subject TEXT,
+    message TEXT,
+    agent_name TEXT,
+    event_type TEXT,
+    payload JSONB,
     lead_reference_id TEXT
 );
 
--- Enable Realtime for all operational tables
-ALTER PUBLICATION supabase_realtime ADD TABLE public.leads;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.social_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.clients;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.agent_config;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.agent_tools;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.platforms;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.content;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.swarm_comms;
+-- 10. API KEYS (Machine credentials for external agents)
+CREATE TABLE IF NOT EXISTS public.api_keys (
+    id TEXT PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+    name TEXT NOT NULL,
+    key_prefix TEXT NOT NULL,
+    key_hash TEXT NOT NULL,
+    raw_token_display TEXT,
+    scopes TEXT[] NOT NULL DEFAULT '{}',
+    revoked BOOLEAN DEFAULT false NOT NULL,
+    last_used_at TIMESTAMPTZ,
+    created_by TEXT
+);
 
--- Optional default row for agent config
+-- ROW LEVEL SECURITY (RLS) - MANDATORY HARDENING
+ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.social_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agent_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agent_tools ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.platforms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.swarm_comms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if re-running
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Public can submit leads" ON public.leads;
+    DROP POLICY IF EXISTS "Authenticated operators have full leads access" ON public.leads;
+    DROP POLICY IF EXISTS "Anon can insert social webhooks" ON public.social_messages;
+    DROP POLICY IF EXISTS "Authenticated operators have full social access" ON public.social_messages;
+    DROP POLICY IF EXISTS "Authenticated operators have full tasks access" ON public.tasks;
+    DROP POLICY IF EXISTS "Authenticated operators have full clients access" ON public.clients;
+    DROP POLICY IF EXISTS "Public can read live agent config" ON public.agent_config;
+    DROP POLICY IF EXISTS "Authenticated operators have full agent config access" ON public.agent_config;
+    DROP POLICY IF EXISTS "Authenticated operators have full tools access" ON public.agent_tools;
+    DROP POLICY IF EXISTS "Public can read platforms" ON public.platforms;
+    DROP POLICY IF EXISTS "Authenticated operators have full platforms access" ON public.platforms;
+    DROP POLICY IF EXISTS "Public can read published content" ON public.content;
+    DROP POLICY IF EXISTS "Authenticated operators have full content access" ON public.content;
+    DROP POLICY IF EXISTS "Authenticated operators have full swarm access" ON public.swarm_comms;
+    DROP POLICY IF EXISTS "Authenticated operators have full api_keys access" ON public.api_keys;
+    DROP POLICY IF EXISTS "Public can verify valid api_key" ON public.api_keys;
+EXCEPTION
+    WHEN undefined_object THEN NULL;
+END $$;
+
+-- Policies
+CREATE POLICY "Public can submit leads" ON public.leads FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Authenticated operators have full leads access" ON public.leads FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Anon can insert social webhooks" ON public.social_messages FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Authenticated operators have full social access" ON public.social_messages FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Authenticated operators have full tasks access" ON public.tasks FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated operators have full clients access" ON public.clients FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Public can read live agent config" ON public.agent_config FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Authenticated operators have full agent config access" ON public.agent_config FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Authenticated operators have full tools access" ON public.agent_tools FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Public can read platforms" ON public.platforms FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Authenticated operators have full platforms access" ON public.platforms FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Public can read published content" ON public.content FOR SELECT TO anon, authenticated USING (published = true);
+CREATE POLICY "Authenticated operators have full content access" ON public.content FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Authenticated operators have full swarm access" ON public.swarm_comms FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Authenticated operators have full api_keys access" ON public.api_keys FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Public can verify valid api_key" ON public.api_keys FOR SELECT TO anon USING (revoked = false);
+
+-- Enable Realtime
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.leads;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.social_messages;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.clients;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.agent_config;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.agent_tools;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.platforms;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.content;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.swarm_comms;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.api_keys;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Default row for agent config
 INSERT INTO public.agent_config (id, provider, model_name, base_url, api_key, system_prompt, updated_at)
 VALUES (
     'coreiq_primary_mind',
@@ -993,7 +1288,13 @@ VALUES (
     'llama-3.3-70b-versatile',
     'https://api.groq.com/openai/v1',
     '',
-    'You are CoreIQ, the sovereign intelligent creation engine for CoreIQ Create.',
+    '# CORE IQ CREATE — AGENT BRAIN RUNTIME
+You are CoreIQ, the sovereign intelligent creation engine for CoreIQ Create.
+You are an architectural strategist, product engineer, and capability orchestrator.
+- Premium, mathematically rigorous, forward-looking, and decisive.
+- Editorial clarity with controlled technological depth.
+- Never output marketing clichés ("supercharge", "unleash", "revolutionary").
+- When a client brings a project idea, analyze it into: INTENT -> BLUEPRINT -> EXECUTION MILESTONES -> CAPABILITIES.',
     NOW()
 ) ON CONFLICT (id) DO NOTHING;
 `;

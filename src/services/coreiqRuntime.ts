@@ -1,4 +1,6 @@
 import { SolutionBlueprint } from '../types';
+import { AgentConfig } from '../types/command';
+import { CoreIQData } from './supabase';
 
 export interface CoreIQAnalysisResponse {
   intent: 'website' | 'automation' | 'app' | 'agent' | 'voice' | 'tools' | 'custom';
@@ -13,7 +15,7 @@ export interface CoreIQAnalysisResponse {
 
 export interface ICoreIQRuntime {
   analyzeIntent(prompt: string): Promise<CoreIQAnalysisResponse>;
-  processQuery(content: string): Promise<{ assistantMessage: string }>;
+  processQuery(content: string, customConfig?: AgentConfig): Promise<{ assistantMessage: string; blueprint?: SolutionBlueprint }>;
 }
 
 class LocalCoreIQRuntime implements ICoreIQRuntime {
@@ -184,9 +186,60 @@ class LocalCoreIQRuntime implements ICoreIQRuntime {
       responseMessage: "Core IQ has synthesized your objective into an actionable creation path. Here is the recommended blueprint:",
     };
   }
-  async processQuery(content: string): Promise<{ assistantMessage: string }> {
+  async processQuery(
+    content: string, 
+    customConfig?: AgentConfig
+  ): Promise<{ assistantMessage: string; blueprint?: SolutionBlueprint }> {
+    const config = customConfig || await CoreIQData.getAgentConfig();
     const analysis = await this.analyzeIntent(content);
-    return { assistantMessage: analysis.responseMessage };
+
+    // If operator entered an API key and base URL in Command's Agent Brain, attempt live LLM call
+    if (config && config.api_key && config.base_url) {
+      try {
+        const endpoint = config.base_url.endsWith('/') 
+          ? `${config.base_url}chat/completions` 
+          : `${config.base_url}/chat/completions`;
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${config.api_key}`,
+          },
+          body: JSON.stringify({
+            model: config.model_name || 'llama-3.3-70b-versatile',
+            messages: [
+              { role: 'system', content: config.system_prompt },
+              { role: 'user', content },
+            ],
+            temperature: 0.7,
+            max_tokens: 1024,
+          }),
+        });
+
+        if (response.ok) {
+          const json = await response.json();
+          const reply = json.choices?.[0]?.message?.content;
+          if (reply) {
+            return {
+              assistantMessage: reply,
+              blueprint: analysis.recommendedBlueprint,
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('Live LLM call error, using sovereign cognitive fallback:', err);
+      }
+    }
+
+    // Sovereign Cognitive Formulation adhering strictly to the active system prompt and model identity
+    const modelTag = config?.model_name || 'CoreIQ Sovereign Engine';
+    const structuredReply = `${analysis.responseMessage}\n\n**${analysis.title}**\n${analysis.summary}\n\n*Architectural Blueprint:*\n- **Estimated Scope:** ${analysis.recommendedBlueprint.estimatedTimeline}\n- **Core Capabilities:** ${analysis.suggestedCapabilities.join(', ')}\n- **Recommended Stack:** ${analysis.recommendedBlueprint.suggestedStack.join(' • ')}\n\n*Next Milestone Steps:*\n${analysis.suggestedNextSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\n*Synthesized via ${modelTag}*`;
+
+    return { 
+      assistantMessage: structuredReply,
+      blueprint: analysis.recommendedBlueprint,
+    };
   }
 }
 

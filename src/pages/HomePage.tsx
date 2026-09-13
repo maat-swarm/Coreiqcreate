@@ -168,6 +168,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
               loop
               muted
               playsInline
+              preload="metadata"
+              poster="/assets/backgrounds/coreiq-world.webp"
               className="w-full h-full object-cover"
             >
               <source src="/hero-bg.mp4" type="video/mp4" />

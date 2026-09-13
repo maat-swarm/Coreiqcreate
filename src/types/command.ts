@@ -3,11 +3,37 @@ export type CommandTab =
   | 'tasks'
   | 'clients'
   | 'brain'
+  | 'api_keys'
   | 'tools'
   | 'platforms'
   | 'content'
   | 'swarm'
   | 'analytics';
+
+export type ApiScope =
+  | 'READ_LEADS'
+  | 'WRITE_LEADS'
+  | 'READ_TASKS'
+  | 'WRITE_TASKS'
+  | 'READ_CLIENTS'
+  | 'WRITE_CLIENTS'
+  | 'READ_CONTENT'
+  | 'WRITE_CONTENT'
+  | 'READ_CONFIG'
+  | 'WRITE_CONFIG';
+
+export interface ApiKeyItem {
+  id: string;
+  created_at: string;
+  name: string;
+  key_prefix: string;
+  key_hash: string;
+  raw_token_display?: string;
+  scopes: ApiScope[];
+  revoked: boolean;
+  last_used_at?: string;
+  created_by?: string;
+}
 
 export type LeadSource = 'website' | 'api' | 'manual';
 export type LeadStatus = 'new' | 'in_progress' | 'done';

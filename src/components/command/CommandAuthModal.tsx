@@ -69,19 +69,17 @@ export const CommandAuthModal: React.FC<CommandAuthModalProps> = ({
   const handleAdminSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+    if (!adminEmail.trim() || !adminPass) {
+      setAuthError('Please enter both operator email and password.');
+      return;
+    }
     try {
-      await CoreIQAuth.signIn(adminEmail.trim() || 'operator@coreiq.create', adminPass);
+      await CoreIQAuth.signIn(adminEmail.trim(), adminPass);
       onCredentialsUpdated();
       onClose();
     } catch (err: any) {
-      setAuthError(err?.message || 'Authentication failed.');
+      setAuthError(err?.message || 'Authentication failed. Verify credentials in Supabase Auth.');
     }
-  };
-
-  const handleDevBypass = () => {
-    CoreIQAuth.setDevSession(true);
-    onCredentialsUpdated();
-    onClose();
   };
 
   return (
@@ -272,20 +270,13 @@ export const CommandAuthModal: React.FC<CommandAuthModalProps> = ({
                   </div>
                 )}
 
-                <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+                <div className="pt-2">
                   <button
                     type="submit"
-                    className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition-transform active:scale-98"
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition-transform active:scale-98"
                   >
                     <KeyRound className="w-4 h-4" />
-                    <span>Sign In to Cockpit</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDevBypass}
-                    className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-colors"
-                  >
-                    Local Operator Bypass
+                    <span>Authenticate Operator Session</span>
                   </button>
                 </div>
               </form>

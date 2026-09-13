@@ -10,10 +10,12 @@ import {
   PlatformRegistryItem, 
   ContentItem, 
   SwarmMessage,
+  ApiKeyItem,
   UnifiedInboxItem 
 } from '../types/command';
 import { 
   CoreIQData, 
+  CoreIQAuth,
   isSupabaseConfigured, 
   getSupabaseCredentials,
   DEFAULT_COREIQ_SYSTEM_PROMPT 
@@ -24,12 +26,14 @@ import { CommandInboxTab } from '../components/command/CommandInboxTab';
 import { CommandTasksTab } from '../components/command/CommandTasksTab';
 import { CommandClientsTab } from '../components/command/CommandClientsTab';
 import { CommandBrainTab } from '../components/command/CommandBrainTab';
+import { CommandApiKeysTab } from '../components/command/CommandApiKeysTab';
 import { CommandToolsTab } from '../components/command/CommandToolsTab';
 import { CommandPlatformsTab } from '../components/command/CommandPlatformsTab';
 import { CommandContentTab } from '../components/command/CommandContentTab';
 import { CommandSwarmTab } from '../components/command/CommandSwarmTab';
 import { CommandAnalyticsTab } from '../components/command/CommandAnalyticsTab';
 import { CommandAuthModal } from '../components/command/CommandAuthModal';
+import { CommandLoginPage } from './CommandLoginPage';
 import { 
   Cpu, 
   Database, 
@@ -40,7 +44,10 @@ import {
   X, 
   ShieldCheck,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
+  LogOut,
+  AlertTriangle,
+  Key
 } from 'lucide-react';
 
 interface CommandDashboardPageProps {
@@ -48,6 +55,10 @@ interface CommandDashboardPageProps {
 }
 
 export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onExitToWebsite }) => {
+  // Authentication state
+  const [authSession, setAuthSession] = useState<any>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   const [activeTab, setActiveTab] = useState<CommandTab>('inbox');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSoundMuted, setIsSoundMuted] = useState(false);
@@ -69,28 +80,59 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
     system_prompt: DEFAULT_COREIQ_SYSTEM_PROMPT,
     updated_at: new Date().toISOString(),
   });
+  const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
   const [tools, setTools] = useState<AgentToolConnection[]>([]);
   const [platforms, setPlatforms] = useState<PlatformRegistryItem[]>([]);
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [swarmMessages, setSwarmMessages] = useState<SwarmMessage[]>([]);
 
-  // Supabase connection state
+  // Supabase connection & live schema status
   const [isConnectedToSupabase, setIsConnectedToSupabase] = useState(false);
+  const [isLiveDb, setIsLiveDb] = useState(false);
+  const [dbStatusDetails, setDbStatusDetails] = useState<string>('');
   const { url: currentSupabaseUrl, anonKey: currentSupabaseKey } = getSupabaseCredentials();
 
   // Track previous counts for arrival alerts
   const prevLeadsCount = useRef<number | null>(null);
   const prevSocialCount = useRef<number | null>(null);
 
+  // Check auth on mount
+  useEffect(() => {
+    let mounted = true;
+    CoreIQAuth.getSession().then((session) => {
+      if (mounted) {
+        setAuthSession(session);
+        setCheckingAuth(false);
+      }
+    });
+
+    const handleAuthChange = (e: any) => {
+      setAuthSession(e.detail?.session ?? null);
+    };
+    window.addEventListener('coreiq_auth_state_change', handleAuthChange);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener('coreiq_auth_state_change', handleAuthChange);
+    };
+  }, []);
+
   const fetchAllData = useCallback(async () => {
     try {
       setIsConnectedToSupabase(isSupabaseConfigured());
+
+      // Check database status
+      const dbStatus = await CoreIQData.checkDatabaseStatus();
+      setIsLiveDb(dbStatus.isLiveDb);
+      setDbStatusDetails(dbStatus.details);
+
       const [
         fetchedLeads,
         fetchedSocial,
         fetchedTasks,
         fetchedClients,
         fetchedConfig,
+        fetchedApiKeys,
         fetchedTools,
         fetchedPlatforms,
         fetchedContent,
@@ -101,6 +143,7 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
         CoreIQData.getTasks(),
         CoreIQData.getClients(),
         CoreIQData.getAgentConfig(),
+        CoreIQData.getApiKeys(),
         CoreIQData.getAgentTools(),
         CoreIQData.getPlatforms(),
         CoreIQData.getContentItems(),
@@ -134,6 +177,7 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
       setTasks(fetchedTasks);
       setClients(fetchedClients);
       setAgentConfig(fetchedConfig);
+      setApiKeys(fetchedApiKeys);
       setTools(fetchedTools);
       setPlatforms(fetchedPlatforms);
       setContentItems(fetchedContent);
@@ -147,39 +191,36 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
 
   // Initial load and subscriptions
   useEffect(() => {
+    if (!authSession) return;
     fetchAllData();
 
-    // Subscribe to realtime updates for leads and social
-    const unsubLeads = CoreIQData.subscribe('leads', () => {
-      fetchAllData();
-    });
-
-    const unsubSocial = CoreIQData.subscribe('social_messages', () => {
-      fetchAllData();
-    });
-
-    const unsubTasks = CoreIQData.subscribe('tasks', () => {
-      fetchAllData();
-    });
-
-    const unsubClients = CoreIQData.subscribe('clients', () => {
-      fetchAllData();
-    });
-
-    const unsubSwarm = CoreIQData.subscribe('swarm_comms', () => {
-      fetchAllData();
-    });
+    // Subscribe to realtime updates for all tables
+    const unsubLeads = CoreIQData.subscribe('leads', () => fetchAllData());
+    const unsubSocial = CoreIQData.subscribe('social_messages', () => fetchAllData());
+    const unsubTasks = CoreIQData.subscribe('tasks', () => fetchAllData());
+    const unsubClients = CoreIQData.subscribe('clients', () => fetchAllData());
+    const unsubConfig = CoreIQData.subscribe('agent_config', () => fetchAllData());
+    const unsubApiKeys = CoreIQData.subscribe('api_keys', () => fetchAllData());
+    const unsubSwarm = CoreIQData.subscribe('swarm_comms', () => fetchAllData());
 
     return () => {
       unsubLeads();
       unsubSocial();
       unsubTasks();
       unsubClients();
+      unsubConfig();
+      unsubApiKeys();
       unsubSwarm();
     };
-  }, [fetchAllData]);
+  }, [authSession, fetchAllData]);
 
-  // Handle convert inbox item to task
+  // Sign out handler
+  const handleSignOut = async () => {
+    await CoreIQAuth.signOut();
+    setAuthSession(null);
+  };
+
+  // Convert inbox item to task
   const handleConvertToTask = async (item: UnifiedInboxItem) => {
     const isLead = item.itemType === 'lead';
     const title = isLead
@@ -201,6 +242,31 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
     fetchAllData();
   };
 
+  // Show auth checking spinner
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-[#030712] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 animate-spin" />
+          <span className="text-xs font-mono text-cyan-300">Authenticating CoreIQ Operator...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated, render secure CommandLoginPage
+  if (!authSession) {
+    return (
+      <CommandLoginPage
+        onAuthenticated={(sess) => {
+          setAuthSession(sess);
+          fetchAllData();
+        }}
+        onExitToWebsite={onExitToWebsite}
+      />
+    );
+  }
+
   const newInboxCount = leads.filter((l) => l.status === 'new').length + 
     socialMessages.filter((s) => s.status === 'new').length;
 
@@ -216,7 +282,6 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
           {/* Logo & Brand Identity */}
           <div className="flex items-center gap-3">
             <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-400/40 shadow-[0_0_20px_rgba(25,217,255,0.3)]">
-              {/* Luminous phoenix energy core */}
               <div className="w-4 h-4 rounded-full bg-cyan-400 shadow-[0_0_12px_#19d9ff] animate-pulse" />
             </div>
 
@@ -242,18 +307,24 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
             <button
               onClick={() => setIsAuthModalOpen(true)}
               className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-mono font-semibold flex items-center gap-1.5 transition-all min-h-[44px] ${
-                isConnectedToSupabase
+                isConnectedToSupabase && isLiveDb
                   ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
-                  : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30'
+                  : isConnectedToSupabase
+                  ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30'
+                  : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700'
               }`}
-              title="Click to configure Supabase keys or operator credentials"
+              title={dbStatusDetails || 'Click to view connection info or copy schema SQL'}
             >
               <Database className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">
-                {isConnectedToSupabase ? 'Supabase Realtime' : 'Local Reactive Mode'}
+                {isConnectedToSupabase && isLiveDb 
+                  ? 'Supabase Realtime Live' 
+                  : isConnectedToSupabase 
+                  ? 'Schema Setup Needed' 
+                  : 'Local Reactive Mode'}
               </span>
               <span className="sm:hidden">
-                {isConnectedToSupabase ? 'Cloud' : 'Local'}
+                {isConnectedToSupabase && isLiveDb ? 'Live' : 'Cloud'}
               </span>
             </button>
 
@@ -278,10 +349,44 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
             >
               <RefreshCw className="w-4 h-4" />
             </button>
+
+            {/* Operator Badge & Sign Out */}
+            <div className="hidden md:flex items-center gap-2 pl-2 border-l border-slate-800">
+              <span className="text-xs font-mono text-slate-400 max-w-[140px] truncate" title={authSession?.user?.email}>
+                {authSession?.user?.email || 'Operator'}
+              </span>
+              <button
+                onClick={handleSignOut}
+                className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                title="Sign Out of Command"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
         </div>
       </header>
+
+      {/* Database Setup Warning Banner if Supabase is connected but tables not yet executed */}
+      {isConnectedToSupabase && !isLiveDb && (
+        <div className="bg-amber-950/80 border-b border-amber-500/30 py-2.5 px-4">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 text-amber-300">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+              <span>
+                <strong>Supabase Schema Setup:</strong> The 10 CoreIQ tables haven't been detected in your remote Supabase project yet.
+              </span>
+            </div>
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="self-start sm:self-auto px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold font-mono text-[11px] hover:bg-amber-400 transition-colors"
+            >
+              Copy Schema SQL (1-Click)
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Realtime In-App Alert Banner */}
       {inAppAlert && (
@@ -364,6 +469,13 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
         {activeTab === 'brain' && (
           <CommandBrainTab
             config={agentConfig}
+            onRefresh={fetchAllData}
+          />
+        )}
+
+        {activeTab === 'api_keys' && (
+          <CommandApiKeysTab
+            apiKeys={apiKeys}
             onRefresh={fetchAllData}
           />
         )}
