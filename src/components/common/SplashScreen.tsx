@@ -14,7 +14,7 @@ export function SplashScreen({ onComplete }: Props) {
   useEffect(() => {
     const v = ref.current;
     // Safety net: if video never loads/plays, don't strand the user
-    const fallback = setTimeout(finish, 4000);
+    const fallback = setTimeout(finish, 12000);
 
     if (!v) return () => clearTimeout(fallback);
     v.muted = true;
@@ -46,7 +46,7 @@ export function SplashScreen({ onComplete }: Props) {
         src="/splash.mp4"
         playsInline
         muted
-        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
       />
       <div style={{
         position: 'absolute', bottom: 24, left: 0, right: 0,
