@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, Suspense, lazy } from 'react';
+const MascotViewer = lazy(() => import('../components/common/MascotViewer'));
 import { Sparkles, Zap, LayoutGrid, GraduationCap, ArrowRight, Cpu, Layers, Monitor, CheckCircle2, Loader2, Search, Link as LinkIcon } from 'lucide-react';
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
@@ -231,7 +232,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
       <section className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="reveal-up relative rounded-3xl overflow-hidden border border-cyan-500/20 p-8 sm:p-12 lg:p-16 bg-gradient-to-r from-[#071330] via-[#0b102b] to-[#040817]">
           <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-25 pointer-events-none">
-            <img src={ASSETS.cosmicHorizon} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover object-right" />
+            <Suspense fallback={<div className="w-full h-full" />}><MascotViewer /></Suspense>
           </div>
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-3">
