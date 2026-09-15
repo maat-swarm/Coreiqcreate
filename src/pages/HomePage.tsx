@@ -1,6 +1,8 @@
 import React, { useState, useRef, Suspense, lazy } from 'react';
+import CoreIQSentinel from "@/components/common/CoreIQSentinel";
 const MascotViewer = lazy(() => import('../components/common/MascotViewer'));
 import { Sparkles, Zap, LayoutGrid, GraduationCap, ArrowRight, Cpu, Layers, Monitor, CheckCircle2, Loader2, Search, Link as LinkIcon } from 'lucide-react';
+import CoreIQSentinel from "@/components/common/CoreIQSentinel";
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
 import { NavRoute } from '../types';
