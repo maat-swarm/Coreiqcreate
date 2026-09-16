@@ -6,6 +6,7 @@ import { createServer as createViteServer } from 'vite';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const app = express();
+app.use(cors({ origin: ['https://coreiqcreate-ten.vercel.app', 'http://localhost:5173'], credentials: true }));
 const PORT = 3000;
 
 app.use(express.json());
