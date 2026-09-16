@@ -472,4 +472,86 @@ async function startServer() {
   });
 }
 
+// --- PUBLIC ASK ENDPOINT ---
+app.post('/api/ask', async (req, res) => {
+  const { message, history = [] } = req.body;
+
+  if (!message || typeof message !== 'string') {
+    return res.status(400).json({ error: 'message is required' });
+  }
+
+  try {
+    // Load agent config from Supabase or fallback
+    let agentConfig = localStore.agent_config[0];
+    if (supabase) {
+      const { data } = await supabase
+        .from('agent_config')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+      if (data) agentConfig = data;
+    }
+
+    const apiKey = agentConfig?.api_key || '';
+    const baseUrl = agentConfig?.base_url || 'https://api.groq.com/openai/v1';
+    const modelName = agentConfig?.model_name || 'llama-3.3-70b-versatile';
+    const systemPrompt = agentConfig?.system_prompt || 'You are CoreIQ, an intelligent creation engine.';
+
+    if (!apiKey) {
+      return res.status(503).json({ error: 'Agent not configured. Set API key in Agent Brain.' });
+    }
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history.slice(-6),
+      { role: 'user', content: message }
+    ];
+
+    const groqRes = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages,
+        temperature: 0.7,
+        max_tokens: 1024,
+      }),
+    });
+
+    if (!groqRes.ok) {
+      const errText = await groqRes.text();
+      console.error('Groq error:', errText);
+      return res.status(502).json({ error: 'AI provider error', detail: errText });
+    }
+
+    const groqData = await groqRes.json();
+    const assistantMessage = groqData.choices?.[0]?.message?.content || '';
+
+    // Save lead if conversation is substantial
+    if (history.length >= 2 && supabase) {
+      const lead = {
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString(),
+        client_name: 'Website Visitor',
+        client_contact: '',
+        client_message: message,
+        conversation_summary: assistantMessage.slice(0, 300),
+        intent_type: 'custom',
+        source: 'ask_page',
+        status: 'new',
+      };
+      supabase.from('leads').insert([lead]).then(() => {});
+    }
+
+    return res.json({ assistantMessage });
+
+  } catch (e) {
+    console.error('Ask endpoint error:', e);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 startServer();
