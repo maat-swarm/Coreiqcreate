@@ -423,7 +423,7 @@ app.post('/api/v1/config', authenticateApiKey, requireScope('WRITE_CONFIG'), asy
   const updatedConfig = {
     id: 'coreiq_primary_mind',
     provider: provider || 'groq',
-    model_name: model_name || 'llama3-8b-8192',
+    model_name: model_name || 'openai/gpt-oss-120b',
     base_url: base_url || 'https://api.groq.com/openai/v1',
     api_key: api_key || '',
     system_prompt: system_prompt || '',
@@ -494,7 +494,7 @@ app.post('/api/ask', async (req, res) => {
 
     const apiKey = agentConfig?.api_key || '';
     const baseUrl = agentConfig?.base_url || 'https://api.groq.com/openai/v1';
-    const modelName = agentConfig?.model_name || 'llama3-8b-8192';
+    const modelName = agentConfig?.model_name || 'openai/gpt-oss-120b';
     const systemPrompt = agentConfig?.system_prompt || 'You are CoreIQ, an intelligent creation engine.';
 
     if (!apiKey) {
