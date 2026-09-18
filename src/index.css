@@ -1266,3 +1266,35 @@ body {
   border-width: 0;
 }
 
+
+/* OVERRIDE: reveal-up and reveal-fade animate via CSS, not JS observer */
+.reveal-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: revealEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.reveal-up.is-revealed {
+  animation: revealEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.reveal-fade {
+  opacity: 0;
+  animation: revealFade 0.5s ease forwards;
+}
+.reveal-fade.is-revealed {
+  animation: revealFade 0.5s ease forwards;
+}
+@keyframes revealEnter {
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes revealFade {
+  to { opacity: 1; }
+}
+.stagger-children .reveal-up:nth-child(1) { animation-delay: 0ms; }
+.stagger-children .reveal-up:nth-child(2) { animation-delay: 80ms; }
+.stagger-children .reveal-up:nth-child(3) { animation-delay: 160ms; }
+.stagger-children .reveal-up:nth-child(4) { animation-delay: 240ms; }
+.stagger-children .reveal-up:nth-child(5) { animation-delay: 320ms; }
+.stagger-children .reveal-up:nth-child(6) { animation-delay: 400ms; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up, .reveal-fade { animation: none !important; opacity: 1 !important; transform: none !important; }
+}
