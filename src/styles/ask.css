@@ -1,0 +1,66 @@
+/* Suppress global layout header and footer when dedicated Ask page is mounted */
+body.ask-page-active > div > header,
+body.ask-page-active header.sticky,
+body.ask-page-active footer {
+  display: none !important;
+}
+
+/* Ensure Ask page takes full screen with zero outer margin/padding conflicts */
+body.ask-page-active main {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.cta-btn {
+  display: block;
+  border-radius: 999px;
+  background: transparent;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 18px;
+  height: 36px;
+  line-height: 36px;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+}
+
+/* Conic gradient border box */
+.gradient-border-box {
+  position: relative;
+  isolation: isolate;
+}
+
+.gradient-border-box::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--angle) at 50% 50%,
+    #ff3d3d 0%,
+    #ff8c00 15%,
+    #ffd700 30%,
+    #00e676 45%,
+    #00b0ff 60%,
+    #7c4dff 75%,
+    #ff3d3d 100%
+  );
+  z-index: -1;
+  animation: rotateBorder 45s linear infinite;
+}
+
+.gradient-border-box-fast::before {
+  animation-duration: 8s;
+}
+
+/* Horizontal scroll hide scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

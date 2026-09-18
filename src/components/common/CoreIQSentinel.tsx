@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, CSSProperties } from "react";
 
 type SentinelState = "idle" | "listening" | "processing" | "ready";
 
@@ -69,7 +69,7 @@ export default function CoreIQSentinel({
         {
           "--pointer-x": pointer.x,
           "--pointer-y": pointer.y,
-        } as React.CSSProperties
+        } as CSSProperties
       }
       aria-label={`CoreIQ Sentinel ${state}`}
     >
@@ -113,7 +113,7 @@ export default function CoreIQSentinel({
                 left: `${particle.x}%`,
                 top: `${particle.y}%`,
                 animationDelay: particle.delay,
-              } as React.CSSProperties
+              } as CSSProperties
             }
           />
         ))}

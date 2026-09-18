@@ -51,12 +51,16 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Logo */}
-        <div 
-          onClick={() => handleNavClick('home')} 
-          className="focus:outline-none transition-transform duration-200 active:scale-95 cursor-pointer"
+        <a 
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            handleNavClick('home');
+          }} 
+          className="focus:outline-none transition-transform duration-200 active:scale-95 cursor-pointer block"
         >
           <CoreIQLogo size="md" />
-        </div>
+        </a>
 
         {/* Desktop Navigation Links */}
         <nav 
@@ -113,8 +117,12 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
 
         {/* Action Button: Ask CoreIQ */}
         <div className="hidden md:flex items-center gap-4">
-          <button
-            onClick={() => handleNavClick('ask')}
+          <a
+            href="/ask"
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavClick('ask');
+            }}
             className={`group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 active:scale-95 cursor-pointer ${
               currentRoute === 'ask'
                 ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400 shadow-[0_0_24px_rgba(34,211,238,0.4)]'
@@ -124,22 +132,26 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
             <Sparkles className="w-4 h-4 text-cyan-400 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
             <span className="relative z-10 font-semibold tracking-wide">Ask CoreIQ</span>
             <span className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/0 via-cyan-400/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-          </button>
+          </a>
         </div>
 
         {/* Mobile Menu Trigger */}
         <div className="flex md:hidden items-center gap-3">
-          <button
-            onClick={() => handleNavClick('ask')}
-            className="p-2 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 active:scale-90 transition-transform"
+          <a
+            href="/ask"
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavClick('ask');
+            }}
+            className="p-2 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 active:scale-90 transition-transform flex items-center justify-center"
             aria-label="Ask CoreIQ"
           >
             <Sparkles className="w-4 h-4 animate-pulse" />
-          </button>
+          </a>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 text-slate-400 hover:text-white focus:outline-none active:scale-90 transition-transform"
-            aria-label="Toggle navigation menu"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -175,13 +187,17 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
                 );
               })}
               <div className="pt-4">
-                <button
-                  onClick={() => handleNavClick('ask')}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-sm shadow-[0_0_20px_rgba(34,211,238,0.4)] active:scale-98 transition-transform"
+                <a
+                  href="/ask"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavClick('ask');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-sm shadow-[0_0_20px_rgba(34,211,238,0.4)] active:scale-98 transition-transform cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Ask CoreIQ</span>
-                </button>
+                </a>
               </div>
             </div>
           </motion.div>

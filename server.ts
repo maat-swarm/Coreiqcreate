@@ -5,6 +5,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { GoogleGenAI } from '@google/genai';
 
 const MEM0_API_KEY = 'm0-PZN1f2yO3Nu727Pmmnfkmk7pcBmuGPclezDfgRXZ';
 const MEM0_USER_ID = 'maat-builder-shared';
@@ -482,29 +483,6 @@ app.post('/api/v1/config', authenticateApiKey, requireScope('WRITE_CONFIG'), asy
   res.json({ status: 'updated', config: updatedConfig });
 });
 
-// -----------------------------------------------------------------------------
-// VITE MIDDLEWARE & STATIC ASSET SERVING
-// -----------------------------------------------------------------------------
-async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`CoreIQ Command Engine & API Gateway active on http://0.0.0.0:${PORT}`);
-  });
-}
-
 // --- PUBLIC ASK ENDPOINT ---
 app.post('/api/ask', async (req, res) => {
   const { message, history = [] } = req.body;
@@ -530,43 +508,77 @@ app.post('/api/ask', async (req, res) => {
     const modelName = agentConfig?.model_name || 'openai/gpt-oss-120b';
     const systemPrompt = agentConfig?.system_prompt || 'You are CoreIQ, an intelligent creation engine.';
 
-    if (!apiKey) {
-      return res.status(503).json({ error: 'Agent not configured. Set API key in Agent Brain.' });
+    const memContext = await mem0Search(message);
+    const enrichedPrompt = memContext ? `${systemPrompt}\n\n${memContext}` : systemPrompt;
+
+    let assistantMessage = '';
+
+    if (apiKey) {
+      const messages = [
+        { role: 'system', content: enrichedPrompt },
+        ...history.slice(-6),
+        { role: 'user', content: message }
+      ];
+
+      const groqRes = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages,
+          temperature: 0.7,
+          max_tokens: 1024,
+        }),
+      });
+
+      if (groqRes.ok) {
+        const groqData = await groqRes.json();
+        assistantMessage = groqData.choices?.[0]?.message?.content || '';
+      } else {
+        const errText = await groqRes.text();
+        console.warn('Groq response not OK:', errText);
+      }
     }
 
-    const messages = [
-      { role: 'system', content: enrichedPrompt },
-      ...history.slice(-6),
-      { role: 'user', content: message }
-    ];
-
-    const groqRes = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: modelName,
-        messages,
-        temperature: 0.7,
-        max_tokens: 1024,
-      }),
-    });
-
-    if (!groqRes.ok) {
-      const errText = await groqRes.text();
-      console.error('Groq error:', errText);
-      return res.status(502).json({ error: 'AI provider error', detail: errText });
+    // Fallback to Gemini if assistantMessage is empty and GEMINI_API_KEY is available
+    if (!assistantMessage && process.env.GEMINI_API_KEY) {
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const contents = [
+          ...history.slice(-6).map((h: any) => ({
+            role: h.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: h.content || '' }]
+          })),
+          {
+            role: 'user',
+            parts: [{ text: `${enrichedPrompt}\n\nUser Question: ${message}` }]
+          }
+        ];
+        const geminiRes = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents,
+        });
+        assistantMessage = geminiRes.text || '';
+      } catch (geminiErr) {
+        console.error('Gemini fallback error:', geminiErr);
+      }
     }
 
-    const groqData = await groqRes.json();
-    const assistantMessage = groqData.choices?.[0]?.message?.content || '';
+    if (!assistantMessage) {
+      if (!apiKey && !process.env.GEMINI_API_KEY) {
+        assistantMessage = `Hello! I am CoreIQ, your intelligent creation engine. I can help architect websites, automation workflows, AI agents, and tools. To activate real-time neural processing, please configure your API key in the Agent Brain command center or set GEMINI_API_KEY in your environment.`;
+      } else {
+        return res.status(502).json({ error: 'AI provider error. Please verify your API key and connection.' });
+      }
+    }
 
     // Save lead if conversation is substantial
     if (history.length >= 2 && supabase) {
       const lead = {
-        id: crypto.randomUUID(),
+        id: crypto.randomUUID ? crypto.randomUUID() : `lead_${Date.now()}`,
         created_at: new Date().toISOString(),
         client_name: 'Website Visitor',
         client_contact: '',
@@ -587,5 +599,28 @@ app.post('/api/ask', async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// -----------------------------------------------------------------------------
+// VITE MIDDLEWARE & STATIC ASSET SERVING
+// -----------------------------------------------------------------------------
+async function startServer() {
+  if (process.env.NODE_ENV !== 'production') {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`CoreIQ Command Engine & API Gateway active on http://0.0.0.0:${PORT}`);
+  });
+}
 
 startServer();

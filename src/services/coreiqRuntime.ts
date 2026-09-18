@@ -13,9 +13,10 @@ export interface CoreIQAnalysisResponse {
 
 export interface ICoreIQRuntime {
   analyzeIntent(prompt: string, history?: { role: string; content: string }[]): Promise<CoreIQAnalysisResponse>;
+  processQuery(prompt: string, config?: any): Promise<{ assistantMessage: string; blueprint?: SolutionBlueprint }>;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://coreiqcreate.onrender.com';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function parseResponse(text: string, prompt: string): CoreIQAnalysisResponse {
   const lower = prompt.toLowerCase();
@@ -102,12 +103,14 @@ class RemoteCoreIQRuntime implements ICoreIQRuntime {
       };
     }
   }
+
+  async processQuery(prompt: string, _config?: any): Promise<{ assistantMessage: string; blueprint?: SolutionBlueprint }> {
+    const result = await this.analyzeIntent(prompt);
+    return {
+      assistantMessage: result.responseMessage,
+      blueprint: result.recommendedBlueprint,
+    };
+  }
 }
 
 export const coreIQRuntime: ICoreIQRuntime = new RemoteCoreIQRuntime();
-
-// Alias for AskPage_new.tsx compatibility
-(RemoteCoreIQRuntime.prototype as any).processQuery = async function(prompt: string) {
-  const result = await this.analyzeIntent(prompt);
-  return { assistantMessage: result.responseMessage };
-};

@@ -1,3 +1,14 @@
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rotateBorder {
+  from { --angle: 0deg; }
+  to { --angle: 360deg; }
+}
+
 @import "tailwindcss";
 
 @layer base {
@@ -11,6 +22,34 @@
     font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
     letter-spacing: -0.02em;
   }
+}
+
+.gradient-border-box {
+  position: relative;
+  isolation: isolate;
+}
+
+.gradient-border-box::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--angle) at 50% 50%,
+    #ff3d3d 0%,
+    #ff8c00 15%,
+    #ffd700 30%,
+    #00e676 45%,
+    #00b0ff 60%,
+    #7c4dff 75%,
+    #ff3d3d 100%
+  );
+  z-index: -1;
+  animation: rotateBorder 45s linear infinite;
+}
+
+.gradient-border-box-fast::before {
+  animation-duration: 8s;
 }
 
 /* ==========================================================================
@@ -1165,3 +1204,65 @@
     transition: none !important;
   }
 }
+
+/* Lazy loader spin keyframes */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Custom scrollbar for Webkit browsers */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #080808;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* Global focus-visible styles */
+:focus-visible {
+  outline: 2px solid #00e676;
+  outline-offset: 2px;
+}
+
+/* Global text selection styles */
+::selection {
+  background: rgba(0, 230, 118, 0.25);
+  color: #fff;
+}
+
+/* Typography and rendering optimizations */
+html {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Overscroll behavior prevention on mobile */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
+/* Visually hidden screen-reader utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
