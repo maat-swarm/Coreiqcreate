@@ -6,6 +6,37 @@ import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+const MEM0_API_KEY = 'm0-PZN1f2yO3Nu727Pmmnfkmk7pcBmuGPclezDfgRXZ';
+const MEM0_USER_ID = 'maat-builder-shared';
+
+async function mem0Search(query: string): Promise<string> {
+  try {
+    const res = await fetch('https://api.mem0.ai/v1/memories/search/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${MEM0_API_KEY}` },
+      body: JSON.stringify({ query, user_id: MEM0_USER_ID, limit: 5 })
+    });
+    if (!res.ok) return '';
+    const data = await res.json();
+    const memories = (data.results ?? []).map((m: any) => m.memory).filter(Boolean);
+    return memories.length ? `Relevant memory:\n${memories.join('\n')}` : '';
+  } catch { return ''; }
+}
+
+async function mem0Save(userMsg: string, assistantMsg: string): Promise<void> {
+  try {
+    await fetch('https://api.mem0.ai/v1/memories/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${MEM0_API_KEY}` },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: userMsg }, { role: 'assistant', content: assistantMsg }],
+        user_id: MEM0_USER_ID
+      })
+    });
+  } catch {}
+}
+
+
 const app = express();
 app.use(cors({ origin: ['https://coreiqcreate-ten.vercel.app', 'http://localhost:5173'], credentials: true }));
 const PORT = 3000;
@@ -504,7 +535,7 @@ app.post('/api/ask', async (req, res) => {
     }
 
     const messages = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: enrichedPrompt },
       ...history.slice(-6),
       { role: 'user', content: message }
     ];
@@ -548,6 +579,7 @@ app.post('/api/ask', async (req, res) => {
       supabase.from('leads').insert([lead]).then(() => {});
     }
 
+    await mem0Save(message, assistantMessage);
     return res.json({ assistantMessage });
 
   } catch (e) {
