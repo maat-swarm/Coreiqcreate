@@ -3,11 +3,20 @@ import { useEffect } from 'react';
 export function useScrollReveal() {
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mq.matches) {
+    
+    const revealAll = () => {
       document.querySelectorAll<HTMLElement>('.reveal-up, .reveal-fade')
         .forEach(el => el.classList.add('is-revealed'));
+    };
+
+    if (mq.matches) {
+      revealAll();
       return;
     }
+
+    // Immediately reveal elements already in viewport on load
+    const elements = document.querySelectorAll<HTMLElement>('.reveal-up, .reveal-fade');
+    
     const io = new IntersectionObserver(
       entries => entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -15,10 +24,17 @@ export function useScrollReveal() {
           io.unobserve(entry.target);
         }
       }),
-      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+      { threshold: 0.05, rootMargin: '0px 0px 0px 0px' }
     );
-    document.querySelectorAll<HTMLElement>('.reveal-up, .reveal-fade')
-      .forEach(el => io.observe(el));
-    return () => io.disconnect();
-  });
+
+    elements.forEach(el => io.observe(el));
+
+    // Fallback: reveal all after 800ms in case observer misses
+    const fallback = setTimeout(revealAll, 800);
+
+    return () => {
+      io.disconnect();
+      clearTimeout(fallback);
+    };
+  }, []); // empty array — run once on mount only
 }
