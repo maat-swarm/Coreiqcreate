@@ -105,3 +105,9 @@ class RemoteCoreIQRuntime implements ICoreIQRuntime {
 }
 
 export const coreIQRuntime: ICoreIQRuntime = new RemoteCoreIQRuntime();
+
+// Alias for AskPage_new.tsx compatibility
+(RemoteCoreIQRuntime.prototype as any).processQuery = async function(prompt: string) {
+  const result = await this.analyzeIntent(prompt);
+  return { assistantMessage: result.responseMessage };
+};
