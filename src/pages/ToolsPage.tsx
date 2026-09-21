@@ -254,6 +254,39 @@ Provide an executive summary, followed by a chronological execution table with m
           </div>
         </div>
 
+
+          {/* Free download banner */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-cyan-950/50 to-violet-950/30 border border-cyan-500/30 mb-6">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">Free download — no signup</span>
+              <h3 className="text-sm font-bold text-white">CoreIQ AI Prompt Pack — 20 production-ready prompts</h3>
+              <p className="text-xs text-slate-400">The exact prompt templates CoreIQ uses internally.</p>
+            </div>
+            <a
+              href="/downloads/coreiq-prompt-pack.pdf"
+              download="coreiq-prompt-pack.pdf"
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs transition-colors"
+            >
+              ↓ Download Free PDF
+            </a>
+          </div>
+          {/* Automation checklist banner */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-violet-950/40 to-slate-950/60 border border-violet-500/20 mb-8">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-mono text-violet-400 uppercase tracking-wider">Free checklist</span>
+              <h3 className="text-sm font-bold text-white">Automation Starter Checklist — 10 steps before you build</h3>
+              <p className="text-xs text-slate-400">Used on every CoreIQ automation project.</p>
+            </div>
+            <a
+              href="/downloads/automation-starter-checklist.pdf"
+              download="automation-starter-checklist.pdf"
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-violet-500/40 hover:border-violet-400 text-violet-300 hover:text-violet-200 font-bold text-xs transition-colors"
+            >
+              ↓ Download Checklist
+            </a>
+          </div>
         {/* Minimal Editorial Tool Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredTools.map((tool, idx) => {
