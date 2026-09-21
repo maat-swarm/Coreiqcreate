@@ -5,6 +5,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { buildCoreIQMcpServer, mountCoreIQMcp } from './src/mcp/coreiqMcp';
 import { GoogleGenAI } from '@google/genai';
 
 const MEM0_API_KEY = 'm0-PZN1f2yO3Nu727Pmmnfkmk7pcBmuGPclezDfgRXZ';
@@ -199,6 +200,9 @@ function requireScope(scope: string) {
 // -----------------------------------------------------------------------------
 
 // Health / Status ping
+const coreIQMcpServer = buildCoreIQMcpServer(supabase, localStore);
+mountCoreIQMcp(app, coreIQMcpServer, authenticateApiKey);
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
