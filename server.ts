@@ -6,7 +6,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { buildCoreIQMcpServer, mountCoreIQMcp } from './src/mcp/coreiqMcp';
+import { buildCoreIQMcpServer, mountCoreIQMcp, getCoreIQToolsList, executeCoreIQTool } from './src/mcp/coreiqMcp';
 import { CONTENT_MANIFEST, evaluateContentHealth } from './src/data/contentManifest';
 import { GoogleGenAI } from '@google/genai';
 
@@ -246,9 +246,12 @@ function requireScope(scope: string) {
 // PUBLIC API V1 ENDPOINTS
 // -----------------------------------------------------------------------------
 
-// Health / Status ping
-const coreIQMcpServer = buildCoreIQMcpServer(supabase, localStore);
-mountCoreIQMcp(app, coreIQMcpServer, authenticateApiKey);
+// Health / Status ping & MCP Server
+mountCoreIQMcp(
+  app,
+  (req?: Request) => buildCoreIQMcpServer(supabase, localStore, (req as any)?.apiKey),
+  authenticateApiKey
+);
 
 app.get('/api/health', (req, res) => {
   res.json({
@@ -266,6 +269,38 @@ app.get('/api/v1/ping', (req, res) => {
     timestamp: new Date().toISOString(),
     supabase_configured: Boolean(supabase),
   });
+});
+
+// --- TOOLS REGISTRY & EXECUTION (REST Connector Surface) ---
+app.get('/api/v1/tools', authenticateApiKey, (req, res) => {
+  const tools = getCoreIQToolsList();
+  res.json({
+    status: 'ok',
+    total_tools: tools.length,
+    tools,
+  });
+});
+
+app.post(['/api/v1/tools/execute', '/api/v1/tools/:toolName'], authenticateApiKey, async (req, res) => {
+  const toolName = req.params.toolName || req.body?.tool || req.body?.name;
+  const args = req.body?.arguments || req.body?.params || req.body?.input || (req.params.toolName ? req.body : {});
+
+  if (!toolName) {
+    return res.status(400).json({ error: 'Missing tool name' });
+  }
+
+  const result = await executeCoreIQTool(toolName, args, {
+    supabase,
+    localStore,
+    callerApiKey: (req as any).apiKey,
+  });
+
+  if (!result.success) {
+    const statusCode = result.isForbidden ? 403 : result.isNotFound ? 404 : 400;
+    return res.status(statusCode).json({ error: result.error, tool: toolName });
+  }
+
+  return res.json({ success: true, tool: toolName, data: result.data });
 });
 
 // --- LEADS ---
