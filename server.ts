@@ -1,4 +1,5 @@
 import cors from 'cors';
+import { buildSystemPrompt } from './coreiq-agent/loader';
 import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
@@ -762,7 +763,7 @@ app.post('/api/ask', async (req, res) => {
     const apiKey = agentConfig?.api_key || '';
     const baseUrl = agentConfig?.base_url || 'https://api.groq.com/openai/v1';
     const modelName = agentConfig?.model_name || 'openai/gpt-oss-120b';
-    const systemPrompt = agentConfig?.system_prompt || 'You are CoreIQ, an intelligent creation engine.';
+const systemPrompt = buildSystemPrompt() || agentConfig?.system_prompt || 'You are CoreIQ.';
 
     const memContext = await mem0Search(message);
     const enrichedPrompt = memContext ? `${systemPrompt}\n\n${memContext}` : systemPrompt;
