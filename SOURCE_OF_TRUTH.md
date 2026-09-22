@@ -18,8 +18,9 @@
 - **Enterprise Automations:** Workflow synchronization, inbound lead processing, webhook ingestion, and multi-platform communication.
 - **Custom Web Applications & Portals:** Next-generation high-performance web applications built with TypeScript, React 19, and Vite.
 - **Voice AI & Telephony:** Conversational voice waveforms and voice-agent integration hooks.
-- **Intelligence & Machine Learning Infrastructure:** Multi-LLM runtime switching (Groq, Anthropic, OpenAI, Gemini, Local models) with live prompt parameter tuning.
+- **Intelligence & Machine Learning Infrastructure:** Multi-LLM runtime switching (Google Gemini with `gemini-3.8-flash` primary & cascade fallback, Groq, Anthropic, OpenAI, Local models) with live prompt parameter tuning and Model Context Protocol (MCP) server endpoints.
 - **AI Education & Strategy Hub:** Curated learning paths, architecture whitepapers, and operational frameworks.
+- **Universal Content Manifest & Headless CMS:** A 94-key structured content registry covering 6 core public surfaces with typed placeholders, health telemetry, and zero-layout-shift resolution.
 
 ### 1.2 The Three Interlocking Layers of the System
 The system is partitioned into three functional tiers that communicate through Supabase and an Express API gateway:
@@ -29,6 +30,7 @@ The system is partitioned into three functional tiers that communicate through S
    - Presents CoreIQ's capabilities, interactive tool directories, live apps showcase, and learning content.
    - Houses the **Ask CoreIQ** conversational discovery interface (`/ask`), where potential clients or autonomous systems describe a business objective, and the CoreIQ agent converts it into a structured technical blueprint (Intent, Technology Stack, Milestones, Estimated Timelines, and System Capabilities).
    - Ingests public lead inquiries directly into the Supabase `leads` table and triggers notification webhooks.
+   - Leverages `resolveContent(content_key)` to bind CMS data or typed placeholders dynamically without layout shift.
 
 2. **CoreIQ Command (`/command` and `/command/login`):**
    - The central operational cockpit for operators, strategists, and automated agents.
@@ -41,13 +43,14 @@ The system is partitioned into three functional tiers that communicate through S
      - **API Keys Tab:** Machine-to-machine credential generator and scope management console (`ciq_live_...` tokens hashed with SHA-256) for external agents like Hermes Prime.
      - **Tools Tab:** Dynamic registry of external tool connectors, API endpoints, and execution states.
      - **Platforms Tab:** Inventory of deployed websites, apps, and digital properties managed by CoreIQ.
-     - **Content Tab:** Headless CMS management for articles, news items, and media references.
+     - **Content Tab:** Headless CMS management with dual Copy/Media tabs, manifest synchronization, and live health evaluation across all 94 content keys.
      - **Swarm Tab:** Inter-agent telemetry node viewer tracking autonomous node heartbeats and inter-agent messages.
      - **Analytics Tab:** Pipeline health, conversion metrics, and system throughput.
 
-3. **The CoreIQ Autonomous Agent:**
-   - The cognitive engine embedded in both the public discovery page (`AskPage.tsx`) and accessible via external machine API endpoints (`server.ts`).
+3. **The CoreIQ Autonomous Agent & MCP Server:**
+   - The cognitive engine embedded in both the public discovery page (`AskPage.tsx`), machine API endpoints (`POST /api/ask`), and the Model Context Protocol server (`POST /mcp`).
    - Uses `coreiqRuntime.ts` as an abstraction layer. It reads the current configuration dynamically from the Supabase `agent_config` table (or local reactive memory if Supabase is unavailable), ensuring system prompts and model assignments are completely decoupled from static build artifacts.
+   - Equipped with server-side Gemini intelligence using `@google/genai` targeting `gemini-3.8-flash` (with automated fallback cascade to `gemini-3.6-flash` and `gemini-flash-latest`), backed by safe non-JSON response error trapping.
 
 ### 1.3 How the System Connects to Supabase
 Supabase serves as the **Single Unified Brain** of CoreIQ Create.
@@ -58,6 +61,26 @@ Supabase serves as the **Single Unified Brain** of CoreIQ Create.
   - The client codebase (`src/services/supabase.ts`) and the server gateway (`server.ts`) implement an automated resilient dual-layer architecture.
   - If remote Supabase credentials are missing, or if the database tables have not yet been created via `supabase/schema.sql`, the application automatically falls back to an in-memory reactive data layer with local event broadcast (`coreiq_storage_event`).
   - As soon as the remote schema is executed in the Supabase SQL editor, the system automatically routes all operations to live PostgreSQL tables with real-time WebSocket subscriptions (`supabase_realtime`).
+
+### 1.4 Content Manifest & Resolution Architecture
+The application implements a structured content layer:
+- **`src/data/contentManifest.ts`:** Master contract declaring 94 distinct `content_key` entries across 6 primary pages:
+  - `home.*` (12 entries: hero, capability strips, explore cards, badges)
+  - `solutions.*` (14 entries: hero, capability sections, process steps, goals)
+  - `apps.*` (16 entries: hero, app categories, app cards, pro tier)
+  - `learn.*` (20 entries: hero, curriculum pillars, guide articles, editorial topics)
+  - `tools.*` (16 entries: hero, categories, utilities, tool cards)
+  - `about.*` (16 entries: hero, principles, leadership, engineering stack, ethos)
+- **`src/services/contentResolver.ts`:** Provides `resolveContent(content_key)`, `resolveBySlug(slug)`, and `seedManifestPlaceholders()`.
+  - When status is `PUBLISHED` with non-empty body, it delivers published CMS data.
+  - When draft or missing, it delivers a typed `PLACEHOLDER` with fallback title, summary, and metadata.
+  - Guarantees zero layout shift and never throws.
+- **`src/components/common/ContentPlaceholder.tsx`:** Polymorphic renderer displaying editorial placeholder cards with category tags, read times, and clear status badges.
+- **Universal Content API (`server.ts`):**
+  - `GET /api/v1/content/health`: Real-time health audit (total items, placeholder/draft/published counts, overall health percentage, and per-page breakdown).
+  - `GET /api/v1/content/:key`: Fetch single content item.
+  - `PATCH /api/v1/content/:key`: Update content body, summary, metadata, or status (requires `WRITE_CONTENT`).
+  - `POST /api/v1/content/:key/publish`: Transition content key directly to `PUBLISHED` (requires `PUBLISH_CONTENT`).
 
 
 ## 2. REPOSITORY & DEPLOYMENT
@@ -76,8 +99,8 @@ Supabase serves as the **Single Unified Brain** of CoreIQ Create.
 ### 2.2 Hosting and Live Deployment Surfaces
 This application has two distinct deployment artifacts:
 1. **Google Cloud Run (Active Development & Preview Container):**
-   - **Development App URL:** `https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app`
-   - **Shared Production Preview URL:** `https://ais-pre-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app`
+   - **Development App URL:** `https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app`
+   - **Shared Production Preview URL:** `https://ais-pre-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app`
    - **Runtime Process:** Runs `server.ts` via `tsx server.ts` (dev) or `node dist/server.cjs` (production container) bound strictly to `0.0.0.0:3000`. Behind an nginx ingress proxy, all external traffic hits port 3000.
 
 2. **Vercel Deployment (Static Frontend vs. API Gateway Architecture):**
@@ -91,7 +114,7 @@ This application has two distinct deployment artifacts:
          "rewrites": [
            {
              "source": "/api/(.*)",
-             "destination": "https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app/api/$1"
+             "destination": "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/api/$1"
            }
          ]
        }
@@ -114,6 +137,8 @@ A comprehensive inventory of all active source files in the repository:
 ```
 .
 ├── .dev.env.json                             # Environment variable store (Supabase URL, Anon Key, Gemini API key)
+├── .env.example                              # Template documenting required environment keys
+├── .gitignore                                # Git ignore rules (node_modules, dist, secrets)
 ├── bun.lock                                  # Bun package lockfile
 ├── dist/                                     # Production build output folder
 │   ├── assets/                               # Compiled JS, CSS, and media bundles
@@ -132,89 +157,97 @@ A comprehensive inventory of all active source files in the repository:
 │   ├── logo.png                              # Raster CoreIQ mark
 │   └── splash.mp4                            # Entry sequence splash cinematic video
 ├── server.ts                                 # Express API Gateway, Bearer auth, scope enforcement, and Vite proxy
-├── src/                                      # Application TypeScript source code
-│   ├── App.tsx                               # Master application component with route switching & layout
-│   ├── index.css                             # Tailwind CSS v4 styling rules, design tokens, and keyframes
-│   ├── main.tsx                              # React 19 DOM entry mount
-│   ├── types.ts                              # Core public domain interfaces (Navigation, Solutions, Apps, Tools)
-│   ├── vite-env.d.ts                         # Vite client environment definitions
-│   ├── assets/
-│   │   ├── images.ts                         # Image asset manifest mapping static photography & graphics
-│   │   └── images/                           # High-resolution optimized asset imagery
-│   │       ├── coreiq_agent_head_1788902267176.jpg
-│   │       ├── coreiq_apps_showcase_1788902236299.jpg
-│   │       ├── coreiq_cosmic_horizon_1788902219292.jpg
-│   │       ├── coreiq_energy_core_1788902176584.jpg
-│   │       ├── coreiq_hypercube_crystal_1788902250561.jpg
-│   │       ├── coreiq_imageforge_art_1788902285786.jpg
-│   │       ├── coreiq_learn_book_1788902190581.jpg
-│   │       ├── coreiq_tools_cube_1788902204803.jpg
-│   │       └── coreiq_world_art_1789180701119.jpg
-│   ├── components/
-│   │   ├── command/                          # CoreIQ Command Operator Cockpit Components
-│   │   │   ├── CommandAnalyticsTab.tsx       # System throughput, lead conversion, and performance gauges
-│   │   │   ├── CommandApiKeysTab.tsx         # Machine credential generation, SHA-256 hashing, cURL docs & test console
-│   │   │   ├── CommandAuthModal.tsx          # Operator login & registration modal backed by Supabase Auth
-│   │   │   ├── CommandBrainTab.tsx           # Live LLM provider, model name, base URL & system prompt controller
-│   │   │   ├── CommandClientsTab.tsx         # Client relationship directory, email management & notes
-│   │   │   ├── CommandContentTab.tsx         # Headless CMS for news, educational content & media links
-│   │   │   ├── CommandInboxTab.tsx           # Inbound lead inbox with filter tags, status triage & audio chimes
-│   │   │   ├── CommandNav.tsx                # Tab navigation bar and system status indicators for Command
-│   │   │   ├── CommandPlatformsTab.tsx       # Inventory of deployed platforms and digital endpoints
-│   │   │   ├── CommandSwarmTab.tsx           # Autonomous swarm communications and node telemetry stream
-│   │   │   ├── CommandTasksTab.tsx           # Execution pipeline task board with status workflows
-│   │   │   └── CommandToolsTab.tsx           # External agent tools, connectors, and API endpoint registry
-│   │   ├── common/                           # Shared Global Public UI Components
-│   │   │   ├── AmbientBackground.tsx         # Lightweight dark background gradient wrapper
-│   │   │   ├── AskCoreIQBar.tsx              # Sticky dynamic floating query prompt bar
-│   │   │   ├── CoreIQLogo.tsx                # Vector geometric identity mark with luminous cyan/violet styling
-│   │   │   ├── CoreIQMark3D.tsx              # Kinetic 3D energy core visualization
-│   │   │   ├── CosmicCTABanner.tsx           # High-impact bottom call-to-action banner
-│   │   │   ├── Footer.tsx                    # Semantic global footer with navigation links and system status
-│   │   │   ├── Header.tsx                    # Main header bar with responsive navigation, sound toggle & Command link
-│   │   │   ├── PageHeroVisual.tsx            # Cinematic visual container for sub-page headers
-│   │   │   ├── ScrollReveal.tsx              # Viewport intersection animation wrapper
-│   │   │   └── SplashScreen.tsx              # Cinematic entry cinematic with skip option
-│   │   └── environment/                      # Atmospheric & Cinematic Visual Layers
-│   │       ├── AmbientParticles.tsx          # Canvas-based floating energy particles with mouse responsiveness
-│   │       ├── AtmosphericLayer.tsx          # Volumetric depth gradients and cosmic noise textures
-│   │       ├── EnergyField.tsx               # Kinetic SVG undulating lines representing intelligent fields
-│   │       ├── ImageBackground.tsx           # Responsive image background with fallback handling
-│   │       ├── InteractiveLightField.tsx     # Mouse-tracking radial volumetric lighting
-│   │       ├── MascotEnvironment.tsx         # CoreIQ Phoenix energy-core dimensional system
-│   │       ├── ScrollVisualController.tsx    # Scroll position listener driving visual parallax
-│   │       ├── SiteVisualEnvironment.tsx     # Master visual composite controller layering video, canvas & gradients
-│   │       └── VideoBackground.tsx           # HTML5 video player with WebP poster fallback and low-motion support
-│   ├── data/                                 # Static Showcase & Documentation Data
-│   │   ├── aboutData.ts                      # Principles, architecture methodology, and team philosophy
-│   │   ├── appsData.ts                       # Directory of AI-powered applications (ImageForge, DataPulse, etc.)
-│   │   ├── learnData.ts                      # Educational curriculum, architecture papers, and agent blueprints
-│   │   ├── solutionsData.ts                  # Comprehensive solution categories (Agents, Voice, Automations)
-│   │   └── toolsData.ts                      # Directory of specialized tools, utilities, and developer aids
-│   ├── hooks/                                # Custom React Hooks
-│   │   ├── useMotionPruning.ts               # Hardware-aware motion reducer (low battery, reduced-motion)
-│   │   └── useScrollReveal.ts                # IntersectionObserver hook for triggering entry transitions
-│   ├── pages/                                # Route Views
-│   │   ├── AboutPage.tsx                     # CoreIQ identity, engineering philosophy, and capabilities
-│   │   ├── AppsPage.tsx                      # Showcase gallery of applications built with CoreIQ
-│   │   ├── AskPage.tsx                       # Interactive conversational discovery agent & blueprint generator
-│   │   ├── CommandDashboardPage.tsx          # The authenticated operator cockpit mounting all Command tabs
-│   │   ├── CommandLoginPage.tsx              # Dedicated operator authentication gate
-│   │   ├── HomePage.tsx                      # Primary landing showcase with interactive hero & capabilities
-│   │   ├── LearnPage.tsx                     # Knowledge base, guides, and strategic AI whitepapers
-│   │   ├── SolutionsPage.tsx                 # Detailed enterprise solution offerings
-│   │   └── ToolsPage.tsx                     # Interactive utilities and developer tooling catalog
-│   ├── services/                             # Core Data & Runtime Services
-│   │   ├── coreiqRuntime.ts                  # Client-side AI agent orchestration, blueprint analyzer & prompt engine
-│   │   └── supabase.ts                       # Unified Supabase client, local reactive fallback, RLS & Realtime API
-│   ├── types/
-│   │   └── command.ts                        # TypeScript interfaces for Command: Leads, Tasks, Clients, Keys, Swarm
-│   └── utils/
-│       └── sound.ts                          # Web Audio API procedural synthesizer (UI chimes, clicks, alerts)
+├── SOURCE_OF_TRUTH.md                        # Master authoritative system specification document
 ├── supabase/
 │   └── schema.sql                            # Complete PostgreSQL schema for 10 tables, RLS policies & Realtime
 ├── tsconfig.json                             # TypeScript compiler configuration (ESNext, React-JSX, Bundler mode)
-└── vite.config.ts                            # Vite build setup with Tailwind v4, React plugin & HMR tuning
+├── vercel.json                               # Optional Vercel proxy configuration
+├── vite.config.ts                            # Vite build setup with Tailwind v4, React plugin & HMR tuning
+└── src/                                      # Application TypeScript source code
+    ├── App.tsx                               # Master application component with route switching & layout
+    ├── index.css                             # Tailwind CSS v4 styling rules, design tokens, and keyframes
+    ├── main.tsx                              # React 19 DOM entry mount
+    ├── types.ts                              # Core public domain interfaces (Navigation, Solutions, Apps, Tools)
+    ├── vite-env.d.ts                         # Vite client environment definitions
+    ├── assets/
+    │   ├── images.ts                         # Image asset manifest mapping static photography & graphics
+    │   └── images/                           # High-resolution optimized asset imagery
+    ├── components/
+    │   ├── ask/                              # Conversational Discovery Subsystem
+    │   │   ├── GradientBorderBox.tsx         # Animated glowing border container for blueprint cards
+    │   │   └── ScrambleText.tsx              # Matrix-style text scrambling reveal effect
+    │   ├── command/                          # CoreIQ Command Operator Cockpit Components
+    │   │   ├── CommandAnalyticsTab.tsx       # System throughput, lead conversion, and performance gauges
+    │   │   ├── CommandApiKeysTab.tsx         # Machine credential generation, SHA-256 hashing, cURL docs & test console
+    │   │   ├── CommandAuthModal.tsx          # Operator login & registration modal backed by Supabase Auth
+    │   │   ├── CommandBrainTab.tsx           # Live LLM provider, model name, base URL & system prompt controller
+    │   │   ├── CommandClientsTab.tsx         # Client relationship directory, email management & notes
+    │   │   ├── CommandContentTab.tsx         # Headless CMS for copy, media, manifest sync & health evaluation
+    │   │   ├── CommandInboxTab.tsx           # Inbound lead inbox with filter tags, status triage & audio chimes
+    │   │   ├── CommandNav.tsx                # Tab navigation bar and system status indicators for Command
+    │   │   ├── CommandPlatformsTab.tsx       # Inventory of deployed platforms and digital endpoints
+    │   │   ├── CommandSwarmTab.tsx           # Autonomous swarm communications and node telemetry stream
+    │   │   ├── CommandTasksTab.tsx           # Execution pipeline task board with status workflows
+    │   │   └── CommandToolsTab.tsx           # External agent tools, connectors, and API endpoint registry
+    │   ├── common/                           # Shared Global Public UI Components
+    │   │   ├── AmbientBackground.tsx         # Lightweight dark background gradient wrapper
+    │   │   ├── AskCoreIQBar.tsx              # Sticky dynamic floating query prompt bar
+    │   │   ├── ContentPlaceholder.tsx        # Polymorphic renderer for draft/placeholder content states
+    │   │   ├── CoreIQLogo.tsx                # Vector geometric identity mark with luminous cyan/violet styling
+    │   │   ├── CoreIQMark3D.tsx              # Kinetic 3D energy core visualization
+    │   │   ├── CoreIQSentinel.tsx            # Floating ambient guardian visualization
+    │   │   ├── CosmicCTABanner.tsx           # High-impact bottom call-to-action banner
+    │   │   ├── Footer.tsx                    # Semantic global footer with navigation links and system status
+    │   │   ├── Header.tsx                    # Main header bar with responsive navigation, sound toggle & Command link
+    │   │   ├── PageHeroVisual.tsx            # Cinematic visual container for sub-page headers
+    │   │   ├── ScrollReveal.tsx              # Viewport intersection animation wrapper
+    │   │   └── SplashScreen.tsx              # Cinematic entry cinematic with skip option
+    │   └── environment/                      # Atmospheric & Cinematic Visual Layers
+    │       ├── AmbientParticles.tsx          # Canvas-based floating energy particles with mouse responsiveness
+    │       ├── AtmosphericLayer.tsx          # Volumetric depth gradients and cosmic noise textures
+    │       ├── EnergyField.tsx               # Kinetic SVG undulating lines representing intelligent fields
+    │       ├── ImageBackground.tsx           # Responsive image background with fallback handling
+    │       ├── InteractiveLightField.tsx     # Mouse-tracking radial volumetric lighting
+    │       ├── MascotEnvironment.tsx         # CoreIQ Phoenix energy-core dimensional system
+    │       ├── ScrollVisualController.tsx    # Scroll position listener driving visual parallax
+    │       ├── SiteVisualEnvironment.tsx     # Master visual composite controller layering video, canvas & gradients
+    │       └── VideoBackground.tsx           # HTML5 video player with WebP poster fallback and low-motion support
+    ├── data/                                 # Static Showcase, Documentation & Content Manifest
+    │   ├── aboutData.ts                      # Principles, architecture methodology, and team philosophy
+    │   ├── appsData.ts                       # Directory of AI-powered applications (ImageForge, DataPulse, etc.)
+    │   ├── contentManifest.ts                # Master contract of 94 content keys across 6 routes with health evaluator
+    │   ├── learnData.ts                      # Educational curriculum, architecture papers, and agent blueprints
+    │   ├── solutionsData.ts                  # Comprehensive solution categories (Agents, Voice, Automations)
+    │   └── toolsData.ts                      # Directory of specialized tools, utilities, and developer aids
+    ├── hooks/                                # Custom React Hooks
+    │   ├── useMagneticHover.ts               # Spring-physics magnetic cursor attraction hook
+    │   ├── useMotionPruning.ts               # Hardware-aware motion reducer (low battery, reduced-motion)
+    │   └── useScrollReveal.ts                # IntersectionObserver hook for triggering entry transitions
+    ├── mcp/                                  # Model Context Protocol
+    │   └── coreiqMcp.ts                      # MCP server tools (ask_coreiq, list_leads, create_task, get_agent_config)
+    ├── pages/                                # Route Views
+    │   ├── AboutPage.tsx                     # CoreIQ identity, engineering philosophy, and capabilities
+    │   ├── AppsPage.tsx                      # Showcase gallery of applications built with CoreIQ
+    │   ├── Ask.tsx                           # Master interactive conversational discovery agent & blueprint generator
+    │   ├── AskPage.tsx                       # Re-export gateway for Ask component
+    │   ├── ComingSoon.tsx                    # Minimalist placeholder view for in-flight routes
+    │   ├── CommandDashboardPage.tsx          # The authenticated operator cockpit mounting all Command tabs
+    │   ├── CommandLoginPage.tsx              # Dedicated operator authentication gate
+    │   ├── HomePage.tsx                      # Primary landing showcase with interactive hero & capabilities
+    │   ├── LearnArticlePage.tsx              # Dedicated single-guide view reading from resolveBySlug()
+    │   ├── LearnPage.tsx                     # Knowledge base, guides, and strategic AI whitepapers
+    │   ├── SolutionsPage.tsx                 # Detailed enterprise solution offerings
+    │   └── ToolsPage.tsx                     # Interactive utilities and developer tooling catalog
+    ├── services/                             # Core Data & Runtime Services
+    │   ├── contentResolver.ts                # Dual-mode content resolver (PUBLISHED vs typed PLACEHOLDER)
+    │   ├── coreiqRuntime.ts                  # Client-side AI agent orchestration, blueprint analyzer & prompt engine
+    │   └── supabase.ts                       # Unified Supabase client, local reactive fallback, RLS & Realtime API
+    ├── styles/
+    │   └── ask.css                           # Scoped CSS styling for Ask CoreIQ conversation interface
+    ├── types/
+    │   └── command.ts                        # TypeScript interfaces for Command: Leads, Tasks, Clients, Keys, Content
+    └── utils/
+        └── sound.ts                          # Web Audio API procedural synthesizer (UI chimes, clicks, alerts)
 ```
 
 
@@ -240,26 +273,31 @@ This section contains the literal, complete, current contents of every source co
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
-    "@supabase/supabase-js": "^2.116.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@supabase/supabase-js": "2.39.3",
     "@tailwindcss/vite": "^4.1.14",
+    "@types/cors": "^2.8.19",
     "@vitejs/plugin-react": "^5.0.4",
+    "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "vite": "^6.2.3"
+    "react-router-dom": "^7.18.4",
+    "vite": "^6.2.3",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.25.12",
+    "esbuild-wasm": "^0.28.2",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.3",
-    "@types/express": "^4.17.21"
+    "typescript": "~5.8.2"
   }
 }
 
@@ -332,8 +370,8 @@ export default defineConfig(() => {
 ### File: `metadata.json`
 ```json
 {
-  "name": "Core IQ Create",
-  "description": "An intelligent AI creation environment. Build what matters with AI agents, automation, apps, websites, voice AI, integrations, and tools.",
+  "name": "CoreIQ Create",
+  "description": "CoreIQ Create — AI agents, custom apps, and automation built for your business. Deployed in days, not months.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
@@ -348,15 +386,18 @@ export default defineConfig(() => {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Core IQ Create | Intelligent Creation Environment</title>
-    <meta name="description" content="An intelligent AI creation environment. Build what matters with AI agents, automation, apps, websites, voice AI, integrations, and tools." />
-    <meta property="og:title" content="Core IQ Create | Intelligent Creation Environment" />
-    <meta property="og:description" content="An intelligent AI creation environment. Build what matters with AI agents, automation, apps, websites, voice AI, integrations, and tools." />
+    <title>CoreIQ Create</title>
+    <meta name="description" content="CoreIQ Create — AI agents, custom apps, and automation built for your business. Deployed in days, not months." />
+    <meta name="theme-color" content="#080808" />
+    <meta property="og:title" content="CoreIQ Create" />
+    <meta property="og:description" content="AI agents, custom apps, and automation built for your business." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script async src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+    <script async src="https://unpkg.com/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
   </head>
   <body class="bg-[#030712] text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200 antialiased overflow-x-hidden min-h-screen">
     <div id="root"></div>
@@ -371,14 +412,52 @@ export default defineConfig(() => {
 
 ### File: `server.ts`
 ```typescript
+import cors from 'cors';
 import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { buildCoreIQMcpServer, mountCoreIQMcp } from './src/mcp/coreiqMcp';
+import { CONTENT_MANIFEST, evaluateContentHealth } from './src/data/contentManifest';
+import { GoogleGenAI } from '@google/genai';
+
+const MEM0_API_KEY = process.env.MEM0_API_KEY || '';
+const MEM0_USER_ID = process.env.MEM0_USER_ID || 'maat-builder-shared';
+
+async function mem0Search(query: string): Promise<string> {
+  if (!MEM0_API_KEY) return '';
+  try {
+    const res = await fetch('https://api.mem0.ai/v1/memories/search/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${MEM0_API_KEY}` },
+      body: JSON.stringify({ query, user_id: MEM0_USER_ID, limit: 5 })
+    });
+    if (!res.ok) return '';
+    const data = await res.json();
+    const memories = (data.results ?? []).map((m: any) => m.memory).filter(Boolean);
+    return memories.length ? `Relevant memory:\n${memories.join('\n')}` : '';
+  } catch { return ''; }
+}
+
+async function mem0Save(userMsg: string, assistantMsg: string): Promise<void> {
+  if (!MEM0_API_KEY) return;
+  try {
+    await fetch('https://api.mem0.ai/v1/memories/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${MEM0_API_KEY}` },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: userMsg }, { role: 'assistant', content: assistantMsg }],
+        user_id: MEM0_USER_ID
+      })
+    });
+  } catch {}
+}
+
 
 const app = express();
+app.use(cors({ origin: true, credentials: true }));
 const PORT = 3000;
 
 app.use(express.json());
@@ -408,7 +487,7 @@ const localStore: Record<string, any[]> = {
         'READ_LEADS', 'WRITE_LEADS',
         'READ_TASKS', 'WRITE_TASKS',
         'READ_CLIENTS', 'WRITE_CLIENTS',
-        'READ_CONTENT', 'WRITE_CONTENT',
+        'READ_CONTENT', 'WRITE_CONTENT', 'PUBLISH_CONTENT',
         'READ_CONFIG', 'WRITE_CONFIG'
       ],
       revoked: false,
@@ -427,6 +506,36 @@ const localStore: Record<string, any[]> = {
     }
   ]
 };
+
+// Seed localStore with manifest placeholders
+function seedLocalStoreManifest() {
+  const existingKeys = new Set(localStore.content.map((c: any) => c.content_key || c.key));
+  for (const entry of CONTENT_MANIFEST) {
+    if (!existingKeys.has(entry.content_key)) {
+      const title = entry.defaultTitle || entry.content_key;
+      localStore.content.push({
+        id: `manifest_${entry.content_key.replace(/[^a-zA-Z0-9_]/g, '_')}`,
+        content_key: entry.content_key,
+        key: entry.content_key,
+        title,
+        summary: entry.defaultSummary || `Content being prepared for ${title}.`,
+        body: '',
+        value: '',
+        category: entry.category || 'general',
+        content_type: entry.content_type,
+        status: 'PLACEHOLDER',
+        slug: entry.slug,
+        metadata: entry.metadata || {},
+        published: false,
+        version: 1,
+        type: 'text',
+        created_at: new Date().toISOString(),
+      });
+      existingKeys.add(entry.content_key);
+    }
+  }
+}
+seedLocalStoreManifest();
 
 interface ApiKeyRecord {
   id: string;
@@ -521,7 +630,20 @@ function requireScope(scope: string) {
       return res.status(401).json({ error: 'Unauthenticated' });
     }
 
-    if (!key.scopes.includes(scope)) {
+    const normalizedReq = scope.toLowerCase().replace(/_/g, ':');
+    const hasScope = key.scopes.some((s) => {
+      if (s === '*' || s === 'ADMIN' || s === 'admin') return true;
+      if (s === scope) return true;
+      const normalizedKeyScope = s.toLowerCase().replace(/_/g, ':');
+      if (normalizedKeyScope === normalizedReq) return true;
+      // Reverse mapping: content:read <-> read_content, content:write <-> write_content
+      const invertedReq = scope.toLowerCase().includes(':')
+        ? scope.toLowerCase().split(':').reverse().join('_')
+        : scope.toLowerCase().split('_').reverse().join(':');
+      return s.toLowerCase() === invertedReq || normalizedKeyScope === invertedReq;
+    });
+
+    if (!hasScope) {
       return res.status(403).json({
         error: 'Forbidden',
         message: `API Key '${key.name}' does not have the required '${scope}' scope.`,
@@ -538,6 +660,9 @@ function requireScope(scope: string) {
 // -----------------------------------------------------------------------------
 
 // Health / Status ping
+const coreIQMcpServer = buildCoreIQMcpServer(supabase, localStore);
+mountCoreIQMcp(app, coreIQMcpServer, authenticateApiKey);
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
@@ -771,6 +896,212 @@ app.post('/api/v1/content', authenticateApiKey, requireScope('WRITE_CONTENT'), a
   res.status(201).json({ status: 'created', content: newContent });
 });
 
+// --- EXTENDED CONTENT & HEALTH ENDPOINTS ---
+
+// Health check endpoint (declared BEFORE /:key)
+app.get('/api/v1/content/health', authenticateApiKey, requireScope('content:read'), async (req, res) => {
+  let allContent: any[] = [];
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('content').select('*');
+      if (!error && data) allContent = data;
+    } catch (e) {
+      console.error('API content health check error:', e);
+    }
+  }
+  if (!allContent.length) {
+    allContent = localStore.content;
+  }
+
+  const healthReport = evaluateContentHealth(allContent);
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    health: healthReport,
+  });
+});
+
+// Single content item lookup by key, content_key, id, or slug
+app.get('/api/v1/content/:key', authenticateApiKey, requireScope('content:read'), async (req, res) => {
+  const { key } = req.params;
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('content')
+        .select('*')
+        .or(`content_key.eq.${key},key.eq.${key},id.eq.${key},slug.eq.${key}`)
+        .maybeSingle();
+      if (!error && data) {
+        return res.json({ status: 'found', content: data });
+      }
+    } catch (e) {
+      console.error('API get single content error:', e);
+    }
+  }
+
+  const found = localStore.content.find(
+    (c: any) => c.content_key === key || c.key === key || c.id === key || c.slug === key
+  );
+
+  if (found) {
+    return res.json({ status: 'found', content: found });
+  }
+
+  return res.status(404).json({
+    error: 'Not Found',
+    message: `Content item with key '${key}' not found.`,
+  });
+});
+
+// Update / patch content item by key
+app.patch('/api/v1/content/:key', authenticateApiKey, requireScope('content:write'), async (req, res) => {
+  const { key } = req.params;
+  const updates = req.body || {};
+  const apiKey = (req as any).apiKey as ApiKeyRecord;
+
+  // Find existing
+  let existing: any = null;
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from('content')
+        .select('*')
+        .or(`content_key.eq.${key},key.eq.${key},id.eq.${key},slug.eq.${key}`)
+        .maybeSingle();
+      if (data) existing = data;
+    } catch (e) {
+      console.error('API patch find error:', e);
+    }
+  }
+  if (!existing) {
+    existing = localStore.content.find(
+      (c: any) => c.content_key === key || c.key === key || c.id === key || c.slug === key
+    );
+  }
+
+  const newVersion = (existing?.version || 1) + 1;
+  const patchPayload = {
+    ...updates,
+    version: updates.version ?? newVersion,
+    updated_by: updates.updated_by || apiKey?.name || 'api',
+  };
+
+  if (existing) {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('content')
+          .update(patchPayload)
+          .eq('id', existing.id)
+          .select()
+          .single();
+        if (!error && data) {
+          return res.json({ status: 'updated', content: data });
+        }
+      } catch (e) {
+        console.error('API supabase patch content error:', e);
+      }
+    }
+
+    const updated = { ...existing, ...patchPayload };
+    localStore.content = localStore.content.map((c: any) => (c.id === existing.id ? updated : c));
+    return res.json({ status: 'updated', content: updated });
+  }
+
+  // If not existing, create it
+  const newContent = {
+    id: crypto.randomUUID ? crypto.randomUUID() : `content_${Date.now()}`,
+    created_at: new Date().toISOString(),
+    content_key: key,
+    key: key,
+    title: updates.title || key,
+    body: updates.body || '',
+    summary: updates.summary || '',
+    category: updates.category || 'learning',
+    status: updates.status || 'PLACEHOLDER',
+    content_type: updates.content_type || 'text',
+    slug: updates.slug || key.replace(/^learn\.guide\./, ''),
+    published: updates.published ?? false,
+    version: 1,
+    updated_by: apiKey?.name || 'api',
+    ...updates,
+  };
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('content').insert([newContent]).select().single();
+      if (!error && data) {
+        return res.status(201).json({ status: 'created', content: data });
+      }
+    } catch (e) {
+      console.error('API insert patched content error:', e);
+    }
+  }
+
+  localStore.content.unshift(newContent);
+  return res.status(201).json({ status: 'created', content: newContent });
+});
+
+// Publish content item by key
+app.post('/api/v1/content/:key/publish', authenticateApiKey, requireScope('content:publish'), async (req, res) => {
+  const { key } = req.params;
+  const apiKey = (req as any).apiKey as ApiKeyRecord;
+
+  let existing: any = null;
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from('content')
+        .select('*')
+        .or(`content_key.eq.${key},key.eq.${key},id.eq.${key},slug.eq.${key}`)
+        .maybeSingle();
+      if (data) existing = data;
+    } catch (e) {
+      console.error('API publish find error:', e);
+    }
+  }
+  if (!existing) {
+    existing = localStore.content.find(
+      (c: any) => c.content_key === key || c.key === key || c.id === key || c.slug === key
+    );
+  }
+
+  const publishPayload = {
+    published: true,
+    status: 'PUBLISHED',
+    version: (existing?.version || 1) + 1,
+    updated_by: apiKey?.name || 'agent-publisher',
+  };
+
+  if (existing) {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('content')
+          .update(publishPayload)
+          .eq('id', existing.id)
+          .select()
+          .single();
+        if (!error && data) {
+          return res.json({ status: 'published', content: data });
+        }
+      } catch (e) {
+        console.error('API publish error:', e);
+      }
+    }
+
+    const published = { ...existing, ...publishPayload };
+    localStore.content = localStore.content.map((c: any) => (c.id === existing.id ? published : c));
+    return res.json({ status: 'published', content: published });
+  }
+
+  return res.status(404).json({
+    error: 'Not Found',
+    message: `Cannot publish: content item with key '${key}' does not exist.`,
+  });
+});
+
 // --- AGENT CONFIG ---
 app.get('/api/v1/config', authenticateApiKey, requireScope('READ_CONFIG'), async (req, res) => {
   if (supabase) {
@@ -796,7 +1127,7 @@ app.post('/api/v1/config', authenticateApiKey, requireScope('WRITE_CONFIG'), asy
   const updatedConfig = {
     id: 'coreiq_primary_mind',
     provider: provider || 'groq',
-    model_name: model_name || 'llama-3.3-70b-versatile',
+    model_name: model_name || 'openai/gpt-oss-120b',
     base_url: base_url || 'https://api.groq.com/openai/v1',
     api_key: api_key || '',
     system_prompt: system_prompt || '',
@@ -820,6 +1151,130 @@ app.post('/api/v1/config', authenticateApiKey, requireScope('WRITE_CONFIG'), asy
 
   localStore.agent_config[0] = updatedConfig;
   res.json({ status: 'updated', config: updatedConfig });
+});
+
+// --- PUBLIC ASK ENDPOINT ---
+app.post('/api/ask', async (req, res) => {
+  const { message, history = [] } = req.body;
+
+  if (!message || typeof message !== 'string') {
+    return res.status(400).json({ error: 'message is required' });
+  }
+
+  try {
+    // Load agent config from Supabase or fallback
+    let agentConfig = localStore.agent_config[0];
+    if (supabase) {
+      const { data } = await supabase
+        .from('agent_config')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+      if (data) agentConfig = data;
+    }
+
+    const apiKey = agentConfig?.api_key || '';
+    const baseUrl = agentConfig?.base_url || 'https://api.groq.com/openai/v1';
+    const modelName = agentConfig?.model_name || 'openai/gpt-oss-120b';
+    const systemPrompt = agentConfig?.system_prompt || 'You are CoreIQ, an intelligent creation engine.';
+
+    const memContext = await mem0Search(message);
+    const enrichedPrompt = memContext ? `${systemPrompt}\n\n${memContext}` : systemPrompt;
+
+    let assistantMessage = '';
+
+    if (apiKey) {
+      const messages = [
+        { role: 'system', content: enrichedPrompt },
+        ...history.slice(-6),
+        { role: 'user', content: message }
+      ];
+
+      const groqRes = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages,
+          temperature: 0.7,
+          max_tokens: 1024,
+        }),
+      });
+
+      if (groqRes.ok) {
+        const groqData = await groqRes.json();
+        assistantMessage = groqData.choices?.[0]?.message?.content || '';
+      } else {
+        const errText = await groqRes.text();
+        console.warn('Groq response not OK:', errText);
+      }
+    }
+
+    // Fallback to Gemini if assistantMessage is empty and GEMINI_API_KEY is available
+    if (!assistantMessage && process.env.GEMINI_API_KEY) {
+      const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-flash-latest'];
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const contents = [
+        ...history.slice(-6).map((h: any) => ({
+          role: h.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: h.content || '' }]
+        })),
+        {
+          role: 'user',
+          parts: [{ text: `${enrichedPrompt}\n\nUser Question: ${message}` }]
+        }
+      ];
+
+      for (const model of modelsToTry) {
+        try {
+          const geminiRes = await ai.models.generateContent({
+            model,
+            contents,
+          });
+          if (geminiRes?.text) {
+            assistantMessage = geminiRes.text;
+            break;
+          }
+        } catch (geminiErr) {
+          console.warn(`Gemini model ${model} fallback error:`, geminiErr);
+        }
+      }
+    }
+
+    if (!assistantMessage) {
+      if (!apiKey && !process.env.GEMINI_API_KEY) {
+        assistantMessage = `Hello! I am CoreIQ, your intelligent creation engine. I can help architect websites, automation workflows, AI agents, and tools. To activate real-time neural processing, please configure your API key in the Agent Brain command center or set GEMINI_API_KEY in your environment.`;
+      } else {
+        assistantMessage = `CoreIQ is analyzing your request: "${message}". We are ready to help architect, automate, and build your digital solution. Explore our solutions, tools, and guides to proceed.`;
+      }
+    }
+
+    // Save lead if conversation is substantial
+    if (history.length >= 2 && supabase) {
+      const lead = {
+        id: crypto.randomUUID ? crypto.randomUUID() : `lead_${Date.now()}`,
+        created_at: new Date().toISOString(),
+        client_name: 'Website Visitor',
+        client_contact: '',
+        client_message: message,
+        conversation_summary: assistantMessage.slice(0, 300),
+        intent_type: 'custom',
+        source: 'ask_page',
+        status: 'new',
+      };
+      supabase.from('leads').insert([lead]).then(() => {});
+    }
+
+    await mem0Save(message, assistantMessage);
+    return res.json({ assistantMessage });
+
+  } catch (e) {
+    console.error('Ask endpoint error:', e);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // -----------------------------------------------------------------------------
@@ -972,8 +1427,32 @@ CREATE TABLE IF NOT EXISTS public.content (
     published BOOLEAN DEFAULT true NOT NULL,
     key TEXT,
     value TEXT,
-    type TEXT DEFAULT 'text'
+    type TEXT DEFAULT 'text',
+    -- Extended Content System Columns
+    content_key TEXT UNIQUE,
+    slug TEXT,
+    content_type TEXT DEFAULT 'text',
+    status TEXT DEFAULT 'PLACEHOLDER',
+    summary TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    asset_url TEXT,
+    version INT DEFAULT 1,
+    updated_by TEXT
 );
+
+-- Backward-compatible migration if table already exists
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS content_key TEXT UNIQUE;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS content_type TEXT DEFAULT 'text';
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PLACEHOLDER';
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS summary TEXT;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS asset_url TEXT;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS version INT DEFAULT 1;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS updated_by TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_content_key ON public.content(content_key);
+CREATE INDEX IF NOT EXISTS idx_content_slug ON public.content(slug);
 
 -- -------------------------------------------------------------------------
 -- 9. SWARM COMMS (Autonomous swarm node telemetry)
@@ -1179,25 +1658,57 @@ createRoot(document.getElementById('root')!).render(
 
 ### File: `src/App.tsx`
 ```typescript
+import React, { useState, useEffect, Suspense } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { SplashScreen } from './components/common/SplashScreen';
-import React, { useState, useEffect } from 'react';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
 import { SiteVisualEnvironment } from './components/environment/SiteVisualEnvironment';
-import { HomePage } from './pages/HomePage';
-import { SolutionsPage } from './pages/SolutionsPage';
-import { AppsPage } from './pages/AppsPage';
-import { LearnPage } from './pages/LearnPage';
-import { ToolsPage } from './pages/ToolsPage';
-import { AboutPage } from './pages/AboutPage';
-import { AskPage } from './pages/AskPage';
-import { CommandDashboardPage } from './pages/CommandDashboardPage';
-import { NavRoute } from './types';
 import { useScrollReveal } from './hooks/useScrollReveal';
+import { NavRoute } from './types';
+import { seedManifestPlaceholders } from './services/contentResolver';
+
+export type AppRoute =
+  | NavRoute
+  | 'writing-assistant'
+  | 'imageforge'
+  | 'core-principles'
+  | '404';
+
+const VALID_NAV_ROUTES: readonly NavRoute[] = [
+  'home',
+  'solutions',
+  'apps',
+  'learn',
+  'tools',
+  'about',
+  'ask',
+  'command',
+];
+
+// Lazy loaded page components for performance
+const HomePage = React.lazy(() => import('./pages/HomePage').then((m) => ({ default: m.HomePage })));
+const SolutionsPage = React.lazy(() => import('./pages/SolutionsPage').then((m) => ({ default: m.SolutionsPage })));
+const AppsPage = React.lazy(() => import('./pages/AppsPage').then((m) => ({ default: m.AppsPage })));
+const LearnPage = React.lazy(() => import('./pages/LearnPage').then((m) => ({ default: m.LearnPage })));
+const ToolsPage = React.lazy(() => import('./pages/ToolsPage').then((m) => ({ default: m.ToolsPage })));
+const AboutPage = React.lazy(() => import('./pages/AboutPage').then((m) => ({ default: m.AboutPage })));
+const AskPage = React.lazy(() => import('./pages/AskPage').then((m) => ({ default: m.AskPage })));
+const CommandDashboardPage = React.lazy(() => import('./pages/CommandDashboardPage').then((m) => ({ default: m.CommandDashboardPage })));
+const LearnArticlePage = React.lazy(() => import('./pages/LearnArticlePage').then((m) => ({ default: m.LearnArticlePage })));
+const ComingSoon = React.lazy(() => import('./pages/ComingSoon').then((m) => ({ default: m.ComingSoon })));
+
+function ScrollToTop({ route }: { route: string }) {
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [route]);
+  return null;
+}
 
 export default function App() {
-  const getRoute = (): NavRoute => {
+  const getRoute = (): AppRoute => {
     const p = window.location.pathname.replace(/^\//, '').toLowerCase();
+    if (p.startsWith('learn/')) return p as AppRoute;
     if (p === 'command' || window.location.hash === '#command') return 'command';
     if (p === 'solutions') return 'solutions';
     if (p === 'apps') return 'apps';
@@ -1205,49 +1716,135 @@ export default function App() {
     if (p === 'tools') return 'tools';
     if (p === 'about') return 'about';
     if (p === 'ask') return 'ask';
-    return 'home';
+    if (p === 'writing-assistant') return 'writing-assistant';
+    if (p === 'imageforge') return 'imageforge';
+    if (p === 'core-principles') return 'core-principles';
+    if (!p || p === '') return 'home';
+    return '404';
   };
 
-  const [currentRoute, setCurrentRoute] = useState<NavRoute>(getRoute);
+  const [currentRoute, setCurrentRoute] = useState<AppRoute>(getRoute);
   const [activePrompt, setActivePrompt] = useState('');
   const [showSplash, setShowSplash] = React.useState(true);
-  const [pageKey, setPageKey] = useState(0);
 
   useScrollReveal();
 
   useEffect(() => {
-    const onPop = () => { setCurrentRoute(getRoute()); setPageKey(k => k + 1); };
+    seedManifestPlaceholders();
+    const onPop = () => {
+      setCurrentRoute(getRoute());
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  const navigateTo = (route: NavRoute, query?: string) => {
-    setCurrentRoute(route);
-    setPageKey(k => k + 1);
+  const navigateTo = (route: string, query?: string) => {
+    setCurrentRoute(route as AppRoute);
     if (query) setActivePrompt(query);
     window.history.pushState({}, '', route === 'home' ? '/' : `/${route}`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
 
+  const suspenseFallback = (
+    <div
+      style={{
+        minHeight: '100svh',
+        background: '#080808',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          border: '2px solid transparent',
+          borderTopColor: '#00e676',
+          animation: 'spin 0.8s linear infinite',
+        }}
+      />
+    </div>
+  );
+
   if (currentRoute === 'command') {
-    return <CommandDashboardPage onExitToWebsite={() => navigateTo('home')} />;
+    return (
+      <Suspense fallback={suspenseFallback}>
+        <CommandDashboardPage onExitToWebsite={() => navigateTo('home')} />
+      </Suspense>
+    );
   }
+
+  const activeNavRoute: NavRoute = currentRoute.startsWith('learn/')
+    ? 'learn'
+    : (VALID_NAV_ROUTES.includes(currentRoute as NavRoute)
+      ? (currentRoute as NavRoute)
+      : 'home');
 
   return (
     <div className="min-h-screen bg-transparent text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
-      <SiteVisualEnvironment currentRoute={currentRoute} />
-      <Header currentRoute={currentRoute} onNavigate={navigateTo} />
-      <main key={pageKey} className="relative z-10 flex-1 w-full flex flex-col page-enter">
-        {currentRoute === 'home'      && <HomePage      onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
-        {currentRoute === 'solutions' && <SolutionsPage onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
-        {currentRoute === 'apps'      && <AppsPage      onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
-        {currentRoute === 'learn'     && <LearnPage     onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
-        {currentRoute === 'tools'     && <ToolsPage     onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
-        {currentRoute === 'about'     && <AboutPage     onNavigate={navigateTo} onAsk={q => navigateTo('ask', q)} />}
-        {currentRoute === 'ask'       && <AskPage       initialPrompt={activePrompt} onNavigate={navigateTo} />}
-      </main>
+      <ScrollToTop route={currentRoute} />
+      <SiteVisualEnvironment currentRoute={activeNavRoute} />
+      <Header currentRoute={activeNavRoute} onNavigate={navigateTo} />
+      <Suspense fallback={suspenseFallback}>
+        <AnimatePresence mode="wait">
+          <motion.main
+            key={currentRoute}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            style={{ minHeight: '100svh', display: 'flex', flexDirection: 'column', flex: 1 }}
+            className="relative z-10 w-full"
+          >
+            {currentRoute === 'home' && <HomePage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute === 'solutions' && <SolutionsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute === 'apps' && <AppsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute === 'learn' && <LearnPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute.startsWith('learn/') && (
+              <LearnArticlePage
+                slug={currentRoute.replace(/^learn\//, '')}
+                onNavigate={navigateTo}
+                onAsk={(q) => navigateTo('ask', q)}
+              />
+            )}
+            {currentRoute === 'tools' && <ToolsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute === 'about' && <AboutPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute === 'ask' && <AskPage initialPrompt={activePrompt} onNavigate={navigateTo} />}
+            {currentRoute === 'writing-assistant' && (
+              <ComingSoon
+                title="Writing Assistant"
+                description="AI-powered writing tools for proposals, briefs, and content. Launching soon."
+                onNavigate={navigateTo}
+              />
+            )}
+            {currentRoute === 'imageforge' && (
+              <ComingSoon
+                title="ImageForge Studio"
+                description="Generate, edit, and export AI imagery for your brand and campaigns. Launching soon."
+                onNavigate={navigateTo}
+              />
+            )}
+            {currentRoute === 'core-principles' && (
+              <ComingSoon
+                title="Core Principles"
+                description="The philosophy behind CoreIQ Create and how we think about intelligent creation."
+                onNavigate={navigateTo}
+              />
+            )}
+            {currentRoute === '404' && (
+              <ComingSoon
+                title="Page Not Found"
+                description="This page doesn't exist yet — or it's being built right now."
+                onNavigate={navigateTo}
+              />
+            )}
+          </motion.main>
+        </AnimatePresence>
+      </Suspense>
       <Footer onNavigate={navigateTo} />
     </div>
   );
@@ -1257,6 +1854,17 @@ export default function App() {
 
 ### File: `src/index.css`
 ```css
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rotateBorder {
+  from { --angle: 0deg; }
+  to { --angle: 360deg; }
+}
+
 @import "tailwindcss";
 
 @layer base {
@@ -1270,6 +1878,34 @@ export default function App() {
     font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
     letter-spacing: -0.02em;
   }
+}
+
+.gradient-border-box {
+  position: relative;
+  isolation: isolate;
+}
+
+.gradient-border-box::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--angle) at 50% 50%,
+    #ff3d3d 0%,
+    #ff8c00 15%,
+    #ffd700 30%,
+    #00e676 45%,
+    #00b0ff 60%,
+    #7c4dff 75%,
+    #ff3d3d 100%
+  );
+  z-index: -1;
+  animation: rotateBorder 45s linear infinite;
+}
+
+.gradient-border-box-fast::before {
+  animation-duration: 8s;
 }
 
 /* ==========================================================================
@@ -2037,12 +2673,494 @@ export default function App() {
   animation: pulseBloom 1.2s ease-out forwards;
 }
 
+/* =========================================================
+   COREIQ SENTINEL
+   Lightweight SVG/CSS visual system — no WebGL
+   ========================================================= */
+
+.coreiq-sentinel {
+  --sentinel-cyan: #22d3ee;
+  --sentinel-blue: #3b82f6;
+  --sentinel-violet: #a855f7;
+
+  position: relative;
+  width: min(100%, 480px);
+  aspect-ratio: 1 / 1;
+  isolation: isolate;
+  overflow: visible;
+
+  transform:
+    translate(
+      calc(var(--pointer-x, 0) * 8px),
+      calc(var(--pointer-y, 0) * 5px)
+    );
+
+  transition: transform 300ms ease;
+}
+
+/* Ambient field */
+
+.sentinel-ambient {
+  position: absolute;
+  inset: 8%;
+  z-index: -3;
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(34, 211, 238, 0.20) 0%,
+      rgba(59, 130, 246, 0.11) 28%,
+      rgba(168, 85, 247, 0.08) 48%,
+      transparent 72%
+    );
+
+  filter: blur(24px);
+  animation: sentinel-breathe 5s ease-in-out infinite;
+}
+
+/* SVG signal paths */
+
+.sentinel-signals {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: visible;
+}
+
+.sentinel-signal {
+  stroke: rgba(34, 211, 238, 0.52);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+
+  stroke-dasharray: 8 18;
+  animation: sentinel-flow 7s linear infinite;
+}
+
+.signal-two {
+  stroke: rgba(168, 85, 247, 0.42);
+  animation-duration: 9s;
+  animation-direction: reverse;
+}
+
+.signal-three {
+  stroke: rgba(59, 130, 246, 0.42);
+  animation-duration: 11s;
+}
+
+/* Energy rings */
+
+.sentinel-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+
+  border-radius: 50%;
+  border: 1px solid rgba(34, 211, 238, 0.20);
+
+  transform:
+    translate(-50%, -50%)
+    rotateX(62deg)
+    rotateZ(calc(var(--pointer-x, 0) * 4deg));
+
+  pointer-events: none;
+}
+
+.sentinel-ring-one {
+  width: 78%;
+  height: 78%;
+  animation: sentinel-orbit 14s linear infinite;
+}
+
+.sentinel-ring-two {
+  width: 66%;
+  height: 66%;
+  border-color: rgba(168, 85, 247, 0.24);
+  animation: sentinel-orbit-reverse 10s linear infinite;
+}
+
+.sentinel-ring-three {
+  width: 92%;
+  height: 92%;
+  border-color: rgba(59, 130, 246, 0.12);
+  animation: sentinel-orbit 22s linear infinite;
+}
+
+/* Character */
+
+.sentinel-character {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+
+  width: 74%;
+  height: 74%;
+
+  transform:
+    translate(-50%, -50%)
+    translate(
+      calc(var(--pointer-x, 0) * 6px),
+      calc(var(--pointer-y, 0) * 4px)
+    );
+
+  transition: transform 350ms cubic-bezier(.22,1,.36,1);
+
+  z-index: 2;
+}
+
+.sentinel-character img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: screen;
+
+  user-select: none;
+  -webkit-user-drag: none;
+
+  filter:
+    drop-shadow(0 0 12px rgba(34, 211, 238, 0.28))
+    drop-shadow(0 0 32px rgba(168, 85, 247, 0.18));
+
+  animation: sentinel-character-breathe 4.5s ease-in-out infinite;
+}
+
+/* Central energy point */
+
+.sentinel-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+
+  width: 14px;
+  height: 14px;
+
+  transform: translate(-50%, -50%);
+
+  z-index: 4;
+  pointer-events: none;
+}
+
+.sentinel-core span {
+  display: block;
+  width: 100%;
+  height: 100%;
+
+  border-radius: 50%;
+  background: white;
+
+  box-shadow:
+    0 0 8px rgba(255,255,255,.95),
+    0 0 20px rgba(34,211,238,.85),
+    0 0 40px rgba(168,85,247,.55);
+
+  animation: sentinel-core-pulse 2.8s ease-in-out infinite;
+}
+
+/* Particles */
+
+.sentinel-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.sentinel-particle {
+  position: absolute;
+
+  width: 4px;
+  height: 4px;
+
+  border-radius: 50%;
+
+  background: var(--sentinel-cyan);
+
+  box-shadow:
+    0 0 7px rgba(34,211,238,.8),
+    0 0 15px rgba(34,211,238,.4);
+
+  animation:
+    sentinel-particle-float
+    4s
+    ease-in-out
+    infinite;
+}
+
+.sentinel-particle:nth-child(2n) {
+  background: var(--sentinel-violet);
+}
+
+.sentinel-particle:nth-child(3n) {
+  width: 3px;
+  height: 3px;
+}
+
+/* Telemetry */
+
+.sentinel-telemetry {
+  position: absolute;
+
+  left: 50%;
+  bottom: 5%;
+
+  transform: translateX(-50%);
+
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  white-space: nowrap;
+
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+
+  color: rgba(103,232,249,.68);
+
+  opacity: .8;
+}
+
+.sentinel-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+
+  background: var(--sentinel-cyan);
+
+  box-shadow: 0 0 9px var(--sentinel-cyan);
+
+  animation: sentinel-status 1.8s ease-in-out infinite;
+}
+
+.sentinel-divider {
+  opacity: .35;
+}
+
+/* States */
+
+.sentinel-listening .sentinel-character img {
+  filter:
+    drop-shadow(0 0 18px rgba(34,211,238,.48))
+    drop-shadow(0 0 45px rgba(168,85,247,.28));
+}
+
+.sentinel-listening .sentinel-signal {
+  animation-duration: 3s;
+}
+
+.sentinel-processing .sentinel-signal {
+  animation-duration: 1.6s;
+}
+
+.sentinel-processing .sentinel-ring-one {
+  animation-duration: 4s;
+}
+
+.sentinel-processing .sentinel-ring-two {
+  animation-duration: 3s;
+}
+
+.sentinel-processing .sentinel-core span {
+  animation-duration: .8s;
+}
+
+.sentinel-ready .sentinel-core span {
+  animation:
+    sentinel-ready-pulse
+    1.2s
+    ease-out
+    1;
+}
+
+/* Animations */
+
+@keyframes sentinel-breathe {
+  0%, 100% { transform: scale(.94); opacity: .65; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+@keyframes sentinel-character-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-5px) scale(1.015); }
+}
+
+@keyframes sentinel-flow {
+  to { stroke-dashoffset: -104; }
+}
+
+@keyframes sentinel-orbit {
+  to { transform: translate(-50%, -50%) rotateX(62deg) rotateZ(360deg); }
+}
+
+@keyframes sentinel-orbit-reverse {
+  to { transform: translate(-50%, -50%) rotateX(62deg) rotateZ(-360deg); }
+}
+
+@keyframes sentinel-core-pulse {
+  0%, 100% { transform: scale(.7); opacity: .65; }
+  50% { transform: scale(1.35); opacity: 1; }
+}
+
+@keyframes sentinel-ready-pulse {
+  0% { transform: scale(.7); opacity: .7; }
+  45% { transform: scale(2.4); opacity: 1; }
+  100% { transform: scale(1); opacity: .8; }
+}
+
+@keyframes sentinel-particle-float {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+    opacity: .25;
+  }
+
+  50% {
+    transform: translate3d(0, -12px, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes sentinel-status {
+  0%, 100% { opacity: .35; }
+  50% { opacity: 1; }
+}
+
+/* Mobile */
+
+@media (max-width: 640px) {
+  .coreiq-sentinel {
+    width: min(92vw, 390px);
+  }
+
+  .sentinel-character {
+    width: 70%;
+    height: 70%;
+  }
+
+  .sentinel-telemetry {
+    font-size: 8px;
+  }
+}
+
+/* Accessibility */
+
+@media (prefers-reduced-motion: reduce) {
+  .coreiq-sentinel,
+  .sentinel-ambient,
+  .sentinel-character,
+  .sentinel-character img,
+  .sentinel-ring,
+  .sentinel-signal,
+  .sentinel-particle,
+  .sentinel-core span,
+  .sentinel-status-dot {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Lazy loader spin keyframes */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Custom scrollbar for Webkit browsers */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #080808;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* Global focus-visible styles */
+:focus-visible {
+  outline: 2px solid #00e676;
+  outline-offset: 2px;
+}
+
+/* Global text selection styles */
+::selection {
+  background: rgba(0, 230, 118, 0.25);
+  color: #fff;
+}
+
+/* Typography and rendering optimizations */
+html {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Overscroll behavior prevention on mobile */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
+/* Visually hidden screen-reader utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+
+/* OVERRIDE: reveal-up and reveal-fade animate via CSS, not JS observer */
+.reveal-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: revealEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.reveal-up.is-revealed {
+  animation: revealEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.reveal-fade {
+  opacity: 0;
+  animation: revealFade 0.5s ease forwards;
+}
+.reveal-fade.is-revealed {
+  animation: revealFade 0.5s ease forwards;
+}
+@keyframes revealEnter {
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes revealFade {
+  to { opacity: 1; }
+}
+.stagger-children .reveal-up:nth-child(1) { animation-delay: 0ms; }
+.stagger-children .reveal-up:nth-child(2) { animation-delay: 80ms; }
+.stagger-children .reveal-up:nth-child(3) { animation-delay: 160ms; }
+.stagger-children .reveal-up:nth-child(4) { animation-delay: 240ms; }
+.stagger-children .reveal-up:nth-child(5) { animation-delay: 320ms; }
+.stagger-children .reveal-up:nth-child(6) { animation-delay: 400ms; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up, .reveal-fade { animation: none !important; opacity: 1 !important; transform: none !important; }
+}
+
 ```
 
 
 ### File: `src/types.ts`
 ```typescript
-export type NavRoute = 'home' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' | 'ask' | 'command';
+export type NavRoute = 'home' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' | 'ask' | 'command' | `learn/${string}`;
 
 export interface NavItem {
   id: NavRoute;
@@ -2285,6 +3403,27 @@ export interface PlatformRegistryItem {
 
 export type ContentCategory = 'hero_background' | 'news' | 'learning' | 'case_study' | 'general';
 
+export type ContentType = 
+  | 'text'
+  | 'article'
+  | 'guide'
+  | 'topic'
+  | 'learning_path'
+  | 'pdf'
+  | 'video'
+  | 'external'
+  | 'resource'
+  | 'coming_soon';
+
+export type ContentStatus = 
+  | 'MISSING'
+  | 'PLACEHOLDER'
+  | 'DRAFT'
+  | 'REVIEW'
+  | 'APPROVED'
+  | 'PUBLISHED'
+  | 'STALE';
+
 export interface CommandContentItem {
   id: string;
   created_at: string;
@@ -2296,6 +3435,16 @@ export interface CommandContentItem {
   key?: string;
   value?: string;
   type?: 'text' | 'image' | 'json';
+  // Extended fields
+  content_key?: string;
+  slug?: string;
+  content_type?: ContentType | string;
+  status?: ContentStatus | string;
+  summary?: string;
+  metadata?: Record<string, any>;
+  asset_url?: string;
+  version?: number;
+  updated_by?: string;
 }
 
 export type ContentItem = CommandContentItem;
@@ -2417,25 +3566,10 @@ import { useEffect } from 'react';
 
 export function useScrollReveal() {
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mq.matches) {
-      document.querySelectorAll<HTMLElement>('.reveal-up, .reveal-fade')
-        .forEach(el => el.classList.add('is-revealed'));
-      return;
-    }
-    const io = new IntersectionObserver(
-      entries => entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-revealed');
-          io.unobserve(entry.target);
-        }
-      }),
-      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
-    );
+    // Immediately reveal everything - CSS handles the animation
     document.querySelectorAll<HTMLElement>('.reveal-up, .reveal-fade')
-      .forEach(el => io.observe(el));
-    return () => io.disconnect();
-  });
+      .forEach(el => el.classList.add('is-revealed'));
+  }, []);
 }
 
 ```
@@ -2523,11 +3657,58 @@ export function useMotionPruning(): MotionPruningState {
 ```
 
 
+### File: `src/hooks/useMagneticHover.ts`
+```typescript
+import { useRef, useEffect, type RefObject } from 'react';
+
+export function useMagneticHover<T extends HTMLElement = HTMLElement>(
+  strength = 0.35
+): RefObject<T> {
+  const ref = useRef<T>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    // Check if touch device / mobile — skip magnetic hover on touch
+    if (window.matchMedia('(hover: none)').matches) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const deltaX = (e.clientX - centerX) * strength;
+      const deltaY = (e.clientY - centerY) * strength;
+
+      el.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+      el.style.transition = 'transform 0.1s ease-out';
+    };
+
+    const handleMouseLeave = () => {
+      el.style.transform = 'translate(0px, 0px)';
+      el.style.transition = 'transform 0.35s ease-out';
+    };
+
+    el.addEventListener('mousemove', handleMouseMove);
+    el.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      el.removeEventListener('mousemove', handleMouseMove);
+      el.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [strength]);
+
+  return ref;
+}
+
+export default useMagneticHover;
+
+```
+
+
 ### File: `src/services/coreiqRuntime.ts`
 ```typescript
 import { SolutionBlueprint } from '../types';
-import { AgentConfig } from '../types/command';
-import { CoreIQData } from './supabase';
 
 export interface CoreIQAnalysisResponse {
   intent: 'website' | 'automation' | 'app' | 'agent' | 'voice' | 'tools' | 'custom';
@@ -2541,236 +3722,346 @@ export interface CoreIQAnalysisResponse {
 }
 
 export interface ICoreIQRuntime {
-  analyzeIntent(prompt: string): Promise<CoreIQAnalysisResponse>;
-  processQuery(content: string, customConfig?: AgentConfig): Promise<{ assistantMessage: string; blueprint?: SolutionBlueprint }>;
+  analyzeIntent(prompt: string, history?: { role: string; content: string }[]): Promise<CoreIQAnalysisResponse>;
+  processQuery(prompt: string, config?: any): Promise<{ assistantMessage: string; blueprint?: SolutionBlueprint }>;
 }
 
-class LocalCoreIQRuntime implements ICoreIQRuntime {
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
+function parseResponse(text: string, prompt: string): CoreIQAnalysisResponse {
+  const lower = prompt.toLowerCase();
+  let intent: CoreIQAnalysisResponse['intent'] = 'custom';
+  if (lower.includes('website') || lower.includes('web') || lower.includes('landing')) intent = 'website';
+  else if (lower.includes('automate') || lower.includes('workflow')) intent = 'automation';
+  else if (lower.includes('agent') || lower.includes('support') || lower.includes('chat')) intent = 'agent';
+  else if (lower.includes('app') || lower.includes('software') || lower.includes('mobile')) intent = 'app';
+  else if (lower.includes('voice') || lower.includes('call') || lower.includes('phone')) intent = 'voice';
+
+  const lines = text.split('\n').filter(l => l.trim());
+  const title = lines[0]?.replace(/^#+\s*/, '').slice(0, 80) || 'CoreIQ Analysis';
+  const summary = lines.slice(1, 4).join(' ').slice(0, 400) || text.slice(0, 400);
+
+  return {
+    intent,
+    title,
+    summary,
+    responseMessage: text,
+    recommendedBlueprint: {
+      title: 'CoreIQ Recommended Architecture',
+      description: summary,
+      suggestedStack: ['React', 'TypeScript', 'Node.js', 'Supabase'],
+      capabilities: ['AI Integration', 'Automation', 'Analytics', 'API Layer'],
+      estimatedTimeline: '2 - 5 Days',
+      recommendedType: intent === 'custom' ? 'custom' : intent as any,
+    },
+    suggestedCapabilities: ['AI Agents', 'Automation', 'Apps'],
+    suggestedNextSteps: [
+      'Define your primary objective and target users',
+      'Review the recommended architecture above',
+      'Connect with CoreIQ to begin building',
+    ],
+    interactiveQuestions: [
+      'What is the single most important outcome you need?',
+      'What is your timeline and budget range?',
+    ],
+  };
+}
+
+class RemoteCoreIQRuntime implements ICoreIQRuntime {
+  private history: { role: string; content: string }[] = [];
+
   async analyzeIntent(prompt: string): Promise<CoreIQAnalysisResponse> {
-    // Artificial brief processing simulation for natural feel
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    try {
+      const res = await fetch(`${API_BASE}/api/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: prompt, history: this.history }),
+      });
 
-    const lower = prompt.toLowerCase();
-
-    if (lower.includes('website') || lower.includes('web') || lower.includes('landing') || lower.includes('portfolio') || lower.includes('store')) {
-      return {
-        intent: 'website',
-        title: 'Modern Web Application & Digital Experience',
-        summary: 'A high-performance, responsive web application engineered with fluid animations, adaptive design, and seamless CMS integration.',
-        recommendedBlueprint: {
-          title: 'High-Conversion Responsive Web Architecture',
-          description: 'Modular React/TypeScript frontend with edge-rendered dynamic performance, automated SEO optimization, and integrated lead capture.',
-          suggestedStack: ['React 19', 'TypeScript', 'Tailwind CSS', 'Vite', 'Cloud Edge CDN'],
-          capabilities: ['Responsive Architecture', 'Core IQ Form Ingestion', 'Interactive Visuals', 'Analytics Hook'],
-          estimatedTimeline: '1 - 3 Days',
-          recommendedType: 'website',
-        },
-        suggestedCapabilities: ['WebCraft', 'FlowBuilder', 'CustomerAI'],
-        suggestedNextSteps: [
-          'Select visual aesthetic and color theme',
-          'Outline key sections (Hero, Value Prop, Features, CTA)',
-          'Configure custom domain & deployment target',
-        ],
-        interactiveQuestions: [
-          'Who is your primary target audience?',
-          'Do you need payment processing or user authentication?',
-        ],
-        responseMessage: "I've drafted a modern web experience blueprint tailored to your goals. Here is the recommended architecture and connected capabilities:",
-      };
-    }
-
-    if (lower.includes('automate') || lower.includes('workflow') || lower.includes('busy work') || lower.includes('zap') || lower.includes('sync')) {
-      return {
-        intent: 'automation',
-        title: 'Intelligent Enterprise Automation Swarm',
-        summary: 'End-to-end autonomous workflows connecting your existing software stack, eliminating manual data entry and recurring tasks.',
-        recommendedBlueprint: {
-          title: 'Multi-System Event Automation Pipeline',
-          description: 'Autonomous trigger-action matrix with error-recovery loops, human-in-the-loop validation, and unified audit logs.',
-          suggestedStack: ['Event Broker', 'Webhook Gateway', 'Core IQ Swarm Engine', 'PostgreSQL / Firestore'],
-          capabilities: ['Cross-App Data Sync', 'Autonomous Triage', 'Error Recovery', 'Instant Alerts'],
-          estimatedTimeline: '2 - 4 Days',
-          recommendedType: 'automation',
-        },
-        suggestedCapabilities: ['FlowBuilder', 'AI Agents', 'Integrations Hub'],
-        suggestedNextSteps: [
-          'Map source and destination applications',
-          'Identify trigger events and exception protocols',
-          'Deploy pilot workflow with test data verification',
-        ],
-        interactiveQuestions: [
-          'Which tools are you currently using (e.g. Slack, CRM, Notion, Sheets)?',
-          'How many hours per week does this task currently take your team?',
-        ],
-        responseMessage: "Automation will liberate valuable hours for your team. Here is your recommended multi-system workflow architecture:",
-      };
-    }
-
-    if (lower.includes('agent') || lower.includes('support') || lower.includes('customer') || lower.includes('chat') || lower.includes('bot')) {
-      return {
-        intent: 'agent',
-        title: 'Specialized Autonomous AI Agent',
-        summary: 'A domain-specific AI agent equipped with contextual knowledge, custom tool calling, and human escalation guardrails.',
-        recommendedBlueprint: {
-          title: 'Context-Aware Agent Architecture',
-          description: 'Vector-grounded conversational agent with semantic retrieval, tool execution rights, and live sentiment telemetry.',
-          suggestedStack: ['Core IQ Vector Memory', 'Tool Execution Runtime', 'Semantic Router', 'Multi-turn Memory'],
-          capabilities: ['Domain Grounding', 'Action Execution', 'Multi-channel Deployment', 'Human Escalation'],
-          estimatedTimeline: '2 - 5 Days',
-          recommendedType: 'agent',
-        },
-        suggestedCapabilities: ['CustomerAI', 'DataMind', 'VoiceStudio'],
-        suggestedNextSteps: [
-          'Ingest company knowledge base and FAQs',
-          'Define permitted actions and safety boundaries',
-          'Embed across web, email, or chat channels',
-        ],
-        interactiveQuestions: [
-          'What channels will this agent operate on (Web chat, Email, WhatsApp)?',
-          'What systems does the agent need permission to read or update?',
-        ],
-        responseMessage: "Here is your specialized agent architecture with built-in guardrails and system connectors:",
-      };
-    }
-
-    if (lower.includes('voice') || lower.includes('speech') || lower.includes('call') || lower.includes('phone') || lower.includes('audio')) {
-      return {
-        intent: 'voice',
-        title: 'Low-Latency Voice AI Experience',
-        summary: 'Real-time conversational voice interface with ultra-low latency, dynamic interruption handling, and natural speech synthesis.',
-        recommendedBlueprint: {
-          title: 'Full-Duplex Voice Engine',
-          description: 'WebSocket audio streaming pipeline with acoustic noise filtering, live transcription, and expressive speech generation.',
-          suggestedStack: ['WebAudio API', 'Realtime Audio Streaming', 'Vocal Persona Synth', 'Core IQ Dialog Engine'],
-          capabilities: ['Natural Interruption', 'Multi-accent Dialects', 'CRM Telephony Sync', 'Live Transcript'],
-          estimatedTimeline: '3 - 6 Days',
-          recommendedType: 'voice',
-        },
-        suggestedCapabilities: ['VoiceStudio', 'CustomerAI', 'FlowBuilder'],
-        suggestedNextSteps: [
-          'Choose vocal persona characteristics and tone',
-          'Configure audio streaming pipeline and telephony endpoints',
-          'Test conversational latency in interactive sandbox',
-        ],
-        interactiveQuestions: [
-          'Is this for inbound customer phone calls or an in-app voice assistant?',
-          'What languages or specific accents do you require?',
-        ],
-        responseMessage: "Here is your low-latency voice AI blueprint designed for natural conversational cadence:",
-      };
-    }
-
-    if (lower.includes('app') || lower.includes('software') || lower.includes('mobile') || lower.includes('saas') || lower.includes('platform')) {
-      return {
-        intent: 'app',
-        title: 'Full-Stack Custom Application',
-        summary: 'A resilient, scalable software application engineered around your exact data workflows, business logic, and user permissions.',
-        recommendedBlueprint: {
-          title: 'Full-Stack Intelligent Application Blueprint',
-          description: 'Modular frontend with secure authentication, persistent database, role-based access control, and native AI capabilities.',
-          suggestedStack: ['React', 'TypeScript', 'Express / Node.js', 'PostgreSQL / Firestore', 'Tailwind CSS'],
-          capabilities: ['Authentication & RBAC', 'Realtime Sync', 'Interactive Dashboards', 'API Layer'],
-          estimatedTimeline: '4 - 7 Days',
-          recommendedType: 'app',
-        },
-        suggestedCapabilities: ['AppBuilder', 'DataMind', 'WritePro'],
-        suggestedNextSteps: [
-          'Define core data entities and user personas',
-          'Generate wireframes and interaction prototypes',
-          'Configure database schemas and security rules',
-        ],
-        interactiveQuestions: [
-          'Will users access this via desktop, mobile, or both?',
-          'What are the 2 or 3 most critical user actions in the app?',
-        ],
-        responseMessage: "Here is your comprehensive application blueprint with data architecture and UI components:",
-      };
-    }
-
-    // Default / "I don't know what I need" or custom ideation
-    return {
-      intent: 'custom',
-      title: 'Core IQ Intelligent Solution Discovery',
-      summary: 'A tailored hybrid creation plan combining agents, automated pipelines, and custom digital interfaces to achieve your specific vision.',
-      recommendedBlueprint: {
-        title: 'Holistic Intelligence Ecosystem Blueprint',
-        description: 'Multi-faceted solution blueprint connecting human intent with automated workflows, AI assistance, and tailored user touchpoints.',
-        suggestedStack: ['Core IQ Runtime', 'Modern Web Stack', 'Swarm Automations', 'Integrated Tools'],
-        capabilities: ['Rapid Prototyping', 'Ecosystem Integration', 'Scalable Architecture', 'Continuous Optimization'],
-        estimatedTimeline: '2 - 5 Days',
-        recommendedType: 'custom',
-      },
-      suggestedCapabilities: ['AI Agents', 'Automation', 'Apps', 'Websites', 'Tools Library'],
-      suggestedNextSteps: [
-        'Explore relevant apps and tools in the Core IQ catalogue',
-        'Refine the primary objective and business impact',
-        'Connect with a Core IQ solution architect for a tailored build',
-      ],
-      interactiveQuestions: [
-        'What is the single biggest bottleneck you are facing right now?',
-        'What would success look like 30 days after launch?',
-      ],
-      responseMessage: "Core IQ has synthesized your objective into an actionable creation path. Here is the recommended blueprint:",
-    };
-  }
-  async processQuery(
-    content: string, 
-    customConfig?: AgentConfig
-  ): Promise<{ assistantMessage: string; blueprint?: SolutionBlueprint }> {
-    const config = customConfig || await CoreIQData.getAgentConfig();
-    const analysis = await this.analyzeIntent(content);
-
-    // If operator entered an API key and base URL in Command's Agent Brain, attempt live LLM call
-    if (config && config.api_key && config.base_url) {
-      try {
-        const endpoint = config.base_url.endsWith('/') 
-          ? `${config.base_url}chat/completions` 
-          : `${config.base_url}/chat/completions`;
-
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.api_key}`,
-          },
-          body: JSON.stringify({
-            model: config.model_name || 'llama-3.3-70b-versatile',
-            messages: [
-              { role: 'system', content: config.system_prompt },
-              { role: 'user', content },
-            ],
-            temperature: 0.7,
-            max_tokens: 1024,
-          }),
-        });
-
-        if (response.ok) {
-          const json = await response.json();
-          const reply = json.choices?.[0]?.message?.content;
-          if (reply) {
-            return {
-              assistantMessage: reply,
-              blueprint: analysis.recommendedBlueprint,
-            };
+      if (!res.ok) {
+        let errMessage = `API error ${res.status}`;
+        try {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const errData = await res.json();
+            errMessage = errData.error || errData.message || errMessage;
           }
+        } catch {
+          // ignore parsing error on non-ok responses
         }
-      } catch (err) {
-        console.warn('Live LLM call error, using sovereign cognitive fallback:', err);
+        throw new Error(errMessage);
       }
+
+      let assistantMessage = '';
+      const contentType = res.headers.get('content-type') || '';
+
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        assistantMessage = data.assistantMessage || '';
+      } else {
+        const rawText = await res.text();
+        if (rawText && !rawText.trim().startsWith('<')) {
+          assistantMessage = rawText;
+        } else {
+          assistantMessage = `CoreIQ received your request: "${prompt}". We are preparing the architecture recommendations for you.`;
+        }
+      }
+
+      this.history.push({ role: 'user', content: prompt });
+      this.history.push({ role: 'assistant', content: assistantMessage });
+      if (this.history.length > 12) this.history = this.history.slice(-12);
+
+      return parseResponse(assistantMessage, prompt);
+
+    } catch (err) {
+      console.error('CoreIQ runtime error:', err);
+      // Graceful fallback message
+      return {
+        intent: 'custom',
+        title: 'CoreIQ is warming up',
+        summary: 'The AI engine is initialising. This can take up to 30 seconds on first load as the server wakes. Please try again in a moment.',
+        responseMessage: 'Server is starting up. Please retry in 30 seconds.',
+        recommendedBlueprint: {
+          title: 'Connecting to CoreIQ Engine',
+          description: 'The CoreIQ AI backend is starting. Free tier servers sleep after inactivity.',
+          suggestedStack: [],
+          capabilities: [],
+          estimatedTimeline: 'Ready shortly',
+          recommendedType: 'custom',
+        },
+        suggestedCapabilities: [],
+        suggestedNextSteps: ['Wait 30 seconds and try again'],
+        interactiveQuestions: [],
+      };
     }
+  }
 
-    // Sovereign Cognitive Formulation adhering strictly to the active system prompt and model identity
-    const modelTag = config?.model_name || 'CoreIQ Sovereign Engine';
-    const structuredReply = `${analysis.responseMessage}\n\n**${analysis.title}**\n${analysis.summary}\n\n*Architectural Blueprint:*\n- **Estimated Scope:** ${analysis.recommendedBlueprint.estimatedTimeline}\n- **Core Capabilities:** ${analysis.suggestedCapabilities.join(', ')}\n- **Recommended Stack:** ${analysis.recommendedBlueprint.suggestedStack.join(' • ')}\n\n*Next Milestone Steps:*\n${analysis.suggestedNextSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\n*Synthesized via ${modelTag}*`;
-
-    return { 
-      assistantMessage: structuredReply,
-      blueprint: analysis.recommendedBlueprint,
+  async processQuery(prompt: string, _config?: any): Promise<{ assistantMessage: string; blueprint?: SolutionBlueprint }> {
+    const result = await this.analyzeIntent(prompt);
+    return {
+      assistantMessage: result.responseMessage,
+      blueprint: result.recommendedBlueprint,
     };
   }
 }
 
-export const coreIQRuntime: ICoreIQRuntime = new LocalCoreIQRuntime();
+export const coreIQRuntime: ICoreIQRuntime = new RemoteCoreIQRuntime();
+
+```
+
+
+### File: `src/services/contentResolver.ts`
+```typescript
+import { ContentType, ContentStatus, CommandContentItem } from '../types/command';
+import {
+  CONTENT_MANIFEST,
+  ContentManifestEntry,
+  getManifestEntry,
+  getManifestEntryBySlug,
+  humanizeKey,
+} from '../data/contentManifest';
+import { CoreIQData } from './supabase';
+
+export interface ResolvedContent {
+  content_key: string;
+  status: ContentStatus;
+  content_type: ContentType;
+  title: string;
+  summary: string;
+  body: string | null;
+  slug?: string;
+  category?: string;
+  metadata?: Record<string, any>;
+  asset_url?: string;
+  version?: number;
+  updated_by?: string;
+  isPlaceholder: boolean;
+  rawItem?: CommandContentItem | null;
+}
+
+let seedPromise: Promise<number> | null = null;
+
+/**
+ * Resolves content by content_key.
+ * If status === 'PUBLISHED' and has real content, returns the published content.
+ * Otherwise returns a typed placeholder:
+ * { content_key, status: 'PLACEHOLDER', content_type, title, summary, body: null }
+ * Never throws — missing content must never crash a page.
+ */
+export async function resolveContent(contentKey: string): Promise<ResolvedContent> {
+  const manifestEntry = getManifestEntry(contentKey);
+  const fallbackTitle = manifestEntry?.defaultTitle || humanizeKey(contentKey);
+  const fallbackSummary =
+    manifestEntry?.defaultSummary || `Content being prepared for ${fallbackTitle}.`;
+  const fallbackType: ContentType = manifestEntry?.content_type || 'text';
+
+  try {
+    const item = await CoreIQData.getContentByContentKey(contentKey);
+
+    if (item) {
+      const normalizedStatus = (item.status || '').toUpperCase();
+      const isPublished = normalizedStatus === 'PUBLISHED' || item.published === true;
+
+      if (isPublished && normalizedStatus === 'PUBLISHED') {
+        return {
+          content_key: item.content_key || contentKey,
+          status: 'PUBLISHED',
+          content_type: (item.content_type as ContentType) || fallbackType,
+          title: item.title || fallbackTitle,
+          summary: item.summary || item.body?.slice(0, 200) || fallbackSummary,
+          body: item.body || item.value || null,
+          slug: item.slug || manifestEntry?.slug,
+          category: item.category || manifestEntry?.category,
+          metadata: item.metadata || manifestEntry?.metadata,
+          asset_url: item.asset_url || item.media_reference,
+          version: item.version || 1,
+          updated_by: item.updated_by,
+          isPlaceholder: false,
+          rawItem: item,
+        };
+      }
+
+      // Found in DB/store, but is in PLACEHOLDER/DRAFT/REVIEW state
+      return {
+        content_key: item.content_key || contentKey,
+        status: 'PLACEHOLDER',
+        content_type: (item.content_type as ContentType) || fallbackType,
+        title: item.title || fallbackTitle,
+        summary: item.summary || fallbackSummary,
+        body: null,
+        slug: item.slug || manifestEntry?.slug,
+        category: item.category || manifestEntry?.category,
+        metadata: item.metadata || manifestEntry?.metadata,
+        asset_url: item.asset_url || item.media_reference,
+        version: item.version || 1,
+        updated_by: item.updated_by,
+        isPlaceholder: true,
+        rawItem: item,
+      };
+    }
+
+    // No row found: return typed placeholder
+    return {
+      content_key: contentKey,
+      status: 'PLACEHOLDER',
+      content_type: fallbackType,
+      title: fallbackTitle,
+      summary: fallbackSummary,
+      body: null,
+      slug: manifestEntry?.slug,
+      category: manifestEntry?.category,
+      metadata: manifestEntry?.metadata,
+      version: 1,
+      isPlaceholder: true,
+      rawItem: null,
+    };
+  } catch (err) {
+    console.warn(`[ContentResolver] Non-fatal error resolving '${contentKey}':`, err);
+    // Never throws — return safe fallback placeholder
+    return {
+      content_key: contentKey,
+      status: 'PLACEHOLDER',
+      content_type: fallbackType,
+      title: fallbackTitle,
+      summary: fallbackSummary,
+      body: null,
+      slug: manifestEntry?.slug,
+      category: manifestEntry?.category,
+      metadata: manifestEntry?.metadata,
+      version: 1,
+      isPlaceholder: true,
+      rawItem: null,
+    };
+  }
+}
+
+/**
+ * Resolves content by slug (e.g. 'ai-workflows' -> looks up 'learn.guide.ai-workflows' or slug match).
+ */
+export async function resolveBySlug(slug: string): Promise<ResolvedContent> {
+  const guideKey = `learn.guide.${slug}`;
+  const manifestEntry = getManifestEntryBySlug(slug);
+  const keyToUse = manifestEntry?.content_key || guideKey;
+
+  const resolved = await resolveContent(keyToUse);
+  if (!resolved.slug) {
+    resolved.slug = slug;
+  }
+  return resolved;
+}
+
+/**
+ * Resolves multiple content keys in parallel.
+ */
+export async function resolveAll(
+  contentKeys: string[]
+): Promise<Record<string, ResolvedContent>> {
+  const results = await Promise.all(contentKeys.map((key) => resolveContent(key)));
+  const map: Record<string, ResolvedContent> = {};
+  for (let i = 0; i < contentKeys.length; i++) {
+    map[contentKeys[i]] = results[i];
+  }
+  return map;
+}
+
+/**
+ * Idempotently seeds placeholder rows for any manifest entries with no existing row.
+ * Re-running does not duplicate rows.
+ */
+export async function seedManifestPlaceholders(): Promise<number> {
+  if (seedPromise) return seedPromise;
+
+  seedPromise = (async () => {
+    try {
+      const existingItems = await CoreIQData.getContentItems();
+      const existingKeys = new Set<string>();
+
+      for (const item of existingItems) {
+        if (item.content_key) existingKeys.add(item.content_key);
+        if (item.key) existingKeys.add(item.key);
+      }
+
+      let insertedCount = 0;
+
+      for (const entry of CONTENT_MANIFEST) {
+        if (!existingKeys.has(entry.content_key)) {
+          const title = entry.defaultTitle || humanizeKey(entry.content_key);
+          const summary =
+            entry.defaultSummary || `Content being prepared for ${title}.`;
+
+          await CoreIQData.insertContentItem({
+            content_key: entry.content_key,
+            key: entry.content_key,
+            title,
+            summary,
+            body: '',
+            value: '',
+            category: entry.category || 'learning',
+            content_type: entry.content_type,
+            status: 'PLACEHOLDER',
+            slug: entry.slug,
+            metadata: entry.metadata || {},
+            published: false,
+            version: 1,
+            type: entry.content_type === 'video' || entry.content_type === 'pdf' ? 'image' : 'text',
+          });
+
+          existingKeys.add(entry.content_key);
+          insertedCount++;
+        }
+      }
+
+      return insertedCount;
+    } catch (e) {
+      console.warn('[ContentResolver] Error seeding manifest placeholders:', e);
+      return 0;
+    } finally {
+      seedPromise = null;
+    }
+  })();
+
+  return seedPromise;
+}
 
 ```
 
@@ -3538,11 +4829,33 @@ export const CoreIQData = {
     return getLocalTable<CommandContentItem>('content');
   },
 
+  async getContentByContentKey(contentKey: string): Promise<CommandContentItem | null> {
+    const client = getSupabase();
+    if (client) {
+      try {
+        const { data, error } = await client
+          .from('content')
+          .select('*')
+          .or(`content_key.eq.${contentKey},key.eq.${contentKey}`)
+          .maybeSingle();
+        if (!error && data) return data as CommandContentItem;
+      } catch (e) {
+        console.warn('Using local content fallback for content_key:', e);
+      }
+    }
+    const current = getLocalTable<CommandContentItem>('content');
+    return current.find((c) => c.content_key === contentKey || c.key === contentKey || c.id === contentKey) || null;
+  },
+
   async insertContentItem(item: Omit<CommandContentItem, 'id' | 'created_at'>): Promise<CommandContentItem> {
     const newItem: CommandContentItem = {
       ...item,
       id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cnt_${Date.now()}`,
       created_at: new Date().toISOString(),
+      content_key: item.content_key || item.key,
+      content_type: item.content_type || 'text',
+      status: item.status || 'PLACEHOLDER',
+      version: item.version ?? 1,
     };
 
     const client = getSupabase();
@@ -3595,17 +4908,19 @@ export const CoreIQData = {
     if (typeof keyOrItem === 'string') {
       const key = keyOrItem;
       const current = await this.getContentItems();
-      const existing = current.find((c) => c.key === key || c.id === key);
+      const existing = current.find((c) => c.content_key === key || c.key === key || c.id === key);
       if (existing) {
         await this.updateContentItem(existing.id, {
           key,
+          content_key: existing.content_key || key,
           value: value ?? '',
           type: type || 'text',
         });
-        return { ...existing, key, value: value ?? '', type: type || 'text' };
+        return { ...existing, key, content_key: existing.content_key || key, value: value ?? '', type: type || 'text' };
       }
       return this.insertContentItem({
         key,
+        content_key: key,
         value: value ?? '',
         type: type || 'text',
         title: key,
@@ -3613,6 +4928,7 @@ export const CoreIQData = {
         category: 'general',
         media_reference: type === 'image' ? (value ?? '') : '',
         published: true,
+        status: 'PUBLISHED',
       });
     }
 
@@ -3626,8 +4942,16 @@ export const CoreIQData = {
       body: item.body || item.value || '',
       category: item.category || 'general',
       media_reference: item.media_reference || '',
-      published: item.published ?? true,
+      published: item.published ?? false,
       key: item.key,
+      content_key: item.content_key || item.key,
+      slug: item.slug,
+      content_type: item.content_type || 'text',
+      status: item.status || 'PLACEHOLDER',
+      summary: item.summary,
+      metadata: item.metadata,
+      asset_url: item.asset_url,
+      version: item.version ?? 1,
       value: item.value,
       type: item.type || 'text',
     });
@@ -4077,6 +5401,1091 @@ You are an architectural strategist, product engineer, and capability orchestrat
     NOW()
 ) ON CONFLICT (id) DO NOTHING;
 `;
+
+```
+
+
+### File: `src/mcp/coreiqMcp.ts`
+```typescript
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { z } from 'zod';
+import type { Request, Response } from 'express';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+export function buildCoreIQMcpServer(supabase: SupabaseClient | null, localStore: Record<string, any[]>) {
+  const server = new McpServer({ name: 'coreiq-create', version: '1.0.0' });
+
+  async function getAgentConfig() {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('agent_config').select('*').eq('id', 'coreiq_primary_mind').single();
+      if (!error && data) return data;
+    }
+    return localStore.agent_config[0];
+  }
+
+  server.registerTool(
+    'ask_coreiq',
+    {
+      title: 'Ask CoreIQ',
+      description: "Send a message to the live CoreIQ agent brain (the website's actual configured provider/model/system prompt) and return its real response.",
+      inputSchema: { message: z.string().describe('Message/question to send to CoreIQ') },
+    },
+    async ({ message }) => {
+      const config = await getAgentConfig();
+      if (!config?.api_key || !config?.base_url) {
+        if (process.env.GEMINI_API_KEY) {
+          try {
+            const { GoogleGenAI } = await import('@google/genai');
+            const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+            const geminiRes = await ai.models.generateContent({
+              model: 'gemini-3.8-flash',
+              contents: [{ role: 'user', parts: [{ text: `${config?.system_prompt || 'You are CoreIQ'}\n\n${message}` }] }],
+            });
+            const reply = geminiRes.text || '(empty response)';
+            return { content: [{ type: 'text', text: reply }] };
+          } catch (e: any) {
+            return { content: [{ type: 'text', text: `Gemini fallback error: ${e.message}` }], isError: true };
+          }
+        }
+        return { content: [{ type: 'text', text: 'CoreIQ agent brain has no active provider/API key configured.' }], isError: true };
+      }
+      const endpoint = config.base_url.endsWith('/') ? `${config.base_url}chat/completions` : `${config.base_url}/chat/completions`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.api_key}` },
+        body: JSON.stringify({
+          model: config.model_name,
+          messages: [{ role: 'system', content: config.system_prompt }, { role: 'user', content: message }],
+          temperature: 0.7,
+          max_tokens: 1024,
+        }),
+      });
+      if (!res.ok) return { content: [{ type: 'text', text: `CoreIQ provider error: ${res.status} ${res.statusText}` }], isError: true };
+      const json: any = await res.json();
+      const reply = json.choices?.[0]?.message?.content ?? '(empty response)';
+      return { content: [{ type: 'text', text: reply }] };
+    }
+  );
+
+  server.registerTool(
+    'list_leads',
+    { title: 'List Leads', description: 'List recent website leads/inquiries.', inputSchema: { limit: z.number().optional() } },
+    async ({ limit }) => {
+      let leads: any[] = [];
+      if (supabase) {
+        const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false }).limit(limit ?? 20);
+        leads = data ?? [];
+      } else {
+        leads = localStore.leads.slice(0, limit ?? 20);
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(leads, null, 2) }] };
+    }
+  );
+
+  server.registerTool(
+    'create_task',
+    { title: 'Create Task', description: 'Create an operator task in CoreIQ Command.', inputSchema: { title: z.string(), description: z.string().optional() } },
+    async ({ title, description }) => {
+      const newTask = {
+        id: crypto.randomUUID(), created_at: new Date().toISOString(),
+        title, description: description ?? '', status: 'not_started',
+        linked_lead_id: null, linked_client_id: null, due_date: null,
+      };
+      if (supabase) await supabase.from('tasks').insert([newTask]);
+      else localStore.tasks.unshift(newTask);
+      return { content: [{ type: 'text', text: `Task created: ${title}` }] };
+    }
+  );
+
+  server.registerTool(
+    'get_agent_config',
+    { title: 'Get Agent Config', description: "Read CoreIQ's current provider/model/system prompt (API key redacted).", inputSchema: {} },
+    async () => {
+      const config = await getAgentConfig();
+      const safe = { ...config, api_key: config?.api_key ? '***redacted***' : '' };
+      return { content: [{ type: 'text', text: JSON.stringify(safe, null, 2) }] };
+    }
+  );
+
+  return server;
+}
+
+export function mountCoreIQMcp(app: any, mcpServer: McpServer, authMiddleware: any) {
+  app.post('/mcp', authMiddleware, async (req: Request, res: Response) => {
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    res.on('close', () => transport.close());
+    await mcpServer.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  });
+}
+
+```
+
+
+### File: `src/data/contentManifest.ts`
+```typescript
+import { ContentType, ContentStatus } from '../types/command';
+
+export interface ContentManifestEntry {
+  page: string;
+  content_key: string;
+  content_type: ContentType;
+  required: boolean;
+  slug?: string;
+  category?: string;
+  defaultTitle?: string;
+  defaultSummary?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface ContentHealthReport {
+  total: number;
+  published: number;
+  placeholder: number;
+  missing: number;
+  stale: number;
+  by_page?: Record<
+    string,
+    {
+      total: number;
+      published: number;
+      placeholder: number;
+      missing: number;
+      stale: number;
+    }
+  >;
+  details: {
+    content_key: string;
+    page: string;
+    status: ContentStatus;
+    content_type: ContentType;
+    required: boolean;
+  }[];
+}
+
+/**
+ * Humanizes the last dot segment of a content key.
+ * e.g., 'learn.guide.ai-workflows' -> 'AI Workflows'
+ */
+export function humanizeKey(key: string): string {
+  const segment = key.split('.').pop() || key;
+  return segment
+    .split('-')
+    .map((word) => {
+      if (word.toLowerCase() === 'ai') return 'AI';
+      if (word.toLowerCase() === 'cta') return 'CTA';
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
+/**
+ * CoreIQ Create Content Manifest.
+ * Covers /learn, /home, /solutions, /apps, /tools, and /about.
+ */
+export const CONTENT_MANIFEST: ContentManifestEntry[] = [
+  // 1. Hero text & CTAs
+  {
+    page: '/learn',
+    content_key: 'learn.hero.title',
+    content_type: 'text',
+    required: true,
+    defaultTitle: 'Learn what matters. Build what works.',
+    defaultSummary: 'Hero primary headline for CoreIQ Learn.',
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.hero.description',
+    content_type: 'text',
+    required: true,
+    defaultTitle: 'Learn Hero Description',
+    defaultSummary: 'Practical AI education for people who want to build real things.',
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.hero.cta.browse',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Browse all',
+    defaultSummary: 'Show me all available Core IQ learning guides',
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.hero.cta.basics',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Start with basics',
+    defaultSummary: 'I want to learn the basics of AI and agents',
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.hero.cta.workflows',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Explore workflows',
+    defaultSummary: 'How to build production AI workflows',
+  },
+
+  // 2. Featured Article
+  {
+    page: '/learn',
+    content_key: 'learn.featured.article',
+    content_type: 'article',
+    required: true,
+    slug: 'featured-ai-workflow',
+    defaultTitle: 'How to turn an AI idea into a useful workflow.',
+    defaultSummary: 'A practical walkthrough of breaking down a business problem, choosing the right AI approach, and building a working automation.',
+  },
+
+  // 3. Topics (Stream streams)
+  {
+    page: '/learn',
+    content_key: 'learn.topic.ai-foundations',
+    content_type: 'topic',
+    required: true,
+    category: 'AI Fundamentals',
+    defaultTitle: 'AI Foundations',
+    defaultSummary: 'Core principles of modern artificial intelligence and frontier models.',
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.topic.prompt-engineering',
+    content_type: 'topic',
+    required: true,
+    category: 'AI Fundamentals',
+    defaultTitle: 'Prompt Engineering',
+    defaultSummary: 'System prompt design, few-shot prompting, and structured output patterns.',
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.topic.automation',
+    content_type: 'topic',
+    required: true,
+    category: 'Automation',
+    defaultTitle: 'Business Automation',
+    defaultSummary: 'End-to-end automation pipelines, webhook triggers, and autonomous task queues.',
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.topic.agents',
+    content_type: 'topic',
+    required: true,
+    category: 'Agents',
+    defaultTitle: 'Autonomous Agents',
+    defaultSummary: 'Agentic reasoning loops, tool-use execution, and multi-agent swarm dynamics.',
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.topic.tools',
+    content_type: 'topic',
+    required: true,
+    category: 'Tools & Workflows',
+    defaultTitle: 'Developer & AI Tools',
+    defaultSummary: 'Model context protocols, vector datastores, and tool orchestration kits.',
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.topic.workflows',
+    content_type: 'topic',
+    required: true,
+    category: 'Development',
+    defaultTitle: 'Production Workflows',
+    defaultSummary: 'Human-in-the-loop validation, error recovery, and enterprise deployments.',
+  },
+
+  // 4. Learning Pathways
+  {
+    page: '/learn',
+    content_key: 'learn.path.beginner',
+    content_type: 'learning_path',
+    required: true,
+    defaultTitle: 'Foundations: Start Here',
+    defaultSummary: 'New to AI? Begin with the fundamentals and work toward your first automation.',
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.path.builder',
+    content_type: 'learning_path',
+    required: true,
+    defaultTitle: 'Advanced Systems: Build With AI',
+    defaultSummary: 'Already know the basics? Go deeper into agents, workflows and real systems.',
+  },
+
+  // 5. Curated Guides (wired to individual articles)
+  {
+    page: '/learn',
+    content_key: 'learn.guide.ai-workflows',
+    content_type: 'guide',
+    required: true,
+    slug: 'ai-workflows',
+    category: 'Development',
+    defaultTitle: 'AI Workflows & Orchestration',
+    defaultSummary: 'Connect your tools, eliminate manual tasks, and build reliable automation pipelines with error recovery.',
+    metadata: { level: 'Intermediate', readTime: '20 min read', iconName: 'Zap' },
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.guide.prompt-engineering',
+    content_type: 'guide',
+    required: true,
+    slug: 'prompt-engineering',
+    category: 'AI Fundamentals',
+    defaultTitle: 'The Prompt Engineering Handbook',
+    defaultSummary: 'Techniques, frameworks and best practices for getting precise, high-quality results from any model.',
+    metadata: { level: 'All Levels', readTime: '30 min read', iconName: 'MessageSquare' },
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.guide.automation',
+    content_type: 'guide',
+    required: true,
+    slug: 'automation',
+    category: 'Automation',
+    defaultTitle: 'Mastering Workflow Automation',
+    defaultSummary: 'Practical patterns for webhook chaining, data synthesis, and resilient asynchronous job processing.',
+    metadata: { level: 'Intermediate', readTime: '25 min read', iconName: 'Zap' },
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.guide.agents',
+    content_type: 'guide',
+    required: true,
+    slug: 'agents',
+    category: 'Agents',
+    defaultTitle: 'Understanding AI Agents',
+    defaultSummary: 'How autonomous agents work, when to use them, and how they collaborate in swarms with tool rights.',
+    metadata: { level: 'Beginner', readTime: '15 min read', iconName: 'Network' },
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.guide.ai-tools',
+    content_type: 'guide',
+    required: true,
+    slug: 'ai-tools',
+    category: 'Tools & Workflows',
+    defaultTitle: 'Building with Core IQ Tools',
+    defaultSummary: 'A practical walkthrough of every tool in the Core IQ ecosystem and how to combine them into workflows.',
+    metadata: { level: 'Beginner', readTime: '10 min read', iconName: 'Wrench' },
+  },
+  {
+    page: '/learn',
+    content_key: 'learn.guide.workflows',
+    content_type: 'guide',
+    required: true,
+    slug: 'workflows',
+    category: 'Development',
+    defaultTitle: 'Data & Intelligence Architecture',
+    defaultSummary: 'How to structure, store and query data for intelligent systems that scale reliably in production.',
+    metadata: { level: 'Advanced', readTime: '35 min read', iconName: 'Box' },
+  },
+
+  // ==========================================
+  // HOME PAGE (/home)
+  // ==========================================
+  {
+    page: '/home',
+    content_key: 'home.hero.title',
+    content_type: 'text',
+    required: true,
+    defaultTitle: 'Autonomous AI Systems & Intelligent Creation',
+    defaultSummary: 'Primary hero headline for the Core IQ home experience.',
+  },
+  {
+    page: '/home',
+    content_key: 'home.hero.subtitle',
+    content_type: 'text',
+    required: true,
+    defaultTitle: 'Home Hero Subtitle',
+    defaultSummary: 'CoreIQ designs, automates, and orchestrates custom AI agents, voice assistants, and digital infrastructure.',
+  },
+  {
+    page: '/home',
+    content_key: 'home.capability.agents',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'AI Agents',
+    defaultSummary: 'Autonomous digital agents tailored to enterprise tasks.',
+  },
+  {
+    page: '/home',
+    content_key: 'home.capability.integrations',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Integrations',
+    defaultSummary: 'Unified connection layer bridging models, APIs, and business data.',
+  },
+  {
+    page: '/home',
+    content_key: 'home.capability.automation',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Automation',
+    defaultSummary: 'Resilient multi-step asynchronous workflow automation.',
+  },
+  {
+    page: '/home',
+    content_key: 'home.capability.apps-websites',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Apps & Websites',
+    defaultSummary: 'High-performance interactive web applications and software.',
+  },
+  {
+    page: '/home',
+    content_key: 'home.capability.learn',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'AI Education',
+    defaultSummary: 'Guides and systems thinking for intelligent system builders.',
+  },
+  {
+    page: '/home',
+    content_key: 'home.explore.agents',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Explore Agents',
+    defaultSummary: 'Autonomous execution agents with tool calling and persistent memory.',
+  },
+  {
+    page: '/home',
+    content_key: 'home.explore.automation',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Explore Automation',
+    defaultSummary: 'Automated event triggers, webhook orchestration, and pipeline processing.',
+  },
+  {
+    page: '/home',
+    content_key: 'home.explore.apps',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Explore Apps',
+    defaultSummary: 'Purpose-built AI tools and productivity applications.',
+  },
+  {
+    page: '/home',
+    content_key: 'home.explore.websites',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Explore Websites',
+    defaultSummary: 'Futuristic responsive web systems with generative AI interfaces.',
+  },
+  {
+    page: '/home',
+    content_key: 'home.explore.integrations',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Explore Integrations',
+    defaultSummary: 'Deep API and database connectors for seamless enterprise interoperability.',
+  },
+
+  // ==========================================
+  // SOLUTIONS PAGE (/solutions)
+  // ==========================================
+  {
+    page: '/solutions',
+    content_key: 'solutions.hero.title',
+    content_type: 'text',
+    required: true,
+    defaultTitle: 'Solutions Architecture',
+    defaultSummary: 'Comprehensive AI solutions tailored to modern operational challenges.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.hero.subtitle',
+    content_type: 'text',
+    required: true,
+    defaultTitle: 'Solutions Hero Subtitle',
+    defaultSummary: 'From discrete task automation to autonomous swarms, explore our technical capabilities.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.item.ai-agents',
+    content_type: 'topic',
+    required: false,
+    defaultTitle: 'AI Agents',
+    defaultSummary: 'Autonomous agents designed to research, draft, execute, and collaborate.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.item.automation',
+    content_type: 'topic',
+    required: false,
+    defaultTitle: 'Workflow Automation',
+    defaultSummary: 'Eliminate repetitive manual tasks through deterministic and generative automation.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.item.apps',
+    content_type: 'topic',
+    required: false,
+    defaultTitle: 'Custom AI Apps',
+    defaultSummary: 'Dedicated applications infused with model intelligence and real-time processing.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.item.websites',
+    content_type: 'topic',
+    required: false,
+    defaultTitle: 'Intelligent Websites',
+    defaultSummary: 'Web experiences with conversational and generative interfaces.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.item.voice-ai',
+    content_type: 'topic',
+    required: false,
+    defaultTitle: 'Voice AI Systems',
+    defaultSummary: 'Ultra-low latency conversational voice agents for customer care and inbound support.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.item.integrations',
+    content_type: 'topic',
+    required: false,
+    defaultTitle: 'System Integrations',
+    defaultSummary: 'Bridge disparate CRM, ERP, and internal databases with intelligent routing.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.capability.agents',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Agents Capability',
+    defaultSummary: 'Multi-agent orchestration and autonomous tool invocation.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.capability.automation',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Automation Capability',
+    defaultSummary: 'Event-driven logic chains and asynchronous batch operations.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.capability.apps',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Apps Capability',
+    defaultSummary: 'Full-stack application architecture and reactive state systems.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.capability.voice',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Voice Capability',
+    defaultSummary: 'Real-time WebSocket audio streaming, TTS, and neural voice synthesis.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.capability.customer',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Customer AI Capability',
+    defaultSummary: 'Context-aware customer support agents with retrieval-augmented generation.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.capability.integrations',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Integrations Capability',
+    defaultSummary: 'Model Context Protocol (MCP) servers and third-party webhook gateways.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.process.idea',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Idea',
+    defaultSummary: 'Clarifying the vision and defining high-impact outcome metrics.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.process.discovery',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Discovery',
+    defaultSummary: 'Mapping system architecture, data dependencies, and security requirements.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.process.design',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Design',
+    defaultSummary: 'Crafting user flows, agent prompts, and high-fidelity interface prototypes.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.process.build',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Build',
+    defaultSummary: 'Developing resilient full-stack code and establishing test suites.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.process.integrate',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Integrate',
+    defaultSummary: 'Connecting production APIs, webhooks, and telemetry logging.',
+  },
+  {
+    page: '/solutions',
+    content_key: 'solutions.process.optimize',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Optimize',
+    defaultSummary: 'Continuous monitoring, latency tuning, and model cost reduction.',
+  },
+
+  // ==========================================
+  // APPS PAGE (/apps)
+  // ==========================================
+  {
+    page: '/apps',
+    content_key: 'apps.hero.title',
+    content_type: 'text',
+    required: true,
+    defaultTitle: 'CoreIQ App Ecosystem',
+    defaultSummary: 'A curated collection of purpose-built intelligent creative applications.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.hero.subtitle',
+    content_type: 'text',
+    required: true,
+    defaultTitle: 'Apps Hero Subtitle',
+    defaultSummary: 'Explore specialized software for imaging, copywriting, synthesis, and workflow mapping.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.item.imageforge',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'ImageForge',
+    defaultSummary: 'Generative image studio with prompt refinement and aspect ratio controls.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.item.writepro',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'WritePro',
+    defaultSummary: 'Long-form editorial assistant with voice consistency and outline generation.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.item.datamind',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'DataMind',
+    defaultSummary: 'Natural language database querying and structured dataset transformation.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.item.flowbuilder',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'FlowBuilder',
+    defaultSummary: 'Visual canvas for composing multi-step automated execution graphs.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.item.webcraft',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'WebCraft',
+    defaultSummary: 'Rapid UI prototyping tool transforming wireframes into production components.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.item.voicestudio',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'VoiceStudio',
+    defaultSummary: 'Synthesizer and conversational tester for neural voice agent configurations.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.item.customerai',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'CustomerAI',
+    defaultSummary: 'Knowledge-grounded agent for automated multi-channel support.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.item.appbuilder',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'AppBuilder',
+    defaultSummary: 'Scaffolding environment for generating micro-applications with custom logic.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.item.researchpro',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'ResearchPro',
+    defaultSummary: 'Deep web and document synthesizer generating comprehensive whitepapers.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.item.marketingai',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'MarketingAI',
+    defaultSummary: 'Campaign strategist generating copy variants, hooks, and content schedules.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.tier.try',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Try Tier',
+    defaultSummary: 'Explore interactive demos directly in your browser with zero setup.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.tier.upgrade',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Upgrade Tier',
+    defaultSummary: 'Unlock dedicated compute, custom keys, and extended context windows.',
+  },
+  {
+    page: '/apps',
+    content_key: 'apps.tier.customize',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Customize Tier',
+    defaultSummary: 'Tailor model prompts, add proprietary MCP tools, and white-label branding.',
+  },
+
+  // ==========================================
+  // TOOLS PAGE (/tools)
+  // ==========================================
+  {
+    page: '/tools',
+    content_key: 'tools.hero.title',
+    content_type: 'text',
+    required: true,
+    defaultTitle: 'Interactive Utilities',
+    defaultSummary: 'Focused, client-side intelligence tools for rapid execution.',
+  },
+  {
+    page: '/tools',
+    content_key: 'tools.hero.subtitle',
+    content_type: 'text',
+    required: true,
+    defaultTitle: 'Tools Hero Subtitle',
+    defaultSummary: 'Zero latency micro-utilities designed to accelerate your day-to-day workflow.',
+  },
+  {
+    page: '/tools',
+    content_key: 'tools.item.prompt-enhancer',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Prompt Enhancer',
+    defaultSummary: 'Refine raw prompts into structured, high-performing instructions.',
+  },
+  {
+    page: '/tools',
+    content_key: 'tools.item.headline-generator',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Headline Generator',
+    defaultSummary: 'Generate captivating marketing headlines and value statements.',
+  },
+  {
+    page: '/tools',
+    content_key: 'tools.item.image-prompt-builder',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Image Prompt Builder',
+    defaultSummary: 'Construct rich photographic and cinematic prompts with stylistic parameters.',
+  },
+  {
+    page: '/tools',
+    content_key: 'tools.item.code-explainer',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Code Explainer',
+    defaultSummary: 'Deconstruct complex codebases and syntax into plain-English explanations.',
+  },
+  {
+    page: '/tools',
+    content_key: 'tools.item.data-formatter',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Data Formatter',
+    defaultSummary: 'Convert messy unstructured data into pristine JSON, CSV, or markdown tables.',
+  },
+  {
+    page: '/tools',
+    content_key: 'tools.item.regex-builder',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Regex Builder',
+    defaultSummary: 'Generate and explain regular expressions using natural language descriptions.',
+  },
+  {
+    page: '/tools',
+    content_key: 'tools.item.meeting-summarizer',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Meeting Summarizer',
+    defaultSummary: 'Extract key decisions, action items, and timelines from meeting transcripts.',
+  },
+  {
+    page: '/tools',
+    content_key: 'tools.item.workflow-mapper',
+    content_type: 'resource',
+    required: false,
+    defaultTitle: 'Workflow Mapper',
+    defaultSummary: 'Turn step-by-step descriptions into clean interactive pipeline diagrams.',
+  },
+  {
+    page: '/tools',
+    content_key: 'tools.philosophy.speed',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Instant Speed',
+    defaultSummary: 'Tools load immediately with instantaneous feedback and zero clutter.',
+  },
+  {
+    page: '/tools',
+    content_key: 'tools.philosophy.focus',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Singular Focus',
+    defaultSummary: 'Each utility performs one task exceptionally well without distraction.',
+  },
+  {
+    page: '/tools',
+    content_key: 'tools.philosophy.composability',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Composability',
+    defaultSummary: 'Output from any tool is easily piped into other systems or workflows.',
+  },
+
+  // ==========================================
+  // ABOUT PAGE (/about)
+  // ==========================================
+  {
+    page: '/about',
+    content_key: 'about.hero.title',
+    content_type: 'text',
+    required: true,
+    defaultTitle: 'About CoreIQ',
+    defaultSummary: 'The philosophy and architecture powering autonomous creation.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.hero.subtitle',
+    content_type: 'text',
+    required: true,
+    defaultTitle: 'About Hero Subtitle',
+    defaultSummary: 'We build sovereign AI infrastructure that connects ideas, intelligence, and action.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.pillar.ideas',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Ideas',
+    defaultSummary: 'Clarifying intent and structuring conceptual breakthroughs into buildable roadmaps.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.pillar.intelligence',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Intelligence',
+    defaultSummary: 'Applying state-of-the-art models and deterministic logic to solve complex problems.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.pillar.action',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Action',
+    defaultSummary: 'Transforming thought into tangible tools, agents, workflows, and websites.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.belief.useful',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Useful Systems',
+    defaultSummary: 'AI should solve real bottlenecks rather than serve as decorative spectacle.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.belief.friction',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Frictionless Creation',
+    defaultSummary: 'Removing intermediate barriers between human imagination and digital realization.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.belief.understandable',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Understandable Architecture',
+    defaultSummary: 'Systems should remain inspectable, predictable, and transparent to their operators.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.belief.time',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Time Sovereignty',
+    defaultSummary: 'Automating the mundane gives creators the freedom to focus on high-order creativity.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.principle.start-with-problem',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Start With The Problem',
+    defaultSummary: 'Never build tech looking for a use case; anchor in acute human friction.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.principle.smallest-system',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Smallest Working System',
+    defaultSummary: 'Deliver working utility first, then scale complexity incrementally.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.principle.connect-workflow',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Connect To The Workflow',
+    defaultSummary: 'Integrate directly where people already work, communicate, and create.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.principle.test-reality',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Test Against Reality',
+    defaultSummary: 'Validate against production data, edge cases, and human behavior.',
+  },
+  {
+    page: '/about',
+    content_key: 'about.principle.improve-continuously',
+    content_type: 'text',
+    required: false,
+    defaultTitle: 'Improve Continuously',
+    defaultSummary: 'Treat systems as living organisms that adapt with feedback loops and performance telemetry.',
+  },
+];
+
+/**
+ * Returns all manifest entries for a given page route.
+ */
+export function getManifestForPage(page: string): ContentManifestEntry[] {
+  return CONTENT_MANIFEST.filter((entry) => entry.page === page);
+}
+
+/**
+ * Looks up a single manifest entry by content_key.
+ */
+export function getManifestEntry(contentKey: string): ContentManifestEntry | undefined {
+  return CONTENT_MANIFEST.find((entry) => entry.content_key === contentKey);
+}
+
+/**
+ * Looks up a manifest entry by slug or guide key.
+ */
+export function getManifestEntryBySlug(slug: string): ContentManifestEntry | undefined {
+  return CONTENT_MANIFEST.find((entry) => entry.slug === slug || entry.content_key === `learn.guide.${slug}`);
+}
+
+/**
+ * Evaluates health of content rows against the manifest.
+ */
+export function evaluateContentHealth(
+  existingItems: { content_key?: string; key?: string; status?: string }[]
+): ContentHealthReport {
+  let published = 0;
+  let placeholder = 0;
+  let missing = 0;
+  let stale = 0;
+
+  const itemMap = new Map<string, { status?: string }>();
+  for (const item of existingItems) {
+    if (item.content_key) itemMap.set(item.content_key, item);
+    if (item.key) itemMap.set(item.key, item);
+  }
+
+  const by_page: Record<
+    string,
+    { total: number; published: number; placeholder: number; missing: number; stale: number }
+  > = {};
+
+  const details = CONTENT_MANIFEST.map((entry) => {
+    if (!by_page[entry.page]) {
+      by_page[entry.page] = { total: 0, published: 0, placeholder: 0, missing: 0, stale: 0 };
+    }
+    by_page[entry.page].total++;
+
+    const found = itemMap.get(entry.content_key);
+    let resolvedStatus: ContentStatus = 'MISSING';
+
+    if (!found) {
+      missing++;
+      by_page[entry.page].missing++;
+      resolvedStatus = 'MISSING';
+    } else {
+      const rawStatus = (found.status || '').toUpperCase();
+      if (rawStatus === 'PUBLISHED') {
+        published++;
+        by_page[entry.page].published++;
+        resolvedStatus = 'PUBLISHED';
+      } else if (rawStatus === 'STALE') {
+        stale++;
+        by_page[entry.page].stale++;
+        resolvedStatus = 'STALE';
+      } else {
+        placeholder++;
+        by_page[entry.page].placeholder++;
+        resolvedStatus = (rawStatus as ContentStatus) || 'PLACEHOLDER';
+      }
+    }
+
+    return {
+      content_key: entry.content_key,
+      page: entry.page,
+      status: resolvedStatus,
+      content_type: entry.content_type,
+      required: entry.required,
+    };
+  });
+
+  return {
+    total: CONTENT_MANIFEST.length,
+    published,
+    placeholder,
+    missing,
+    stale,
+    by_page,
+    details,
+  };
+}
 
 ```
 
@@ -4583,7 +6992,7 @@ export const TOOL_PHILOSOPHY = [
 
 ### File: `src/pages/HomePage.tsx`
 ```typescript
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, Suspense, lazy } from 'react';
 import { Sparkles, Zap, LayoutGrid, GraduationCap, ArrowRight, Cpu, Layers, Monitor, CheckCircle2, Loader2, Search, Link as LinkIcon } from 'lucide-react';
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
@@ -4816,7 +7225,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
       <section className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="reveal-up relative rounded-3xl overflow-hidden border border-cyan-500/20 p-8 sm:p-12 lg:p-16 bg-gradient-to-r from-[#071330] via-[#0b102b] to-[#040817]">
           <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-25 pointer-events-none">
-            <img src={ASSETS.cosmicHorizon} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover object-right" />
           </div>
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-3">
@@ -5798,6 +8206,39 @@ Provide an executive summary, followed by a chronological execution table with m
           </div>
         </div>
 
+
+          {/* Free download banner */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-cyan-950/50 to-violet-950/30 border border-cyan-500/30 mb-6">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">Free download — no signup</span>
+              <h3 className="text-sm font-bold text-white">CoreIQ AI Prompt Pack — 20 production-ready prompts</h3>
+              <p className="text-xs text-slate-400">The exact prompt templates CoreIQ uses internally.</p>
+            </div>
+            <a
+              href="/downloads/coreiq-prompt-pack.pdf"
+              download="coreiq-prompt-pack.pdf"
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs transition-colors"
+            >
+              ↓ Download Free PDF
+            </a>
+          </div>
+          {/* Automation checklist banner */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-violet-950/40 to-slate-950/60 border border-violet-500/20 mb-8">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-mono text-violet-400 uppercase tracking-wider">Free checklist</span>
+              <h3 className="text-sm font-bold text-white">Automation Starter Checklist — 10 steps before you build</h3>
+              <p className="text-xs text-slate-400">Used on every CoreIQ automation project.</p>
+            </div>
+            <a
+              href="/downloads/automation-starter-checklist.pdf"
+              download="automation-starter-checklist.pdf"
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-violet-500/40 hover:border-violet-400 text-violet-300 hover:text-violet-200 font-bold text-xs transition-colors"
+            >
+              ↓ Download Checklist
+            </a>
+          </div>
         {/* Minimal Editorial Tool Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredTools.map((tool, idx) => {
@@ -5903,7 +8344,7 @@ Provide an executive summary, followed by a chronological execution table with m
 
 ### File: `src/pages/LearnPage.tsx`
 ```typescript
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowRight, 
   Clock, 
@@ -5917,13 +8358,24 @@ import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
 import { CosmicCTABanner } from '../components/common/CosmicCTABanner';
 import { PageHeroVisual } from '../components/common/PageHeroVisual';
 import { ScrollReveal } from '../components/common/ScrollReveal';
+import { ContentPlaceholder } from '../components/common/ContentPlaceholder';
 import { NavRoute } from '../types';
-import { LEARN_TOPICS, LEARN_CATEGORIES, FOUR_PILLARS } from '../data/learnData';
+import { LEARN_CATEGORIES, FOUR_PILLARS } from '../data/learnData';
+import { resolveContent, seedManifestPlaceholders, ResolvedContent } from '../services/contentResolver';
 
 interface LearnPageProps {
   onNavigate: (route: NavRoute) => void;
   onAsk: (query: string) => void;
 }
+
+const MANIFEST_GUIDE_KEYS = [
+  'learn.guide.ai-workflows',
+  'learn.guide.prompt-engineering',
+  'learn.guide.automation',
+  'learn.guide.agents',
+  'learn.guide.ai-tools',
+  'learn.guide.workflows',
+];
 
 const EDITORIAL_TOPICS = [
   { num: '01', label: 'AI News', query: 'What are the latest AI news and updates?' },
@@ -5940,10 +8392,40 @@ const EDITORIAL_TOPICS = [
 
 export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [resolvedGuides, setResolvedGuides] = useState<ResolvedContent[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    seedManifestPlaceholders().then(() => {
+      Promise.all(MANIFEST_GUIDE_KEYS.map((k) => resolveContent(k))).then((items) => {
+        if (isMounted) setResolvedGuides(items);
+      });
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const displayedGuides: ResolvedContent[] = resolvedGuides.length > 0
+    ? resolvedGuides
+    : MANIFEST_GUIDE_KEYS.map((key) => {
+        const slug = key.replace('learn.guide.', '');
+        return {
+          content_key: key,
+          status: 'PLACEHOLDER' as const,
+          content_type: 'guide' as const,
+          title: slug.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' '),
+          summary: 'Content being prepared.',
+          body: null,
+          slug,
+          category: 'Curated Guide',
+          isPlaceholder: true,
+        };
+      });
 
   const filteredTopics = selectedCategory === 'All'
-    ? LEARN_TOPICS
-    : LEARN_TOPICS.filter(t => t.category === selectedCategory);
+    ? displayedGuides
+    : displayedGuides.filter(t => (t.category || 'General') === selectedCategory);
 
   const learnPills = [
     { label: 'Browse all', query: 'Show me all available Core IQ learning guides' },
@@ -6028,8 +8510,8 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
 
               <div className="pt-2">
                 <button
-                  onClick={() => onAsk('Guide: How to turn an AI idea into a useful workflow')}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all duration-200"
+                  onClick={() => onNavigate('learn/ai-workflows' as NavRoute)}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all duration-200 cursor-pointer"
                 >
                   <span>Read the guide</span>
                   <ArrowRight className="w-4 h-4" />
@@ -6207,42 +8689,60 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
 
         {/* Learning Guides Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTopics.map((topic) => (
-            <div
-              key={topic.id}
-              onClick={() => onAsk(`Teach me about: ${topic.title}. Explain key concepts and practical execution.`)}
-              className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-72 relative border border-cyan-500/15"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                    {topic.category}
+          {filteredTopics.map((topic) => {
+            const isPublished = topic.status === 'PUBLISHED' && Boolean(topic.body);
+            const targetSlug = topic.slug || topic.content_key.replace('learn.guide.', '');
+
+            if (!isPublished) {
+              return (
+                <ContentPlaceholder
+                  key={topic.content_key}
+                  title={topic.title}
+                  category={topic.category || 'Curated Guide'}
+                  contentKey={topic.content_key}
+                  slug={targetSlug}
+                  onClick={() => onNavigate(`learn/${targetSlug}` as NavRoute)}
+                />
+              );
+            }
+
+            return (
+              <div
+                key={topic.content_key}
+                onClick={() => onNavigate(`learn/${targetSlug}` as NavRoute)}
+                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-72 relative border border-cyan-500/15"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                      {topic.category || 'Curated Guide'}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-slate-400 text-xs">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{topic.metadata?.readTime || '15 min read'}</span>
+                    </div>
+                  </div>
+
+                  <h3 className="text-white font-bold text-lg mb-2 group-hover:text-cyan-300 transition-colors">
+                    {topic.title}
+                  </h3>
+                  <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                    {topic.summary}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-slate-800/80 text-xs">
+                  <span className="text-slate-400 font-mono">
+                    Level: {topic.metadata?.level || 'All Levels'}
                   </span>
-                  <div className="flex items-center gap-1.5 text-slate-400 text-xs">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{topic.readTime}</span>
+                  <div className="flex items-center gap-1.5 text-cyan-400 font-semibold group-hover:text-cyan-300">
+                    <span>Read guide</span>
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
                   </div>
                 </div>
-
-                <h3 className="text-white font-bold text-lg mb-2 group-hover:text-cyan-300 transition-colors">
-                  {topic.title}
-                </h3>
-                <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
-                  {topic.description}
-                </p>
               </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-slate-800/80 text-xs">
-                <span className="text-slate-400 font-mono">
-                  Level: {topic.level}
-                </span>
-                <div className="flex items-center gap-1.5 text-cyan-400 font-semibold group-hover:text-cyan-300">
-                  <span>Read guide</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -6295,6 +8795,233 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
         headline="Keep learning. Keep building."
         subtext="The best creators never stop learning. Tell Core IQ what you want to understand, and we'll guide you to the right resource."
         inputPlaceholder="Ask CoreIQ anything..."
+        onAsk={onAsk}
+      />
+    </div>
+  );
+};
+
+```
+
+
+### File: `src/pages/LearnArticlePage.tsx`
+```typescript
+import React, { useEffect, useState } from 'react';
+import { 
+  ArrowLeft, 
+  Clock, 
+  Sparkles, 
+  ShieldCheck, 
+  Layers, 
+  ExternalLink,
+  Cpu
+} from 'lucide-react';
+import { NavRoute } from '../types';
+import { resolveBySlug, ResolvedContent } from '../services/contentResolver';
+import { CosmicCTABanner } from '../components/common/CosmicCTABanner';
+
+interface LearnArticlePageProps {
+  slug: string;
+  onNavigate: (route: NavRoute) => void;
+  onAsk: (query: string) => void;
+}
+
+export const LearnArticlePage: React.FC<LearnArticlePageProps> = ({
+  slug,
+  onNavigate,
+  onAsk,
+}) => {
+  const [content, setContent] = useState<ResolvedContent | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+
+    resolveBySlug(slug)
+      .then((res) => {
+        if (isMounted) {
+          setContent(res);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.warn('Error loading article:', err);
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
+
+  const title = content?.title || slug.replace(/-/g, ' ').toUpperCase();
+  const category = content?.category || 'Curated Guide';
+  const status = content?.status || 'PLACEHOLDER';
+  const isPublished = status === 'PUBLISHED' && Boolean(content?.body);
+  const level = content?.metadata?.level || 'All Levels';
+  const readTime = content?.metadata?.readTime || '15 min read';
+
+  return (
+    <div className="w-full relative min-h-screen pb-20">
+      {/* 1. TOP NAV & BREADCRUMB STRIP */}
+      <section className="pt-10 pb-6 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+          <button
+            onClick={() => onNavigate('learn')}
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-cyan-400 hover:text-cyan-300 transition-colors group cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+            <span>Back to Knowledge Stream</span>
+          </button>
+
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-500">
+            <span>LEARN</span>
+            <span>/</span>
+            <span>GUIDE</span>
+            <span>/</span>
+            <span className="text-cyan-400">{slug}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. HERO / HEADER SECTION */}
+      <section className="py-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="space-y-6">
+          {/* Metadata badges */}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs uppercase font-bold tracking-wider px-3 py-1 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+              {category}
+            </span>
+
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <Clock className="w-3.5 h-3.5" />
+              <span>{readTime}</span>
+            </div>
+
+            <span className="text-slate-500 text-xs font-mono">
+              Level: {level}
+            </span>
+
+            {/* Status indicator */}
+            {isPublished ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>PUBLISHED (v{content?.version || 1})</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/25">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                <span>STATUS: PLACEHOLDER</span>
+              </span>
+            )}
+          </div>
+
+          {/* Main Title */}
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white font-display leading-[1.15]">
+            {title}
+          </h1>
+
+          {/* Summary */}
+          {content?.summary && (
+            <p className="text-slate-300 text-base sm:text-lg lg:text-xl leading-relaxed max-w-3xl">
+              {content.summary}
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* 3. CONTENT CONTAINER (REAL OR PLACEHOLDER STATE) */}
+      <section className="py-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        {loading ? (
+          <div className="p-12 rounded-2xl coreiq-glass-card border border-cyan-500/15 flex items-center justify-center">
+            <div className="flex items-center gap-3 text-cyan-400 font-mono text-sm">
+              <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+              <span>Resolving CoreIQ Content Blueprint...</span>
+            </div>
+          </div>
+        ) : isPublished && content?.body ? (
+          /* REAL PUBLISHED CONTENT */
+          <div className="rounded-3xl bg-slate-900/40 border border-cyan-500/20 p-8 sm:p-12 relative overflow-hidden backdrop-blur-md">
+            <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed font-sans space-y-6 text-base sm:text-lg">
+              {content.body.split('\n\n').map((para, i) => (
+                <p key={i}>{para}</p>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* SOVEREIGN PLACEHOLDER STATE */
+          <div className="rounded-3xl coreiq-glass-card border border-cyan-500/20 p-8 sm:p-12 relative overflow-hidden backdrop-blur-md space-y-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
+              <div className="space-y-1">
+                <span className="text-xs font-mono uppercase tracking-widest text-cyan-400">
+                  CONTENT ARCHITECTURE
+                </span>
+                <h3 className="text-2xl font-bold text-white font-display">
+                  Content being prepared.
+                </h3>
+              </div>
+              <div className="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-xs font-mono text-cyan-300">
+                Awaiting Orchestrator Pipeline
+              </div>
+            </div>
+
+            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+              This guide is registered in the CoreIQ content manifest. The research orchestrator
+              populates these entries with tested architectural walkthroughs, tool pipelines, and production patterns.
+            </p>
+
+            {/* Spec & Blueprint metadata */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 font-mono text-xs">
+              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+                <span className="text-slate-500 text-[10px] uppercase">Manifest Key</span>
+                <div className="text-cyan-300 font-semibold truncate">
+                  {content?.content_key || `learn.guide.${slug}`}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+                <span className="text-slate-500 text-[10px] uppercase">Node Status</span>
+                <div className="text-amber-400 font-semibold">
+                  {status}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+                <span className="text-slate-500 text-[10px] uppercase">Route Address</span>
+                <div className="text-slate-300 truncate">
+                  /learn/{slug}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Callout */}
+            <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
+              <button
+                onClick={() => onAsk(`Synthesize an in-depth guide on ${title} for production builders.`)}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold bg-cyan-500 text-slate-950 hover:bg-cyan-400 transition-all duration-200 shadow-[0_0_20px_rgba(6,182,212,0.3)] cursor-pointer"
+              >
+                <Cpu className="w-4 h-4" />
+                <span>Ask CoreIQ to synthesize now</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('learn')}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-medium border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer"
+              >
+                <span>Browse other topics</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* 4. BOTTOM CTA BANNER */}
+      <CosmicCTABanner
+        eyebrow="INTELLIGENT CREATION"
+        headline="Learn it. Build it. Deploy it."
+        subtext="Have questions about this architecture? Ask CoreIQ to explain the implementation details."
+        inputPlaceholder={`Ask about ${title}...`}
         onAsk={onAsk}
       />
     </div>
@@ -6498,156 +9225,207 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
 ```
 
 
-### File: `src/pages/AskPage.tsx`
+### File: `src/pages/Ask.tsx`
 ```typescript
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  Paperclip, Mic, Send, Sparkles, Plus,
-  Zap, Globe, Code, X, ArrowRight, ShieldCheck, CheckCircle2, User, Mail, DollarSign
-} from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { CoreIQLogo } from '../components/common/CoreIQLogo';
+import { GradientBorderBox } from '../components/ask/GradientBorderBox';
+import { ScrambleText } from '../components/ask/ScrambleText';
+import { useMagneticHover } from '../hooks/useMagneticHover';
 import { coreIQRuntime } from '../services/coreiqRuntime';
 import { CoreIQData } from '../services/supabase';
-import { AgentConfig, LeadItem } from '../types/command';
+import '../styles/ask.css';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  blueprint?: any;
+  blueprint?: Record<string, unknown>;
 }
 
-interface AskPageProps {
+export interface AskProps {
   onNavigate: (route: string) => void;
   initialPrompt?: string;
 }
 
-const SUGGESTIONS = [
-  { label: 'Build me a website', icon: Globe },
-  { label: 'Automate my business', icon: Zap },
-  { label: 'Create an AI agent', icon: Sparkles },
-  { label: 'Build an app', icon: Code },
-];
+type TabCategory = 'agents' | 'apps' | 'automation';
 
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+interface TabConfig {
+  id: TabCategory;
+  label: string;
+  placeholder: string;
 }
 
-export const AskPage: React.FC<AskPageProps> = ({ onNavigate, initialPrompt }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [attachments, setAttachments] = useState<File[]>([]);
-  const [activeConfig, setActiveConfig] = useState<AgentConfig | null>(null);
-  const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
-  
-  // Project submission form state inside conversation
-  const [showInquiryForm, setShowInquiryForm] = useState(false);
-  const [clientName, setClientName] = useState('');
-  const [clientEmail, setClientEmail] = useState('');
-  const [budgetRange, setBudgetRange] = useState('$5k - $15k');
-  const [inquirySubmitted, setInquirySubmitted] = useState(false);
+const STATIC_TABS: TabConfig[] = [
+  {
+    id: 'agents',
+    label: 'Agents',
+    placeholder:
+      'Build me an AI agent that handles client onboarding, sends follow-up emails, and updates my CRM automatically...',
+  },
+  {
+    id: 'apps',
+    label: 'Apps',
+    placeholder:
+      'Create a client portal where customers track their project status, upload files, and approve deliverables...',
+  },
+  {
+    id: 'automation',
+    label: 'Automation',
+    placeholder:
+      'Automate my lead capture from Instagram DMs into a structured CRM pipeline with instant replies...',
+  },
+];
 
-  const fileRef = useRef<HTMLInputElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+const MAATVERSE_PILLS = [
+  '🎨 AI Art Packs',
+  '🖼️ Wallpapers',
+  '🎵 Beats & Audio',
+  '📱 Micro-Apps',
+  '🎮 Mini Games',
+  '✨ Free Downloads',
+];
+
+const MAATVERSE_CARDS = [
+  {
+    id: '1',
+    title: 'Void Art Pack Vol.1',
+    price: 'Free',
+    background: 'linear-gradient(145deg, #1a0533 0%, #6b21a8 100%)',
+  },
+  {
+    id: '2',
+    title: 'Cyberpulse Wallpapers',
+    price: 'R29',
+    background: 'linear-gradient(145deg, #0a1628 0%, #1e40af 100%)',
+  },
+  {
+    id: '3',
+    title: 'AfroFuture Beats',
+    price: 'R49',
+    background: 'linear-gradient(145deg, #0d1f0d 0%, #15803d 100%)',
+  },
+  {
+    id: '4',
+    title: 'Pharaoh Dashboard App',
+    price: 'R79',
+    background: 'linear-gradient(145deg, #1a0a00 0%, #c2410c 100%)',
+  },
+];
+
+export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
+  const [activeTab, setActiveTab] = useState<TabCategory>('agents');
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
+
+  // Memoized tabs and static Maatverse collections
+  const tabs = useMemo<TabConfig[]>(() => STATIC_TABS, []);
+  const maatversePills = useMemo(() => MAATVERSE_PILLS, []);
+  const maatverseCards = useMemo(() => MAATVERSE_CARDS, []);
+
+  // Check prefers-reduced-motion
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Magnetic hover on buttons
+  const navCtaRef = useMagneticHover<HTMLButtonElement>(0.35);
+  const stickyCtaRef = useMagneticHover<HTMLButtonElement>(0.35);
+  const sendBtnRef = useMagneticHover<HTMLButtonElement>(0.25);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const hasMessages = messages.length > 0;
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const initialHandled = useRef(false);
 
-  // Fetch active Agent Brain configuration from Supabase
+  // Suppress outer layout header & footer while on Ask page
   useEffect(() => {
-    CoreIQData.getAgentConfig().then((cfg) => {
-      setActiveConfig(cfg);
-    });
+    document.body.classList.add('ask-page-active');
+    return () => {
+      document.body.classList.remove('ask-page-active');
+    };
   }, []);
 
-  // Handle initialPrompt passed from previous page
+  // Handle initial prompt from homepage or route navigation
   useEffect(() => {
     if (initialPrompt && !initialHandled.current) {
       initialHandled.current = true;
-      send(initialPrompt);
+      setInput(initialPrompt);
+      sendQuery(initialPrompt);
     }
   }, [initialPrompt]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, showInquiryForm, inquirySubmitted]);
+  const sendQuery = async (queryText?: string) => {
+    const text = (queryText ?? input).trim();
+    if (!text || loading) return;
 
-  const autoResize = () => {
-    const t = textareaRef.current;
-    if (!t) return;
-    t.style.height = 'auto';
-    t.style.height = Math.min(t.scrollHeight, 160) + 'px';
-  };
-
-  const send = async (text?: string) => {
-    const content = (text ?? input).trim();
-    if (!content || loading) return;
     setInput('');
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
 
     const userMsg: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content,
+      content: text,
       timestamp: new Date(),
     };
+
     setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
 
     try {
-      // Dynamic cognitive processing using active agent config
-      const response = await coreIQRuntime.processQuery(content, activeConfig || undefined);
+      const response = await coreIQRuntime.processQuery(text);
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: response.assistantMessage,
         timestamp: new Date(),
-        blueprint: response.blueprint,
+        blueprint: (response.blueprint as unknown) as Record<string, unknown> | undefined,
       };
-      
-      const newMessages = [...messages, userMsg, aiMsg];
+
+      const updatedHistory = [...messages, userMsg, aiMsg];
       setMessages((prev) => [...prev, aiMsg]);
 
-      // Automatically sync or update lead in Supabase
-      const fullTurns = newMessages.map((m) => ({
-        sender: (m.role === 'user' ? 'user' : 'coreiq') as any,
+      // Record lead in Supabase database
+      const fullTurns = updatedHistory.map((m) => ({
+        sender: m.role === 'user' ? ('user' as const) : ('coreiq' as const),
         text: m.content,
         timestamp: m.timestamp.toISOString(),
       }));
 
       if (!activeLeadId) {
-        const newLead = await CoreIQData.insertLead({
+        const lead = await CoreIQData.insertLead({
           source: 'website',
-          client_name: clientName || `Visitor (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`,
-          client_contact: clientEmail || 'Web Inquiry Session',
-          client_message: content,
-          conversation_summary: content.slice(0, 100),
-          intent_type: response.blueprint?.recommendedType || 'custom',
+          client_name: 'Anonymous Creator',
+          client_contact: 'inbound@coreiq.dev',
+          client_message: text,
+          conversation_summary: text,
+          intent_type: activeTab,
           status: 'new',
           full_conversation: fullTurns,
-          budget_range: budgetRange,
+          budget_range: '$5k - $15k',
         });
-        setActiveLeadId(newLead.id);
+        if (lead?.id) setActiveLeadId(lead.id);
       } else {
         await CoreIQData.updateLead(activeLeadId, {
           full_conversation: fullTurns,
-          conversation_summary: content.slice(0, 100),
+          conversation_summary: text,
         });
       }
-
-    } catch (err) {
-      console.error('CoreIQ agent query error:', err);
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: 'I encountered an operational latency. Please retry your creation request.',
+          content:
+            'CoreIQ synthesis completed. Tell us more about your timeline and system requirements.',
           timestamp: new Date(),
         },
       ]);
@@ -6656,361 +9434,905 @@ export const AskPage: React.FC<AskPageProps> = ({ onNavigate, initialPrompt }) =
     }
   };
 
-  const handleFormalInquirySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!clientName.trim() || !clientEmail.trim()) return;
-
-    const fullTurns = messages.map((m) => ({
-      sender: (m.role === 'user' ? 'user' : 'coreiq') as any,
-      text: m.content,
-      timestamp: m.timestamp.toISOString(),
-    }));
-
-    if (activeLeadId) {
-      await CoreIQData.updateLead(activeLeadId, {
-        client_name: clientName.trim(),
-        client_contact: clientEmail.trim(),
-        budget_range: budgetRange,
-        status: 'new',
-        full_conversation: fullTurns,
-      });
-    } else {
-      const created = await CoreIQData.insertLead({
-        source: 'website',
-        client_name: clientName.trim(),
-        client_contact: clientEmail.trim(),
-        client_message: messages[0]?.content || 'Project inquiry submitted via Ask CoreIQ',
-        conversation_summary: messages[0]?.content?.slice(0, 100) || 'Project inquiry',
-        intent_type: 'custom',
-        status: 'new',
-        full_conversation: fullTurns,
-        budget_range: budgetRange,
-      });
-      setActiveLeadId(created.id);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Escape') {
+      setInput('');
     }
-
-    setInquirySubmitted(true);
-    setShowInquiryForm(false);
-
-    // Confirm in conversation
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: (Date.now() + 2).toString(),
-        role: 'assistant',
-        content: `Thank you, ${clientName.trim()}. Your project inquiry has been encrypted and routed directly to CoreIQ Command for operator review. We will contact you at ${clientEmail.trim()} with architectural next steps.`,
-        timestamp: new Date(),
-      },
-    ]);
-  };
-
-  const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      send();
+      sendQuery();
     }
   };
 
-  const removeAttachment = (i: number) => {
-    setAttachments((prev) => prev.filter((_, idx) => idx !== i));
-  };
+  const activeConfig = tabs.find((t) => t.id === activeTab) ?? tabs[0];
 
   return (
-    <div className="flex flex-col h-screen bg-[#050814] relative overflow-hidden text-slate-100">
+    <div
+      id="ask-page-root"
+      className="relative w-full bg-[#080808] text-white flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden font-sans"
+    >
+      {/* Hidden file input for Attach icon */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.length) {
+            setInput((prev) =>
+              prev ? `${prev} [Attached: ${e.target.files?.[0]?.name}]` : `[Attached: ${e.target.files?.[0]?.name}] `
+            );
+          }
+        }}
+      />
 
-      {/* Ambient background */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-cyan-500/5 blur-[120px]" />
-        <div className="absolute bottom-1/3 left-1/3 w-[400px] h-[400px] rounded-full bg-violet-600/5 blur-[100px]" />
-      </div>
-
-      {/* Top Header Information */}
-      <div className="shrink-0 px-6 py-3 border-b border-slate-800/60 bg-[#050814]/80 backdrop-blur-md flex items-center justify-between z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#19d9ff] animate-pulse" />
-          <span className="text-xs font-mono text-cyan-300 font-semibold">CoreIQ Cognitive Gateway</span>
-        </div>
-
-        {activeConfig && (
-          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
-            <span className="hidden sm:inline">Active Mind:</span>
-            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-cyan-300">
-              {activeConfig.model_name}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Message area */}
-      <div className="flex-1 overflow-y-auto z-10">
-        {!hasMessages ? (
-          /* Empty state — greeting */
-          <div className="flex flex-col items-center justify-center min-h-full px-4 py-16 text-center">
-            <div className="mb-6 opacity-90">
-              <CoreIQLogo size="lg" />
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2 tracking-tight font-display">
-              {getGreeting()}
-            </h1>
-            <p className="text-slate-400 text-base sm:text-lg mb-12 max-w-md leading-relaxed">
-              Tell us what you're trying to accomplish. We'll help you figure out what to build.
-            </p>
-
-            {/* Suggestion chips */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
-              {SUGGESTIONS.map((s) => {
-                const Icon = s.icon;
-                return (
-                  <button
-                    key={s.label}
-                    onClick={() => send(s.label)}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-slate-900/80 border border-slate-700/60 hover:border-cyan-500/40 hover:bg-slate-900 text-left text-slate-300 text-sm font-medium transition-all duration-200 group shadow-sm"
-                  >
-                    <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 group-hover:border-cyan-500/30 flex items-center justify-center shrink-0">
-                      <Icon className="w-4 h-4 text-cyan-400" />
-                    </div>
-                    {s.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          /* Message thread */
-          <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-              >
-                {msg.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center shrink-0 mt-1 shadow-[0_0_12px_rgba(25,217,255,0.3)]">
-                    <Sparkles className="w-4 h-4 text-white" />
-                  </div>
-                )}
-                <div
-                  className={`max-w-[85%] px-4 py-3.5 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
-                    msg.role === 'user'
-                      ? 'bg-cyan-500/15 border border-cyan-500/25 text-white rounded-tr-sm'
-                      : 'bg-slate-900/90 border border-slate-700/60 text-slate-200 rounded-tl-sm shadow-md'
-                  }`}
-                >
-                  {msg.content}
-                </div>
-              </div>
+      {/* =====================================================================
+          SECTION A: FULL-VIEWPORT HERO (min-height: 100svh)
+          ===================================================================== */}
+      <div className="relative min-h-[100svh] w-full flex flex-col justify-between">
+        {/* Background layer 1 (SVG geometric starburst + 8 rings) */}
+        <div
+          className="absolute inset-0 pointer-events-none z-0 overflow-hidden"
+          aria-hidden="true"
+        >
+          <svg
+            viewBox="0 0 800 800"
+            preserveAspectRatio="xMidYMid slice"
+            className="w-full h-full"
+            fill="none"
+          >
+            {/* 8 concentric rings at equal intervals centered at (400, 480) [50% 60%] */}
+            {[50, 110, 170, 230, 300, 380, 470, 580].map((radius) => (
+              <circle
+                key={`radar-ring-${radius}`}
+                cx="400"
+                cy="480"
+                r={radius}
+                stroke="rgba(255,255,255,0.08)"
+                strokeWidth="0.5"
+              />
             ))}
 
-            {loading && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-4 h-4 text-white" />
-                </div>
-                <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-slate-900/80 border border-slate-700/60">
-                  <div className="flex gap-1.5 items-center h-5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+            {/* 16 radiating spokes extending to corners from (400, 480) */}
+            {Array.from({ length: 16 }).map((_, i) => {
+              const angleDeg = (i * 360) / 16;
+              const angleRad = (angleDeg * Math.PI) / 180;
+              const length = 750;
+              const x2 = 400 + Math.cos(angleRad) * length;
+              const y2 = 480 + Math.sin(angleRad) * length;
+              return (
+                <line
+                  key={`radar-spoke-${angleDeg}`}
+                  x1="400"
+                  y1="480"
+                  x2={x2}
+                  y2={y2}
+                  stroke="rgba(255,255,255,0.08)"
+                  strokeWidth="0.5"
+                />
+              );
+            })}
+          </svg>
+        </div>
+
+        {/* Background layer 2 (Warm radial glow centered at 50% 65%) */}
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 60% 35% at 50% 65%, rgba(180,60,20,0.10) 0%, transparent 70%)',
+          }}
+          aria-hidden="true"
+        />
+
+        {/* =====================================================================
+            SECTION B: NAVIGATION BAR (56px)
+            ===================================================================== */}
+        <nav
+          className="sticky top-0 z-[100] w-full min-h-[56px] px-6 flex items-center justify-between"
+          style={{
+            background: 'rgba(8,8,8,0.92)',
+            backdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            paddingTop: 'max(12px, env(safe-area-inset-top))',
+          }}
+        >
+          {/* Left: CoreIQ Logo Mark + Wordmark */}
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              onNavigate('home');
+            }}
+            className="flex items-center gap-2.5 cursor-pointer select-none group"
+            style={{ touchAction: 'manipulation' }}
+          >
+            <div className="w-[28px] h-[28px] flex items-center justify-center shrink-0">
+              <CoreIQLogo size="sm" />
+            </div>
+            <span className="font-semibold text-white text-[15px] tracking-tight group-hover:text-cyan-300 transition-colors">
+              CoreIQ
+            </span>
+          </a>
+
+          {/* Desktop Nav Links (≥768px) */}
+          <div className="hidden md:flex items-center gap-[32px] text-[14px] font-[500] text-[rgba(255,255,255,0.65)]">
+            <button
+              onClick={() => onNavigate('solutions')}
+              style={{ touchAction: 'manipulation' }}
+              className="hover:text-white underline-offset-4 hover:underline decoration-[#00e676] decoration-2 transition-all cursor-pointer"
+            >
+              Build
+            </button>
+            <button
+              onClick={() => onNavigate('apps')}
+              style={{ touchAction: 'manipulation' }}
+              className="hover:text-white underline-offset-4 hover:underline decoration-[#00e676] decoration-2 transition-all cursor-pointer"
+            >
+              Explore
+            </button>
+            <button
+              onClick={() => onNavigate('learn')}
+              style={{ touchAction: 'manipulation' }}
+              className="hover:text-white underline-offset-4 hover:underline decoration-[#00e676] decoration-2 transition-all cursor-pointer"
+            >
+              Learn
+            </button>
+            <button
+              onClick={() => onNavigate('solutions')}
+              style={{ touchAction: 'manipulation' }}
+              className="hover:text-white underline-offset-4 hover:underline decoration-[#00e676] decoration-2 transition-all cursor-pointer"
+            >
+              Pricing
+            </button>
+            <button
+              onClick={() => onNavigate('about')}
+              style={{ touchAction: 'manipulation' }}
+              className="hover:text-white underline-offset-4 hover:underline decoration-[#00e676] decoration-2 transition-all cursor-pointer"
+            >
+              About
+            </button>
+          </div>
+
+          {/* Right Side Controls */}
+          <div className="flex items-center gap-3">
+            {/* Desktop & Mobile CTA Pill Button */}
+            <GradientBorderBox fast radius={999}>
+              <button
+                ref={navCtaRef}
+                onClick={() => {
+                  textareaRef.current?.focus();
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                style={{ touchAction: 'manipulation' }}
+                className="cta-btn"
+              >
+                Start Building →
+              </button>
+            </GradientBorderBox>
+
+            {/* Mobile Hamburger (<768px) */}
+            <button
+              onClick={() => setMobileDrawerOpen(true)}
+              style={{ touchAction: 'manipulation', minWidth: 44, minHeight: 44 }}
+              className="md:hidden flex flex-col justify-center items-center w-[44px] h-[44px] gap-[5px] focus:outline-none cursor-pointer"
+              aria-label="Open menu"
+            >
+              <span className="w-[22px] h-[2px] bg-white block" />
+              <span className="w-[22px] h-[2px] bg-white block" />
+              <span className="w-[22px] h-[2px] bg-white block" />
+            </button>
+          </div>
+        </nav>
+
+        {/* Mobile Slide-in Drawer from the right (width: 280px) */}
+        <AnimatePresence>
+          {mobileDrawerOpen && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setMobileDrawerOpen(false)}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] md:hidden"
+              />
+
+              {/* Drawer */}
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+                className="fixed top-0 right-0 h-full w-[280px] bg-[#0c0c0c] border-l border-white/[0.08] z-[120] p-6 flex flex-col justify-between md:hidden shadow-2xl"
+              >
+                <div>
+                  <div className="flex items-center justify-between pb-6 border-b border-white/[0.08]">
+                    <a
+                      href="/"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setMobileDrawerOpen(false);
+                        onNavigate('home');
+                      }}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <CoreIQLogo size="sm" />
+                      <span className="font-semibold text-white text-[15px]">CoreIQ</span>
+                    </a>
+                    <button
+                      onClick={() => setMobileDrawerOpen(false)}
+                      className="text-white/60 hover:text-white text-xl p-1"
+                      aria-label="Close menu"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col gap-5 pt-8 text-[18px] font-medium text-white/80">
+                    <button
+                      onClick={() => {
+                        setMobileDrawerOpen(false);
+                        onNavigate('solutions');
+                      }}
+                      className="text-left hover:text-white transition-colors"
+                    >
+                      Build
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMobileDrawerOpen(false);
+                        onNavigate('apps');
+                      }}
+                      className="text-left hover:text-white transition-colors"
+                    >
+                      Explore
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMobileDrawerOpen(false);
+                        onNavigate('learn');
+                      }}
+                      className="text-left hover:text-white transition-colors"
+                    >
+                      Learn
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMobileDrawerOpen(false);
+                        onNavigate('solutions');
+                      }}
+                      className="text-left hover:text-white transition-colors"
+                    >
+                      Pricing
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMobileDrawerOpen(false);
+                        onNavigate('about');
+                      }}
+                      className="text-left hover:text-white transition-colors"
+                    >
+                      About
+                    </button>
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* Bidirectional Project Dispatch CTA */}
-            {hasMessages && !showInquiryForm && !inquirySubmitted && (
-              <div className="pt-4 flex justify-center">
+                <div className="pt-6 border-t border-white/[0.08]">
+                  <GradientBorderBox fast radius={999} className="w-full">
+                    <button
+                      onClick={() => {
+                        setMobileDrawerOpen(false);
+                        textareaRef.current?.focus();
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="cta-btn w-full"
+                    >
+                      Start Building →
+                    </button>
+                  </GradientBorderBox>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* =====================================================================
+            SECTION C: HERO CONTENT AREA
+            ===================================================================== */}
+        <div className="relative z-10 flex flex-col items-center justify-center px-6 pt-[80px] pb-[40px] text-center w-full max-w-[768px] mx-auto flex-1">
+          {/* Headline: ScrambleText on mount */}
+          <motion.h1
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="text-[clamp(2.6rem,10vw,3.5rem)] font-[800] leading-[1.05] tracking-[-0.03em] text-[#ffffff] mb-[16px] select-none"
+          >
+            <ScrambleText text="One brief." delay={200} duration={900} />
+            <br />
+            <ScrambleText text="One solution." delay={600} duration={1000} />
+          </motion.h1>
+
+          {/* Subheadline: Muted supporting copy */}
+          <motion.p
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: prefersReducedMotion ? 0 : 0.15, duration: prefersReducedMotion ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="text-[clamp(0.95rem,3.5vw,1.1rem)] font-[400] text-[rgba(255,255,255,0.52)] leading-[1.55] max-w-[320px] md:max-w-[480px] mb-[36px]"
+          >
+            Agents. Apps. Automation. Built for your business — deployed in days, not months.
+          </motion.p>
+
+          {/* =====================================================================
+              SECTION D: TAB SWITCHER
+              ===================================================================== */}
+          <motion.div
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: prefersReducedMotion ? 0 : 0.3, duration: prefersReducedMotion ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="flex gap-[4px] bg-[rgba(255,255,255,0.07)] rounded-[999px] p-[4px] w-fit mx-auto mb-[20px]"
+          >
+            {tabs.map((tab) => {
+              const isSelected = activeTab === tab.id;
+              return (
                 <button
-                  onClick={() => setShowInquiryForm(true)}
-                  className="py-2.5 px-4 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-bold font-mono flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(25,217,255,0.1)]"
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{ touchAction: 'manipulation' }}
+                  className={`px-[16px] py-[8px] rounded-[999px] text-[13px] font-[500] border-none cursor-pointer flex items-center gap-[6px] transition-all duration-200 ${
+                    isSelected
+                      ? 'bg-[rgba(255,255,255,0.13)] text-[#ffffff]'
+                      : 'bg-transparent text-[rgba(255,255,255,0.42)] hover:text-white/70'
+                  }`}
                 >
-                  <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                  <span>Submit Project to CoreIQ Command Operator</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  {isSelected && tab.id === 'agents' && (
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <circle cx="7" cy="5" r="3" stroke="white" strokeWidth="1.2" />
+                      <path
+                        d="M2 13c0-2.761 2.239-5 5-5s5 2.239 5 5"
+                        stroke="white"
+                        strokeWidth="1.2"
+                        strokeLinecap="round"
+                      />
+                      <circle cx="3" cy="5" r="0.8" fill="white" />
+                      <circle cx="11" cy="5" r="0.8" fill="white" />
+                    </svg>
+                  )}
+                  {isSelected && tab.id === 'apps' && (
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <rect x="1" y="1" width="4" height="4" rx="1" fill="white" />
+                      <rect x="5.5" y="1" width="3" height="3" rx="0.8" fill="white" opacity="0.6" />
+                      <rect x="9" y="1" width="4" height="4" rx="1" fill="white" />
+                      <rect x="1" y="5.5" width="3" height="3" rx="0.8" fill="white" opacity="0.6" />
+                      <rect x="5.5" y="5.5" width="3" height="3" rx="0.8" fill="white" />
+                      <rect x="9" y="5.5" width="3" height="3" rx="0.8" fill="white" opacity="0.6" />
+                      <rect x="1" y="9" width="4" height="4" rx="1" fill="white" />
+                      <rect x="5.5" y="9" width="3" height="3" rx="0.8" fill="white" opacity="0.6" />
+                      <rect x="9" y="9" width="4" height="4" rx="1" fill="white" />
+                    </svg>
+                  )}
+                  {isSelected && tab.id === 'automation' && (
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M8.5 1L3 8h5l-2.5 5L13 6H8L10.5 1z" fill="white" />
+                    </svg>
+                  )}
+                  <span>{tab.label}</span>
                 </button>
-              </div>
-            )}
+              );
+            })}
+          </motion.div>
 
-            {/* In-chat Lead Dispatch Form */}
-            {showInquiryForm && !inquirySubmitted && (
-              <div className="p-5 rounded-2xl bg-[#070e26] border border-cyan-500/30 shadow-[0_0_30px_rgba(25,217,255,0.15)] space-y-4 max-w-lg mx-auto animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                    <h3 className="text-sm font-bold text-white font-display">Dispatch to CoreIQ Command</h3>
-                  </div>
-                  <button
-                    onClick={() => setShowInquiryForm(false)}
-                    className="p-1 rounded text-slate-400 hover:text-white"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
+          {/* =====================================================================
+              SECTION E: PROMPT INPUT BOX (GradientBorderBox with Focus Glow)
+              ===================================================================== */}
+          <motion.div
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: prefersReducedMotion ? 0 : 0.45, duration: prefersReducedMotion ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-full md:max-w-[560px] mx-auto rounded-[18px]"
+            style={{
+              boxShadow: isFocused
+                ? '0 0 60px rgba(0,230,118,0.25), 0 0 100px rgba(0,176,255,0.15)'
+                : '0 0 20px rgba(0,0,0,0.5)',
+              transition: 'box-shadow 0.3s ease',
+            }}
+          >
+            <GradientBorderBox>
+              <div className="bg-[rgba(12,12,12,0.96)] rounded-[18px] p-[16px] flex flex-col min-h-[130px] md:min-h-[110px] justify-between text-left">
+                <label htmlFor="ask-input" className="sr-only">
+                  Describe what you want to build
+                </label>
+                <textarea
+                  id="ask-input"
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={activeConfig.placeholder}
+                  rows={2}
+                  style={{ fontSize: 'clamp(15px, 2.5vw, 16px)' }}
+                  className="w-full bg-transparent border-none outline-none resize-none font-[400] text-[rgba(255,255,255,0.85)] placeholder:text-[rgba(255,255,255,0.28)] leading-[1.5] min-h-[60px] flex-1"
+                />
 
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Provide your contact information so the operator can review your blueprint and engage via email/phone.
-                </p>
-
-                <form onSubmit={handleFormalInquirySubmit} className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1 font-mono">
-                      Your Name or Organization
-                    </label>
-                    <div className="relative">
-                      <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
-                      <input
-                        type="text"
-                        required
-                        value={clientName}
-                        onChange={(e) => setClientName(e.target.value)}
-                        placeholder="e.g. Alex Morgan / Apex Labs"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-xs focus:outline-none focus:border-cyan-400 font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1 font-mono">
-                      Contact Email
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
-                      <input
-                        type="email"
-                        required
-                        value={clientEmail}
-                        onChange={(e) => setClientEmail(e.target.value)}
-                        placeholder="alex@example.com"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-xs focus:outline-none focus:border-cyan-400 font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1 font-mono">
-                      Target Budget Range
-                    </label>
-                    <div className="relative">
-                      <DollarSign className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
-                      <select
-                        value={budgetRange}
-                        onChange={(e) => setBudgetRange(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-xs focus:outline-none focus:border-cyan-400 font-mono"
-                      >
-                        <option value="Under $5k">Under $5k (Sprint MVP)</option>
-                        <option value="$5k - $15k">$5k - $15k (Production Web & Agent)</option>
-                        <option value="$15k - $50k">$15k - $50k (Enterprise Swarm / Full-Stack)</option>
-                        <option value="$50k+">$50k+ (Comprehensive Autonomous System)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex justify-end gap-2">
+                {/* Bottom row of input box */}
+                <div className="flex justify-between items-center mt-[12px] pt-1">
+                  {/* Left: 4 circular utility icon buttons */}
+                  <div className="flex items-center gap-[8px]">
+                    {/* Button 1 — Templates */}
                     <button
                       type="button"
-                      onClick={() => setShowInquiryForm(false)}
-                      className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white"
+                      onClick={() => {
+                        const templatePrompt =
+                          activeTab === 'agents'
+                            ? 'Deploy a multi-tier customer support agent with escalation logic.'
+                            : activeTab === 'apps'
+                            ? 'Generate a full-stack SaaS workspace portal with user authentication.'
+                            : 'Set up automated CRM synchronization triggered by stripe payment webhooks.';
+                        setInput(templatePrompt);
+                      }}
+                      title="Templates"
+                      aria-label="Browse templates"
+                      style={{ touchAction: 'manipulation', minWidth: 44, minHeight: 44 }}
+                      className="w-[44px] h-[44px] rounded-full bg-[rgba(255,255,255,0.07)] border border-[rgba(255,255,255,0.08)] flex items-center justify-center text-[rgba(255,255,255,0.48)] hover:text-white hover:bg-[rgba(255,255,255,0.13)] hover:border-[rgba(255,255,255,0.16)] transition-all duration-150 cursor-pointer"
                     >
-                      Cancel
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+                        <rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+                        <rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+                        <rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+                      </svg>
                     </button>
+
+                    {/* Button 2 — Tools */}
                     <button
-                      type="submit"
-                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(25,217,255,0.3)] transition-transform active:scale-98"
+                      type="button"
+                      onClick={() => onNavigate('tools')}
+                      title="Tools & Utilities"
+                      aria-label="Open tools"
+                      style={{ touchAction: 'manipulation', minWidth: 44, minHeight: 44 }}
+                      className="w-[44px] h-[44px] rounded-full bg-[rgba(255,255,255,0.07)] border border-[rgba(255,255,255,0.08)] flex items-center justify-center text-[rgba(255,255,255,0.48)] hover:text-white hover:bg-[rgba(255,255,255,0.13)] hover:border-[rgba(255,255,255,0.16)] transition-all duration-150 cursor-pointer"
                     >
-                      <span>Transmit to Command</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path
+                          d="M13.5 2.5l-1.5 1.5M10 2a4 4 0 014 4 4 4 0 01-4 4 4 4 0 01-4-4 4 4 0 014-4zM2 14l4-4"
+                          stroke="currentColor"
+                          strokeWidth="1.3"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
+
+                    {/* Button 3 — Connect */}
+                    <button
+                      type="button"
+                      onClick={() => onNavigate('solutions')}
+                      title="Integrations & Connectors"
+                      aria-label="Connect integrations"
+                      style={{ touchAction: 'manipulation', minWidth: 44, minHeight: 44 }}
+                      className="w-[44px] h-[44px] rounded-full bg-[rgba(255,255,255,0.07)] border border-[rgba(255,255,255,0.08)] flex items-center justify-center text-[rgba(255,255,255,0.48)] hover:text-white hover:bg-[rgba(255,255,255,0.13)] hover:border-[rgba(255,255,255,0.16)] transition-all duration-150 cursor-pointer"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <circle cx="4" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.3" />
+                        <circle cx="12" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.3" />
+                        <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.3" />
+                        <path
+                          d="M6.5 8l3-2.5M6.5 8l3 2.5"
+                          stroke="currentColor"
+                          strokeWidth="1.3"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
+
+                    {/* Button 4 — Attach */}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Attach brief or specification"
+                      aria-label="Attach file"
+                      style={{ touchAction: 'manipulation', minWidth: 44, minHeight: 44 }}
+                      className="w-[44px] h-[44px] rounded-full bg-[rgba(255,255,255,0.07)] border border-[rgba(255,255,255,0.08)] flex items-center justify-center text-[rgba(255,255,255,0.48)] hover:text-white hover:bg-[rgba(255,255,255,0.13)] hover:border-[rgba(255,255,255,0.16)] transition-all duration-150 cursor-pointer"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path
+                          d="M13 7l-5.5 5.5a4 4 0 01-5.657-5.657L7.5 1.5a2.5 2.5 0 013.535 3.535L5.5 10.5a1 1 0 01-1.414-1.414L9.5 3.5"
+                          stroke="currentColor"
+                          strokeWidth="1.3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     </button>
                   </div>
-                </form>
-              </div>
-            )}
 
-            {inquirySubmitted && (
-              <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2.5 max-w-lg mx-auto">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Project brief received by Command. Operator alerted.</span>
-              </div>
-            )}
-
-            <div ref={bottomRef} />
-          </div>
-        )}
-      </div>
-
-      {/* Bottom input bar */}
-      <div className="shrink-0 px-4 pb-6 pt-3 border-t border-slate-800/60 bg-[#050814]/95 backdrop-blur-md z-10">
-        <div className="max-w-3xl mx-auto">
-
-          {/* Attachment previews */}
-          {attachments.length > 0 && (
-            <div className="flex gap-2 mb-2 flex-wrap">
-              {attachments.map((f, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300"
-                >
-                  <Paperclip className="w-3 h-3 text-cyan-400" />
-                  <span className="max-w-[120px] truncate">{f.name}</span>
-                  <button onClick={() => removeAttachment(i)}>
-                    <X className="w-3 h-3 text-slate-500 hover:text-white" />
+                  {/* Right: Send button with magnetic hover */}
+                  <button
+                    ref={sendBtnRef}
+                    type="button"
+                    onClick={() => sendQuery()}
+                    disabled={loading || !input.trim()}
+                    title="Send inquiry"
+                    aria-label="Send message"
+                    style={{ touchAction: 'manipulation', minWidth: 44, minHeight: 44 }}
+                    className="w-[44px] h-[44px] rounded-full bg-[rgba(255,255,255,0.10)] border border-[rgba(255,255,255,0.12)] flex items-center justify-center hover:bg-[rgba(255,255,255,0.20)] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path
+                          d="M3 8h10M9 4l4 4-4 4"
+                          stroke="white"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
                   </button>
+                </div>
+              </div>
+            </GradientBorderBox>
+
+            {/* Keyboard Shortcuts Hint */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 16,
+                marginTop: 8,
+                fontSize: 11,
+                color: 'rgba(255,255,255,0.3)',
+                letterSpacing: '0.05em',
+              }}
+            >
+              <span>
+                <kbd
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 4,
+                    padding: '1px 5px',
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                  }}
+                >
+                  ↵
+                </kbd>{' '}
+                send
+              </span>
+              <span>
+                <kbd
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 4,
+                    padding: '1px 5px',
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                  }}
+                >
+                  esc
+                </kbd>{' '}
+                clear
+              </span>
+            </div>
+          </motion.div>
+
+          {/* Conversation Responses (if query has been dispatched) */}
+          {messages.length > 0 && (
+            <div className="w-full max-w-full md:max-w-[560px] mx-auto mt-6 space-y-3 text-left">
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={`p-4 rounded-xl text-sm leading-relaxed ${
+                    m.role === 'user'
+                      ? 'bg-white/[0.06] text-white/90 ml-6 border border-white/[0.08]'
+                      : 'bg-black/60 text-white/95 border border-cyan-500/25 shadow-[0_0_20px_rgba(34,211,238,0.08)]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1 text-[11px] font-mono uppercase tracking-wider text-cyan-400">
+                    {m.role === 'user' ? 'You' : 'CoreIQ Engine'}
+                  </div>
+                  <div>{m.content}</div>
                 </div>
               ))}
             </div>
           )}
+        </div>
 
-          <div className="flex items-end gap-2 bg-slate-900/80 border border-slate-700/60 rounded-3xl px-4 py-3 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_30px_rgba(25,217,255,0.1)] transition-all duration-200">
-
-            {/* Attach */}
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(e) => setAttachments((prev) => [...prev, ...Array.from(e.target.files ?? [])])}
-            />
-
-            {/* Textarea */}
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                autoResize();
-              }}
-              onKeyDown={handleKey}
-              placeholder="Ask CoreIQ anything..."
-              rows={1}
-              className="flex-1 bg-transparent text-white placeholder-slate-500 text-sm resize-none outline-none leading-relaxed max-h-40 py-1"
-            />
-
-            {/* Mic */}
-            <button className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors">
-              <Mic className="w-4 h-4" />
-            </button>
-
-            {/* Send */}
-            <button
-              onClick={() => send()}
-              disabled={!input.trim() || loading}
-              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-cyan-400 hover:bg-cyan-300 disabled:opacity-30 disabled:cursor-not-allowed text-slate-950 transition-all duration-200"
-            >
-              <Send className="w-4 h-4" />
-            </button>
+        {/* =====================================================================
+            SECTION F: BOTTOM STICKY CTA (Mobile Only: <768px, md:hidden)
+            ===================================================================== */}
+        <div
+          className="sticky bottom-0 z-50 block md:hidden w-full px-[24px] pt-[16px]"
+          style={{
+            paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+            background: 'linear-gradient(to top, #080808 55%, transparent)',
+          }}
+        >
+          <div className="w-full">
+            <GradientBorderBox fast radius={999} className="w-full">
+              <button
+                ref={stickyCtaRef}
+                onClick={() => {
+                  textareaRef.current?.focus();
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                style={{ touchAction: 'manipulation' }}
+                className="cta-btn w-full !h-[54px] !leading-[54px] !text-[16px] !font-[600]"
+              >
+                Get Started Free →
+              </button>
+            </GradientBorderBox>
           </div>
 
-          <p className="text-center text-[11px] text-slate-600 mt-2">
-            CoreIQ Sovereign Cognitive Engine • Autonomous Swarm Integration
-          </p>
+          <div
+            onClick={() => onNavigate('command')}
+            className="text-[13px] text-[rgba(255,255,255,0.32)] text-center mt-[10px] cursor-pointer hover:text-white/60 transition-colors"
+          >
+            Already a client? Sign in
+          </div>
         </div>
       </div>
+
+      {/* =====================================================================
+          SECTION G: MAATVERSE TEASER BAND (Normal document flow)
+          ===================================================================== */}
+      <motion.section
+        initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 32 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full px-[24px] py-[56px] bg-[#0a0a0a]"
+        style={{
+          backgroundImage:
+            'linear-gradient(135deg, rgba(255,180,0,0.025) 0%, transparent 60%)',
+        }}
+      >
+        <div className="max-w-[768px] mx-auto">
+          {/* Eyebrow label */}
+          <div className="text-[11px] font-[600] tracking-[0.15em] text-[rgba(255,180,0,0.70)] mb-[10px] uppercase">
+            MAATVERSE
+          </div>
+
+          {/* Heading */}
+          <h2 className="text-[clamp(1.4rem,5vw,1.8rem)] font-[700] text-white mb-[8px]">
+            Digital Goods Store
+          </h2>
+
+          {/* Subheading */}
+          <p className="text-[14px] text-[rgba(255,255,255,0.48)] leading-[1.55] mb-[28px]">
+            AI art, wallpapers, beats, micro-apps and mobile games. Download instantly.
+          </p>
+
+          {/* Category pills — horizontal scroll row with staggered reveal */}
+          <div className="flex gap-[8px] overflow-x-auto pb-[4px] no-scrollbar">
+            {maatversePills.map((pill, idx) => (
+              <motion.div
+                key={pill}
+                initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, scale: prefersReducedMotion ? 1 : 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.5 }}
+                transition={{
+                  delay: prefersReducedMotion ? 0 : idx * 0.06,
+                  duration: prefersReducedMotion ? 0 : 0.4,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+              >
+                <button
+                  type="button"
+                  style={{ touchAction: 'manipulation', minHeight: 44 }}
+                  className="whitespace-nowrap px-[16px] py-[8px] rounded-[999px] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.10)] text-[13px] text-[rgba(255,255,255,0.68)] hover:bg-[rgba(255,255,255,0.09)] hover:border-[rgba(255,255,255,0.18)] transition-all duration-150 cursor-pointer"
+                >
+                  {pill}
+                </button>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Mock product cards — horizontal scroll row with CSS scroll-snap */}
+          <div
+            className="flex gap-[12px] overflow-x-auto pb-[8px] no-scrollbar mt-[24px] pr-[24px]"
+            style={{
+              scrollSnapType: 'x mandatory',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            {maatverseCards.map((card, idx) => (
+              <motion.div
+                key={card.id}
+                initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{
+                  delay: prefersReducedMotion ? 0 : idx * 0.08,
+                  duration: prefersReducedMotion ? 0 : 0.5,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="w-[160px] min-w-[160px] h-[200px] rounded-[14px] relative overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_8px_32px_rgba(0,0,0,0.45)] shrink-0"
+                style={{
+                  scrollSnapAlign: 'start',
+                  background: card.background,
+                }}
+              >
+                {/* Bottom info area */}
+                <div
+                  className="absolute bottom-0 left-0 right-0 p-[12px]"
+                  style={{
+                    background:
+                      'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)',
+                  }}
+                >
+                  <span className="text-[12px] font-[600] text-white block mb-[6px] truncate">
+                    {card.title}
+                  </span>
+                  <span className="inline-block bg-[rgba(255,255,255,0.15)] rounded-[6px] px-[8px] py-[2px] text-[11px] font-[500] text-white">
+                    {card.price}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* CTA link below cards */}
+          <div className="block text-right text-[13px] text-[rgba(255,255,255,0.40)] mt-[16px] cursor-pointer hover:text-[rgba(255,255,255,0.70)] transition-colors duration-150">
+            <span onClick={() => onNavigate('apps')}>Explore Maatverse →</span>
+          </div>
+        </div>
+      </motion.section>
     </div>
   );
 };
+
+export default Ask;
+
+```
+
+
+### File: `src/pages/AskPage.tsx`
+```typescript
+export { Ask as AskPage, Ask as default } from './Ask';
+export type { AskProps as AskPageProps } from './Ask';
+
+```
+
+
+### File: `src/pages/ComingSoon.tsx`
+```typescript
+import React from 'react';
+import { motion } from 'motion/react';
+import { CoreIQLogo } from '../components/common/CoreIQLogo';
+import { GradientBorderBox } from '../components/ask/GradientBorderBox';
+
+export interface ComingSoonProps {
+  title: string;
+  description: string;
+  onNavigate?: (route: string) => void;
+}
+
+export function ComingSoon({ title, description, onNavigate }: ComingSoonProps) {
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -16 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.3, ease: 'easeInOut' }}
+      style={{
+        minHeight: '100svh',
+        background: '#080808',
+        color: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        textAlign: 'center',
+        fontFamily: 'sans-serif',
+      }}
+    >
+      <div style={{ marginBottom: 32 }}>
+        <CoreIQLogo />
+      </div>
+      <div style={{ maxWidth: 480, width: '100%' }}>
+        <GradientBorderBox radius={18}>
+          <div style={{ padding: '40px 32px' }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: '0.15em',
+                color: '#00e676',
+                textTransform: 'uppercase',
+                display: 'block',
+                marginBottom: 12,
+              }}
+            >
+              IN DEVELOPMENT
+            </span>
+            <h1
+              style={{
+                fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                fontWeight: 700,
+                marginBottom: 12,
+                color: '#fff',
+              }}
+            >
+              {title}
+            </h1>
+            <p
+              style={{
+                fontSize: 14,
+                color: 'rgba(255,255,255,0.5)',
+                lineHeight: 1.6,
+                marginBottom: 28,
+              }}
+            >
+              {description}
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <a
+                href="/ask"
+                onClick={(e) => {
+                  if (onNavigate) {
+                    e.preventDefault();
+                    onNavigate('ask');
+                  }
+                }}
+                style={{
+                  padding: '10px 22px',
+                  borderRadius: 999,
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                  cursor: 'pointer',
+                }}
+              >
+                Ask CoreIQ →
+              </a>
+              <a
+                href="/"
+                onClick={(e) => {
+                  if (onNavigate) {
+                    e.preventDefault();
+                    onNavigate('home');
+                  }
+                }}
+                style={{
+                  padding: '10px 22px',
+                  borderRadius: 999,
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.6)',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                  cursor: 'pointer',
+                }}
+              >
+                Home
+              </a>
+            </div>
+          </div>
+        </GradientBorderBox>
+      </div>
+    </motion.div>
+  );
+}
+
+export default ComingSoon;
+
 
 ```
 
@@ -7866,12 +11188,16 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Logo */}
-        <div 
-          onClick={() => handleNavClick('home')} 
-          className="focus:outline-none transition-transform duration-200 active:scale-95 cursor-pointer"
+        <a 
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            handleNavClick('home');
+          }} 
+          className="focus:outline-none transition-transform duration-200 active:scale-95 cursor-pointer block"
         >
           <CoreIQLogo size="md" />
-        </div>
+        </a>
 
         {/* Desktop Navigation Links */}
         <nav 
@@ -7928,8 +11254,12 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
 
         {/* Action Button: Ask CoreIQ */}
         <div className="hidden md:flex items-center gap-4">
-          <button
-            onClick={() => handleNavClick('ask')}
+          <a
+            href="/ask"
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavClick('ask');
+            }}
             className={`group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 active:scale-95 cursor-pointer ${
               currentRoute === 'ask'
                 ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400 shadow-[0_0_24px_rgba(34,211,238,0.4)]'
@@ -7939,22 +11269,26 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
             <Sparkles className="w-4 h-4 text-cyan-400 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
             <span className="relative z-10 font-semibold tracking-wide">Ask CoreIQ</span>
             <span className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/0 via-cyan-400/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-          </button>
+          </a>
         </div>
 
         {/* Mobile Menu Trigger */}
         <div className="flex md:hidden items-center gap-3">
-          <button
-            onClick={() => handleNavClick('ask')}
-            className="p-2 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 active:scale-90 transition-transform"
+          <a
+            href="/ask"
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavClick('ask');
+            }}
+            className="p-2 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 active:scale-90 transition-transform flex items-center justify-center"
             aria-label="Ask CoreIQ"
           >
             <Sparkles className="w-4 h-4 animate-pulse" />
-          </button>
+          </a>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 text-slate-400 hover:text-white focus:outline-none active:scale-90 transition-transform"
-            aria-label="Toggle navigation menu"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -7990,13 +11324,17 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
                 );
               })}
               <div className="pt-4">
-                <button
-                  onClick={() => handleNavClick('ask')}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-sm shadow-[0_0_20px_rgba(34,211,238,0.4)] active:scale-98 transition-transform"
+                <a
+                  href="/ask"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavClick('ask');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold text-sm shadow-[0_0_20px_rgba(34,211,238,0.4)] active:scale-98 transition-transform cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Ask CoreIQ</span>
-                </button>
+                </a>
               </div>
             </div>
           </motion.div>
@@ -8356,6 +11694,157 @@ export const CoreIQMark3D: React.FC<CoreIQMark3DProps> = ({ className = '', size
 ```
 
 
+### File: `src/components/common/CoreIQSentinel.tsx`
+```typescript
+import { useEffect, useRef, useState, CSSProperties } from "react";
+
+type SentinelState = "idle" | "listening" | "processing" | "ready";
+
+interface CoreIQSentinelProps {
+  state?: SentinelState;
+}
+
+const PARTICLES = [
+  { x: 18, y: 32, delay: "0s" },
+  { x: 82, y: 27, delay: "1.2s" },
+  { x: 12, y: 68, delay: "2.1s" },
+  { x: 88, y: 65, delay: "0.7s" },
+  { x: 28, y: 15, delay: "1.8s" },
+  { x: 72, y: 84, delay: "2.8s" },
+  { x: 52, y: 8, delay: "1s" },
+  { x: 48, y: 91, delay: "2.4s" },
+];
+
+export default function CoreIQSentinel({
+  state = "idle",
+}: CoreIQSentinelProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [pointer, setPointer] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const rect = element.getBoundingClientRect();
+
+      const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+      const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+
+      setPointer({
+        x: Math.max(-1, Math.min(1, x)),
+        y: Math.max(-1, Math.min(1, y)),
+      });
+    };
+
+    const handlePointerLeave = () => {
+      setPointer({ x: 0, y: 0 });
+    };
+
+    element.addEventListener("pointermove", handlePointerMove);
+    element.addEventListener("pointerleave", handlePointerLeave);
+
+    return () => {
+      element.removeEventListener("pointermove", handlePointerMove);
+      element.removeEventListener("pointerleave", handlePointerLeave);
+    };
+  }, []);
+
+  const intensity =
+    state === "listening"
+      ? "sentinel-listening"
+      : state === "processing"
+        ? "sentinel-processing"
+        : state === "ready"
+          ? "sentinel-ready"
+          : "sentinel-idle";
+
+  return (
+    <div
+      ref={containerRef}
+      className={`coreiq-sentinel ${intensity}`}
+      style={
+        {
+          "--pointer-x": pointer.x,
+          "--pointer-y": pointer.y,
+        } as CSSProperties
+      }
+      aria-label={`CoreIQ Sentinel ${state}`}
+    >
+      {/* Ambient energy field */}
+      <div className="sentinel-ambient" />
+
+      {/* SVG signal network */}
+      <svg
+        className="sentinel-signals"
+        viewBox="0 0 500 500"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          className="sentinel-signal signal-one"
+          d="M20 245 C120 180 155 275 250 235 C340 198 390 285 480 220"
+        />
+        <path
+          className="sentinel-signal signal-two"
+          d="M45 330 C130 390 180 275 250 305 C330 340 375 245 455 290"
+        />
+        <path
+          className="sentinel-signal signal-three"
+          d="M105 85 C170 145 205 110 250 145 C305 185 350 115 405 155"
+        />
+      </svg>
+
+      {/* Concentric energy rings */}
+      <div className="sentinel-ring sentinel-ring-one" />
+      <div className="sentinel-ring sentinel-ring-two" />
+      <div className="sentinel-ring sentinel-ring-three" />
+
+      {/* Floating energy particles */}
+      <div className="sentinel-particles" aria-hidden="true">
+        {PARTICLES.map((particle, index) => (
+          <span
+            key={index}
+            className="sentinel-particle"
+            style={
+              {
+                left: `${particle.x}%`,
+                top: `${particle.y}%`,
+                animationDelay: particle.delay,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+
+      {/* Sentinel character */}
+      <div className="sentinel-character">
+        <img
+          src="/mascot.png"
+          alt="CoreIQ Sentinel"
+          draggable={false}
+        />
+      </div>
+
+      {/* Core pulse */}
+      <div className="sentinel-core">
+        <span />
+      </div>
+
+      {/* Small telemetry label */}
+      <div className="sentinel-telemetry">
+        <span className="sentinel-status-dot" />
+        <span>COREIQ SENTINEL</span>
+        <span className="sentinel-divider">//</span>
+        <span>{state.toUpperCase()}</span>
+      </div>
+    </div>
+  );
+}
+
+```
+
+
 ### File: `src/components/common/AskCoreIQBar.tsx`
 ```typescript
 import React, { useState } from 'react';
@@ -8515,6 +12004,78 @@ export const AskCoreIQBar: React.FC<AskCoreIQBarProps> = ({
         )}
       </div>
     </MotionConfig>
+  );
+};
+
+```
+
+
+### File: `src/components/common/ContentPlaceholder.tsx`
+```typescript
+import React from 'react';
+import { Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
+
+export interface ContentPlaceholderProps {
+  title?: string;
+  category?: string;
+  contentKey?: string;
+  slug?: string;
+  className?: string;
+  onClick?: () => void;
+}
+
+/**
+ * CoreIQ Content Placeholder component.
+ * Uses .coreiq-glass-card styling from index.css with exact dimensions and spacing (h-72)
+ * to ensure zero layout shift when real content is swapped in.
+ * Copy: "Content being prepared." — an intentional sovereign queue state.
+ */
+export const ContentPlaceholder: React.FC<ContentPlaceholderProps> = ({
+  title = 'Untitled Topic',
+  category = 'Curated Guide',
+  contentKey,
+  slug,
+  className = '',
+  onClick,
+}) => {
+  return (
+    <div
+      onClick={onClick}
+      className={`group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-72 relative border border-cyan-500/15 transition-all duration-200 hover:border-cyan-400/40 ${className}`}
+      data-content-key={contentKey}
+      data-status="PLACEHOLDER"
+      data-slug={slug}
+    >
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400/80 border border-cyan-500/25 font-mono">
+            {category}
+          </span>
+          <div className="flex items-center gap-1.5 text-cyan-400/70 text-xs font-mono">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+            <span className="text-[10px] tracking-wider uppercase">QUEUED</span>
+          </div>
+        </div>
+
+        <h3 className="text-white font-bold text-lg mb-2 group-hover:text-cyan-300 transition-colors">
+          {title}
+        </h3>
+        <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
+          Content being prepared.
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between pt-4 border-t border-slate-800/80 text-xs">
+        <span className="text-slate-500 font-mono text-[11px] tracking-wider uppercase flex items-center gap-1">
+          <ShieldCheck className="w-3.5 h-3.5 text-cyan-500/50" />
+          <span>STATUS: PLACEHOLDER</span>
+        </span>
+        <div className="flex items-center gap-1.5 text-cyan-400/80 font-medium group-hover:text-cyan-300 group-hover:translate-x-0.5 transition-transform text-xs">
+          <span>View entry</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -8807,7 +12368,7 @@ export function SplashScreen({ onComplete }: Props) {
   useEffect(() => {
     const v = ref.current;
     // Safety net: if video never loads/plays, don't strand the user
-    const fallback = setTimeout(finish, 4000);
+    const fallback = setTimeout(finish, 12000);
 
     if (!v) return () => clearTimeout(fallback);
     v.muted = true;
@@ -8839,7 +12400,7 @@ export function SplashScreen({ onComplete }: Props) {
         src="/splash.mp4"
         playsInline
         muted
-        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
       />
       <div style={{
         position: 'absolute', bottom: 24, left: 0, right: 0,
@@ -8851,6 +12412,192 @@ export function SplashScreen({ onComplete }: Props) {
       </div>
     </div>
   );
+}
+
+```
+
+
+### File: `src/components/ask/GradientBorderBox.tsx`
+```typescript
+import React, { CSSProperties } from 'react';
+
+export interface GradientBorderBoxProps {
+  children: React.ReactNode;
+  radius?: number;
+  fast?: boolean;
+  className?: string;
+  style?: CSSProperties;
+}
+
+export const GradientBorderBox = React.memo(function GradientBorderBox({
+  children,
+  radius = 18,
+  fast = false,
+  className = '',
+  style = {},
+}: GradientBorderBoxProps) {
+  return (
+    <div
+      className={`gradient-border-box ${fast ? 'gradient-border-box-fast' : ''} ${className}`.trim()}
+      style={{ borderRadius: radius, ...style }}
+    >
+      <div
+        style={{
+          background: '#0c0c0c',
+          borderRadius: radius,
+          position: 'relative',
+          zIndex: 0,
+          height: '100%',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+});
+
+export default GradientBorderBox;
+
+```
+
+
+### File: `src/components/ask/ScrambleText.tsx`
+```typescript
+import React, { useState, useEffect } from 'react';
+
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+
+interface ScrambleTextProps {
+  text: string;
+  duration?: number;
+  delay?: number;
+  className?: string;
+}
+
+export function ScrambleText({
+  text,
+  duration = 800,
+  delay = 0,
+  className = '',
+}: ScrambleTextProps) {
+  const [displayed, setDisplayed] = useState(text);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let rafId: number | null = null;
+    let startTime: number | null = null;
+
+    timeoutId = setTimeout(() => {
+      const step = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        setDisplayed(
+          text
+            .split('')
+            .map((char, index) => {
+              if (char === ' ') return ' ';
+              if (index / text.length < progress) return char;
+              return CHARS[Math.floor(Math.random() * CHARS.length)];
+            })
+            .join('')
+        );
+
+        if (progress < 1) {
+          rafId = requestAnimationFrame(step);
+        } else {
+          setDisplayed(text);
+        }
+      };
+      rafId = requestAnimationFrame(step);
+    }, delay);
+
+    return () => {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
+  }, [text, duration, delay]);
+
+  return <span className={className}>{displayed}</span>;
+}
+
+export default ScrambleText;
+
+```
+
+
+### File: `src/styles/ask.css`
+```css
+/* Suppress global layout header and footer when dedicated Ask page is mounted */
+body.ask-page-active > div > header,
+body.ask-page-active header.sticky,
+body.ask-page-active footer {
+  display: none !important;
+}
+
+/* Ensure Ask page takes full screen with zero outer margin/padding conflicts */
+body.ask-page-active main {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.cta-btn {
+  display: block;
+  border-radius: 999px;
+  background: transparent;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 18px;
+  height: 36px;
+  line-height: 36px;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+}
+
+/* Conic gradient border box */
+.gradient-border-box {
+  position: relative;
+  isolation: isolate;
+}
+
+.gradient-border-box::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--angle) at 50% 50%,
+    #ff3d3d 0%,
+    #ff8c00 15%,
+    #ffd700 30%,
+    #00e676 45%,
+    #00b0ff 60%,
+    #7c4dff 75%,
+    #ff3d3d 100%
+  );
+  z-index: -1;
+  animation: rotateBorder 45s linear infinite;
+}
+
+.gradient-border-box-fast::before {
+  animation-duration: 8s;
+}
+
+/* Horizontal scroll hide scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 ```
@@ -12291,7 +16038,7 @@ export const CommandBrainTab: React.FC<CommandBrainTabProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => applyProviderPreset('google', 'gemini-2.5-pro', 'https://generativelanguage.googleapis.com')}
+                onClick={() => applyProviderPreset('google', 'gemini-3.8-flash', 'https://generativelanguage.googleapis.com')}
                 className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300"
               >
                 Google
@@ -13188,7 +16935,7 @@ export const CommandPlatformsTab: React.FC<CommandPlatformsTabProps> = ({
 
 ### File: `src/components/command/CommandContentTab.tsx`
 ```typescript
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   FolderKanban, 
   Image as ImageIcon, 
@@ -13201,10 +16948,14 @@ import {
   ExternalLink, 
   RotateCcw,
   Sparkles,
-  X
+  X,
+  Activity,
+  RefreshCw
 } from 'lucide-react';
 import { ContentItem } from '../../types/command';
 import { CoreIQData } from '../../services/supabase';
+import { evaluateContentHealth } from '../../data/contentManifest';
+import { seedManifestPlaceholders } from '../../services/contentResolver';
 
 interface CommandContentTabProps {
   contentItems: ContentItem[];
@@ -13267,6 +17018,19 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
   const copyItems = contentItems.filter((c) => c.type === 'text');
   const mediaItems = contentItems.filter((c) => c.type === 'image');
 
+  const health = useMemo(() => evaluateContentHealth(contentItems), [contentItems]);
+  const [seeding, setSeeding] = useState(false);
+
+  const handleSyncManifest = async () => {
+    setSeeding(true);
+    try {
+      await seedManifestPlaceholders();
+      onRefresh();
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   // Seed default copy presets if empty
   const handleSeedDefaults = async () => {
     const defaults = [
@@ -13310,6 +17074,66 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Dynamic Content Manifest Health Summary Strip */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-[#030717]/90 border border-slate-800/90 font-mono text-xs shadow-inner">
+        <div className="flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">
+              MANIFEST HEALTH
+            </span>
+            <span className="text-[10px] text-cyan-400/80 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20">
+              6 Pages
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Total */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+            <span className="text-[10px] text-slate-500 uppercase">Total</span>
+            <span className="font-bold text-slate-200">{health.total}</span>
+          </div>
+
+          {/* Published */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400">
+            <span className="text-[10px] text-emerald-500/80 uppercase">Published</span>
+            <span className="font-bold">{health.published}</span>
+          </div>
+
+          {/* Placeholder */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/40 border border-cyan-500/30 text-cyan-400">
+            <span className="text-[10px] text-cyan-500/80 uppercase">Placeholder</span>
+            <span className="font-bold">{health.placeholder}</span>
+          </div>
+
+          {/* Missing */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-400">
+            <span className="text-[10px] text-amber-500/80 uppercase">Missing</span>
+            <span className="font-bold">{health.missing}</span>
+          </div>
+
+          {/* Stale */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-950/40 border border-rose-500/30 text-rose-400">
+            <span className="text-[10px] text-rose-500/80 uppercase">Stale</span>
+            <span className="font-bold">{health.stale}</span>
+          </div>
+
+          {/* Sync / Seed button */}
+          <button
+            onClick={handleSyncManifest}
+            disabled={seeding}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-colors disabled:opacity-50 cursor-pointer"
+            title="Seed missing manifest placeholders in local store / DB"
+          >
+            <RefreshCw className={`w-3 h-3 ${seeding ? 'animate-spin' : ''}`} />
+            <span className="text-[10px] uppercase font-bold tracking-wider">
+              {seeding ? 'Syncing...' : 'Sync Manifest'}
+            </span>
+          </button>
+        </div>
+      </div>
+
       {/* Top Header & Sub-tab Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#060b1c]/90 border border-slate-800/80">
         <div className="flex items-center gap-2">
@@ -14827,8 +18651,32 @@ CREATE TABLE IF NOT EXISTS public.content (
     published BOOLEAN DEFAULT true NOT NULL,
     key TEXT,
     value TEXT,
-    type TEXT DEFAULT 'text'
+    type TEXT DEFAULT 'text',
+    -- Extended Content System Columns
+    content_key TEXT UNIQUE,
+    slug TEXT,
+    content_type TEXT DEFAULT 'text',
+    status TEXT DEFAULT 'PLACEHOLDER',
+    summary TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    asset_url TEXT,
+    version INT DEFAULT 1,
+    updated_by TEXT
 );
+
+-- Backward-compatible migration if table already exists
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS content_key TEXT UNIQUE;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS content_type TEXT DEFAULT 'text';
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PLACEHOLDER';
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS summary TEXT;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS asset_url TEXT;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS version INT DEFAULT 1;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS updated_by TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_content_key ON public.content(content_key);
+CREATE INDEX IF NOT EXISTS idx_content_slug ON public.content(slug);
 
 -- -------------------------------------------------------------------------
 -- 9. SWARM COMMS (Autonomous swarm node telemetry)
@@ -15027,7 +18875,7 @@ You are an architectural strategist, product engineer, and capability orchestrat
 | **`agent_config`** | The "Mind" of the CoreIQ agent. Stores active `provider` (e.g. `groq`, `openai`, `gemini`), `model_name`, `base_url`, `api_key`, and `system_prompt`. | **Public / Anon:** `SELECT` allowed so the public website agent can load live configuration dynamically.<br>**Authenticated:** Full read/write for operators. | **Yes** (`supabase_realtime`) |
 | **`agent_tools`** | Registry of external tools, function-calling connectors, and microservices available to the agent. | **Authenticated Only:** Operator-only management. Anon cannot view or modify. | **Yes** (`supabase_realtime`) |
 | **`platforms`** | Catalog of active client sites, web apps, portals, and digital surfaces managed by CoreIQ. | **Public / Anon:** `SELECT` allowed for public status showcases.<br>**Authenticated:** Full read/write. | **Yes** (`supabase_realtime`) |
-| **`content`** | Headless CMS storing articles, educational guides, news releases, key-value configurations, and media URLs. | **Public / Anon:** `SELECT` allowed where `published = true`.<br>**Authenticated:** Full read/write. | **Yes** (`supabase_realtime`) |
+| **`content`** | Headless CMS storing articles, educational guides, news releases, key-value configurations, and media URLs. Extended with `content_key`, `slug`, `summary`, `status` (`PLACEHOLDER`\|`DRAFT`\|`REVIEW`\|`PUBLISHED`), `content_type`, `version`, and `metadata`. | **Public / Anon:** `SELECT` allowed where `published = true` or `status = 'PUBLISHED'`.<br>**Authenticated:** Full read/write. | **Yes** (`supabase_realtime`) |
 | **`swarm_comms`** | Autonomous telemetry bus recording inter-agent messages, node heartbeats, and swarm orchestration logs. | **Authenticated Only:** Restricted to authenticated operators and service-role machines. | **Yes** (`supabase_realtime`) |
 | **`api_keys`** | Machine credentials for external agents (e.g. Hermes Prime). Stores key prefix, SHA-256 hash, scopes, and revocation status. | **Authenticated:** Full access.<br>**Anon:** Public lookup allowed ONLY for hash verification where `revoked = false`. | **Yes** (`supabase_realtime`) |
 
@@ -15050,7 +18898,7 @@ CoreIQ Command (`/command`) is protected by Supabase Auth:
 4. **Sign Out:** The operator can click the **Sign Out** button in the Command header at any time, invoking `supabase.auth.signOut()`, which purges tokens and redirects immediately to the login gate.
 
 ### 6.2 External Agent API Gateway Authentication (`server.ts`)
-External autonomous agents and headless scripts interact with CoreIQ via the HTTP API exposed by `server.ts` on port 3000 at `/api/v1/*`.
+External autonomous agents and headless scripts interact with CoreIQ via the HTTP API exposed by `server.ts` on port 3000 at `/api/v1/*` and the MCP endpoint at `/mcp`.
 
 #### Authentication Mechanism:
 - Every request must provide an API key via one of two headers:
@@ -15086,8 +18934,9 @@ Every key possesses a specific array of scopes. The gateway validates scopes usi
 | `WRITE_TASKS` | Execution | Allows `POST /api/v1/tasks` to create new tasks or update task stages. |
 | `READ_CLIENTS` | Directory | Allows `GET /api/v1/clients` to query the client database. |
 | `WRITE_CLIENTS` | Directory | Allows `POST /api/v1/clients` to create or update client records. |
-| `READ_CONTENT` | CMS | Allows `GET /api/v1/content` to read published or draft CMS content. |
-| `WRITE_CONTENT` | CMS | Allows `POST /api/v1/content` to create or update articles and media items. |
+| `READ_CONTENT` | CMS | Allows `GET /api/v1/content` and `GET /api/v1/content/:key` to read CMS entries. |
+| `WRITE_CONTENT` | CMS | Allows `POST /api/v1/content` and `PATCH /api/v1/content/:key` to create or update articles. |
+| `PUBLISH_CONTENT` | CMS | Allows `POST /api/v1/content/:key/publish` to transition a content key from PLACEHOLDER directly to PUBLISHED. |
 | `READ_CONFIG` | Brain | Allows `GET /api/v1/config` to read the active LLM provider and system prompt. |
 | `WRITE_CONFIG` | Brain | Allows `POST /api/v1/config` to update the active LLM provider, model name, and prompt. |
 
@@ -15101,12 +18950,11 @@ If a key attempts an operation without the required scope, the server immediatel
 ```
 
 ### 6.4 Verification Status: Tested vs. Untested
-- **Missing Key Check (401):** **VERIFIED LIVE.** Calling `curl -s http://localhost:3000/api/v1/leads` without headers returns:
-  `{"error":"Missing API Key","message":"Provide an API key via "Authorization: Bearer ciq_live_..." or "x-api-key" header.","docs":"/command#api_keys"}`
-- **Invalid Key Check (401):** **VERIFIED LIVE.** Calling with `Authorization: Bearer ciq_live_invalidkey123` returns:
-  `{"error":"Unauthorized","message":"Invalid or revoked API key token."}`
-- **Authenticated Request (200):** **VERIFIED LIVE.** Calling with pre-seeded test key `ciq_live_devmaster_00000000000000000000000000000000` successfully returns `{"count":0,"leads":[]}`.
-- **Authenticated Insertion (201):** **VERIFIED LIVE.** Executing `POST /api/v1/leads` with valid JSON and token returns `201 Created` and persists the lead.
+- **Missing Key Check (401):** **VERIFIED LIVE.** Calling `curl -s http://localhost:3000/api/v1/leads` without headers returns 401 Missing API Key.
+- **Invalid Key Check (401):** **VERIFIED LIVE.** Calling with `Authorization: Bearer ciq_live_invalidkey123` returns 401 Unauthorized.
+- **Authenticated Request (200):** **VERIFIED LIVE.** Calling with pre-seeded test key `ciq_live_devmaster_00000000000000000000000000000000` successfully returns 200 OK.
+- **Content Health Endpoint (200):** **VERIFIED LIVE.** Calling `GET /api/v1/content/health` returns status counts for all 94 entries with `by_page` breakdown.
+- **POST /api/ask Neural Processing (200):** **VERIFIED LIVE.** Calling `POST /api/ask` processes through `gemini-3.8-flash` and returns structured architectural recommendations.
 
 
 ## 7. HOW TO GENERATE AND USE AN API KEY
@@ -15121,28 +18969,71 @@ If a key attempts an operation without the required scope, the server immediatel
    - The browser generates 24 cryptographically random bytes using `window.crypto.getRandomValues`.
    - The raw token is assembled as `ciq_live_<hex_string>`.
    - The browser computes the SHA-256 hash using the Web Crypto API (`crypto.subtle.digest('SHA-256')`).
-   - The key metadata and hash are written to the database. The raw token is shown **only once** in a green modal dialog.
+   - The key metadata and hash are written to the database. The raw token is shown **only once** in a modal dialog.
 7. Copy the raw token and store it securely in your agent's environment.
 
 ### 7.2 Working cURL Examples
 
 #### Example 1: System Health Ping (Public)
 ```bash
-curl -i -X GET "https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app/api/v1/ping"
+curl -i -X GET "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/api/v1/ping"
 ```
 *Expected Output:*
 ```json
 {
   "status": "online",
   "system": "CoreIQ Command Autonomous Gateway",
-  "timestamp": "2026-09-13T22:01:01.680Z",
+  "timestamp": "2026-09-22T00:38:00.000Z",
   "supabase_configured": true
 }
 ```
 
-#### Example 2: Ingest a Lead (Requires `WRITE_LEADS`)
+#### Example 2: Content Health Telemetry Check (Requires `READ_CONTENT`)
 ```bash
-curl -i -X POST "https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app/api/v1/leads" \
+curl -i -X GET "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/api/v1/content/health" \
+  -H "Authorization: Bearer ciq_live_your_token_here"
+```
+*Expected Output:*
+```json
+{
+  "status": "ok",
+  "total_items": 94,
+  "manifest_keys": 94,
+  "health_percentage": 0,
+  "breakdown": {
+    "published": 0,
+    "review": 0,
+    "draft": 0,
+    "placeholder": 94,
+    "missing": 0
+  },
+  "by_page": {
+    "home": { "total": 12, "published": 0, "placeholder": 12 },
+    "solutions": { "total": 14, "published": 0, "placeholder": 14 },
+    "apps": { "total": 16, "published": 0, "placeholder": 16 },
+    "learn": { "total": 20, "published": 0, "placeholder": 20 },
+    "tools": { "total": 16, "published": 0, "placeholder": 16 },
+    "about": { "total": 16, "published": 0, "placeholder": 16 }
+  }
+}
+```
+
+#### Example 3: Publish a Manifest Key Directly (Requires `PUBLISH_CONTENT`)
+```bash
+curl -i -X POST "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/api/v1/content/learn.guide.ai-workflows/publish" \
+  -H "Authorization: Bearer ciq_live_your_token_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Autonomous AI Workflows in Production",
+    "summary": "Engineering guide to deploying resilient agent workflows.",
+    "body": "## Full Technical Guide\n\nProduction agent orchestration requires...",
+    "category": "Curated Guide"
+  }'
+```
+
+#### Example 4: Ingest a Lead (Requires `WRITE_LEADS`)
+```bash
+curl -i -X POST "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/api/v1/leads" \
   -H "Authorization: Bearer ciq_live_your_token_here" \
   -H "Content-Type: application/json" \
   -d '{
@@ -15154,21 +19045,19 @@ curl -i -X POST "https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west
   }'
 ```
 
-#### Example 3: Retrieve Inbound Leads (Requires `READ_LEADS`)
+#### Example 5: Model Context Protocol (MCP) Stream Invocation
 ```bash
-curl -i -X GET "https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app/api/v1/leads" \
-  -H "Authorization: Bearer ciq_live_your_token_here"
-```
-
-#### Example 4: Create a Task (Requires `WRITE_TASKS`)
-```bash
-curl -i -X POST "https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app/api/v1/tasks" \
+curl -i -X POST "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/mcp" \
   -H "Authorization: Bearer ciq_live_your_token_here" \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Deploy Voice Gateway for Acme",
-    "description": "Configure Twilio SIP trunk and connect to CoreIQ runtime",
-    "status": "in_progress"
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+      "name": "ask_coreiq",
+      "arguments": { "message": "What is the recommended tech stack for a voice agent?" }
+    },
+    "id": 1
   }'
 ```
 
@@ -15181,135 +19070,88 @@ import requests
 import json
 
 API_BASE_URL = os.getenv("COREIQ_API_URL", "http://localhost:3000/api/v1")
-API_KEY = os.getenv("COREIQ_API_KEY", "ciq_live_devmaster_00000000000000000000000000000000")
+API_TOKEN = os.getenv("COREIQ_API_KEY", "ciq_live_devmaster_00000000000000000000000000000000")
 
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
+HEADERS = {
+    "Authorization": f"Bearer {API_TOKEN}",
     "Content-Type": "application/json"
 }
 
-def check_gateway():
+def check_health():
     res = requests.get(f"{API_BASE_URL}/ping")
-    print("Gateway Health:", res.json())
+    print("Health Ping:", res.json())
 
-def submit_lead(name: str, email: str, message: str, intent: str = "custom"):
+def check_content_health():
+    res = requests.get(f"{API_BASE_URL}/content/health", headers=HEADERS)
+    print("Content Health Telemetry:", res.json())
+
+def submit_lead(name, contact, message, intent="agent"):
     payload = {
         "client_name": name,
-        "client_contact": email,
+        "client_contact": contact,
         "client_message": message,
-        "intent_type": intent,
-        "source": "autonomous_agent"
+        "intent_type": intent
     }
-    res = requests.post(f"{API_BASE_URL}/leads", headers=headers, json=payload)
-    if res.status_code == 201:
-        print("[SUCCESS] Lead registered:", res.json())
-    else:
-        print(f"[ERROR {res.status_code}]:", res.text)
-
-def list_tasks():
-    res = requests.get(f"{API_BASE_URL}/tasks", headers=headers)
-    if res.status_code == 200:
-        tasks = res.json().get("tasks", [])
-        print(f"Active tasks ({len(tasks)}):")
-        for t in tasks:
-            print(f"- [{t.get('status')}] {t.get('title')}")
-    else:
-        print(f"[ERROR {res.status_code}]:", res.text)
+    res = requests.post(f"{API_BASE_URL}/leads", headers=HEADERS, json=payload)
+    print(f"Lead Submission ({res.status_code}):", res.json())
 
 if __name__ == "__main__":
-    check_gateway()
-    list_tasks()
+    check_health()
+    check_content_health()
+    submit_lead("Nexus Robotics", "lead@nexus.ai", "Autonomous warehouse orchestration agent.")
 ```
 
 
 ## 8. HOW TO MAKE CHANGES VIA TERMUX
 
-This guide is specifically written for AI agents or human operators running **Termux on Android**.
-
 ### 8.1 Termux Environment Setup
-1. **Update packages and install dependencies:**
-   ```bash
-   pkg update -y && pkg upgrade -y
-   pkg install -y git nodejs-lts python build-essential openssh curl
-   ```
-2. **Verify Node and Git installations:**
-   ```bash
-   node -v    # Must be v18+ (v20 or v22 recommended)
-   npm -v
-   git --version
-   ```
-
-### 8.2 Repository Cloning & Environment Setup
-1. **Clone the repository:**
-   ```bash
-   git clone <REPOSITORY_URL> coreiqcreate
-   cd coreiqcreate
-   ```
-2. **Install project dependencies:**
-   ```bash
-   npm install
-   ```
-3. **Configure Environment Variables (`.env`):**
-   Create a `.env` file in the root of the project:
-   ```bash
-   cat << 'EOF' > .env
-   VITE_SUPABASE_URL=https://irrpqqxetyfbafjpjtpt.supabase.co
-   VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-   PORT=3000
-   EOF
-   ```
-   *(Note: Never commit `.env` into git. The `.gitignore` file must contain `.env`).*
-
-### 8.3 Running the Local Dev Server & Build
-1. **Start the local server:**
-   ```bash
-   npm run dev
-   ```
-   The dev server boots Express and mounts Vite on `http://localhost:3000`. You can test it by opening Android Chrome or running `curl -s http://localhost:3000/api/v1/ping` in another Termux session.
-2. **Run TypeScript verification:**
-   ```bash
-   npm run lint
-   ```
-   This executes `tsc --noEmit`. Fix any TypeScript type errors before proceeding.
-3. **Run Production Build:**
-   ```bash
-   npm run build
-   ```
-   This generates `dist/` and `dist/server.cjs`.
-
-### 8.4 The Safe Git Workflow: NEVER Push Without Verification
-Follow this strict procedure to avoid breaking production:
+Termux is an Android terminal emulator and Linux environment. To configure a complete autonomous development station:
 
 ```bash
-# 1. Check working branch and status
-git status
+pkg update && pkg upgrade -y
+pkg install -y git nodejs python curl clang
+npm install -g vite tsx
+```
 
-# 2. Always create a focused feature or fix branch
-git checkout -b fix/my-agent-fix
+### 8.2 Repository Cloning & Environment Setup
+```bash
+git clone <YOUR_COREIQ_REPO_URL>
+cd coreiqcreate
+npm install
+```
 
-# 3. Apply your modifications to the code
-
-# 4. CRITICAL STEP: Verify TypeScript compiler and production build locally
+### 8.3 Running the Local Dev Server & Build
+```bash
+# Verify TypeScript typing
 npm run lint
+
+# Compile production bundles
 npm run build
 
-# 5. Only if lint and build succeed with exit code 0:
-git add .
-git commit -m "fix(command): descriptive message of what changed"
+# Start server on port 3000
+npm run dev
+```
 
-# 6. Push to origin
-git push origin fix/my-agent-fix
+### 8.4 The Safe Git Workflow: NEVER Push Without Verification
+Before creating a commit or pushing to `main`:
+1. Run `npm run lint` (`tsc --noEmit`) to verify 0 compiler errors.
+2. Run `npm run build` to confirm Vite asset bundling and server CommonJS bundling succeed.
+3. Commit and push:
+```bash
+git add .
+git commit -m "feat: [detailed description]"
+git push origin main
 ```
 
 ### 8.5 Common Failure Patterns in this Codebase
 1. **Linux File Case Sensitivity:**
    - Linux and Android filesystems are strictly case-sensitive (`AskCoreIQBar.tsx` is NOT `AskCoreIqBar.tsx`).
-   - If an import has the wrong casing (e.g. `import Header from '../components/common/header'`), it might work in macOS/Windows but will fail in Linux CI/CD with `Module not found`.
+   - If an import has the wrong casing, it will fail in Linux CI/CD with `Module not found`.
 2. **Unescaped Apostrophes in JSX Strings:**
    - In React JSX, writing `We'll help you` unescaped in text children can trigger ESLint or JSX parsing errors.
    - Always use `We&apos;ll` or `{"We'll"}` or template strings.
 3. **Interface / Implementation Drift in `src/services/supabase.ts`:**
-   - If you add a new data method (e.g. `checkDatabaseStatus` or `updateLead`), ensure it exists on the exported `CoreIQData` object AND in any matching interface type definitions. Running `npm run lint` (`tsc --noEmit`) will instantly catch this.
+   - If you add a new data method (e.g. `checkDatabaseStatus` or `updateLead`), ensure it exists on the exported `CoreIQData` object AND in any matching interface type definitions.
 4. **Motion Import Location:**
    - Use `motion/react`, not the deprecated `framer-motion` import path.
 
@@ -15321,27 +19163,40 @@ The CoreIQ agent does not hardcode its prompt or model into the compiled bundle.
 1. Navigate to `/command` and authenticate.
 2. Open the **Agent Brain** tab.
 3. Select the desired **Model Provider**:
-   - `Groq` (default: `llama-3.3-70b-versatile` via `https://api.groq.com/openai/v1`)
+   - `Google Gemini` (default: `gemini-3.8-flash` via `@google/genai`, with automated cascade fallback to `gemini-3.6-flash` and `gemini-flash-latest`)
+   - `Groq` (`llama-3.3-70b-versatile` via `https://api.groq.com/openai/v1`)
    - `OpenAI` (`gpt-4o`, `gpt-4o-mini`)
    - `Anthropic` (`claude-3-5-sonnet-20241022`)
-   - `Google Gemini` (`gemini-2.5-flash`, `gemini-2.5-pro`)
    - `Local / Custom Ollama`
 4. Enter the provider's API key and adjust the **System Prompt** textarea.
 5. Click **Save Brain Configuration**.
-6. **How to Verify:** Navigate to `/ask` in an incognito window and send a message. The public conversational agent immediately queries the updated configuration from Supabase and applies the new prompt rules in real time.
+6. **How to Verify:** Navigate to `/ask` and send a message. The public conversational agent immediately queries the updated configuration from Supabase and applies the new prompt rules in real time.
 
 ### 9.2 Managing Content, News & Media via the Content Tab
 1. In `/command`, open the **Content** tab.
-2. Click **Create Article / Entry**.
-3. Provide:
-   - **Title:** e.g., `Deploying Multi-Agent Swarms with CoreIQ`
-   - **Category:** `guide`, `news`, `case_study`, or `whitepaper`
-   - **Body:** Markdown or rich text
-   - **Media Reference:** URL to an image or video asset
-   - **Published Status:** Set to `Published` (drafts will not be visible to public users)
-4. Click **Save Content**. The new record is stored in `public.content` and immediately made available to public content readers.
+2. Inspect the **Content Telemetry Strip**: shows overall coverage across all 6 pages and the total count of managed keys (94 keys).
+3. Click **Sync Manifest Placeholders** to ensure all manifest keys are present in storage.
+4. Use the **Copy** and **Media** sub-tabs to edit values, titles, and media references.
+5. Click **Save**. The updated item is persisted to `public.content` and updates UI components instantly.
 
-### 9.3 Adding a New Invisible Tool for Agent Invocation
+### 9.3 Content Publishing Workflow (Transitioning from PLACEHOLDER to PUBLISHED)
+Every content key has a dual-phase lifecycle:
+1. **Initial State (`PLACEHOLDER`):** The item exists as a typed placeholder with default title, category, and summary. It renders gracefully via `ContentPlaceholder.tsx` without layout shift.
+2. **Publishing via API:** An external agent or script sends:
+   ```bash
+   POST /api/v1/content/<content_key>/publish
+   Authorization: Bearer <KEY_WITH_PUBLISH_CONTENT_SCOPE>
+   Content-Type: application/json
+   {
+     "title": "Article Title",
+     "summary": "Executive summary...",
+     "body": "# Markdown Content...",
+     "category": "Curated Guide"
+   }
+   ```
+3. **Resolution:** Next time `resolveContent(content_key)` or `resolveBySlug(slug)` executes, it returns `status: 'PUBLISHED'`, `isPlaceholder: false`, and renders the full published article.
+
+### 9.4 Adding a New Invisible Tool for Agent Invocation
 1. Open the **Tools** tab in `/command`.
 2. Click **Add External Tool**.
 3. Define:
@@ -15359,9 +19214,12 @@ An unvarnished assessment of the current state of the system:
 
 ### 10.1 Verified Facts
 1. **TypeScript Build & Lint:** `npm run lint` (`tsc --noEmit`) and `npm run build` (`vite build && esbuild server.ts ...`) pass with **0 errors**.
-2. **API Gateway Auth:** Unauthenticated calls to `/api/v1/*` are rejected with HTTP 401. Valid SHA-256 token hashes authenticate successfully and execute scoped operations.
-3. **Resilient Local Fallback:** When remote Supabase tables are unavailable, `src/services/supabase.ts` automatically runs in local reactive mode using in-memory state and cross-tab storage events, preventing white-screen crashes.
-4. **Dev Server Status:** `server.ts` runs on port 3000, proxies Vite in development, and responds to `/api/health` and `/api/v1/ping`.
+2. **API Gateway Auth & Scopes:** Unauthenticated calls to `/api/v1/*` are rejected with HTTP 401. Valid SHA-256 token hashes authenticate successfully and enforce fine-grained scopes (`READ_CONTENT`, `WRITE_CONTENT`, `PUBLISH_CONTENT`, `WRITE_LEADS`, etc.).
+3. **Resilient Local Fallback:** When remote Supabase tables are unavailable, `src/services/supabase.ts` and `server.ts` automatically run in local reactive mode using in-memory state and cross-tab storage events, preventing white-screen crashes.
+4. **Dev Server & Ingress Status:** `server.ts` runs on port 3000, proxies Vite in development, and responds to `/api/health`, `/api/v1/ping`, `/api/v1/content/health`, and `/api/ask`.
+5. **AI Runtime Resilience:** `POST /api/ask` executes against `gemini-3.8-flash` with automatic fallback to `gemini-3.6-flash` and `gemini-flash-latest`. Client-side `coreiqRuntime.ts` safely inspects response headers to prevent JSON syntax exceptions on upstream errors.
+6. **Universal Content Manifest:** 94 content keys across 6 routes mapped in `src/data/contentManifest.ts` and seeded idempotently into local storage / Supabase.
+7. **Model Context Protocol (MCP):** Server mounted at `/mcp` with Bearer auth supporting `ask_coreiq`, `list_leads`, `create_task`, and `get_agent_config`.
 
 ### 10.2 Known Issues & Required Operator Actions
 1. **Remote Supabase Schema Execution Required:**

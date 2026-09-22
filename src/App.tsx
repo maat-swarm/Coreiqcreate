@@ -6,6 +6,7 @@ import { Footer } from './components/common/Footer';
 import { SiteVisualEnvironment } from './components/environment/SiteVisualEnvironment';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import { NavRoute } from './types';
+import { seedManifestPlaceholders } from './services/contentResolver';
 
 export type AppRoute =
   | NavRoute
@@ -34,6 +35,7 @@ const ToolsPage = React.lazy(() => import('./pages/ToolsPage').then((m) => ({ de
 const AboutPage = React.lazy(() => import('./pages/AboutPage').then((m) => ({ default: m.AboutPage })));
 const AskPage = React.lazy(() => import('./pages/AskPage').then((m) => ({ default: m.AskPage })));
 const CommandDashboardPage = React.lazy(() => import('./pages/CommandDashboardPage').then((m) => ({ default: m.CommandDashboardPage })));
+const LearnArticlePage = React.lazy(() => import('./pages/LearnArticlePage').then((m) => ({ default: m.LearnArticlePage })));
 const ComingSoon = React.lazy(() => import('./pages/ComingSoon').then((m) => ({ default: m.ComingSoon })));
 
 function ScrollToTop({ route }: { route: string }) {
@@ -46,6 +48,7 @@ function ScrollToTop({ route }: { route: string }) {
 export default function App() {
   const getRoute = (): AppRoute => {
     const p = window.location.pathname.replace(/^\//, '').toLowerCase();
+    if (p.startsWith('learn/')) return p as AppRoute;
     if (p === 'command' || window.location.hash === '#command') return 'command';
     if (p === 'solutions') return 'solutions';
     if (p === 'apps') return 'apps';
@@ -67,6 +70,7 @@ export default function App() {
   useScrollReveal();
 
   useEffect(() => {
+    seedManifestPlaceholders();
     const onPop = () => {
       setCurrentRoute(getRoute());
     };
@@ -114,9 +118,11 @@ export default function App() {
     );
   }
 
-  const activeNavRoute: NavRoute = VALID_NAV_ROUTES.includes(currentRoute as NavRoute)
-    ? (currentRoute as NavRoute)
-    : 'home';
+  const activeNavRoute: NavRoute = currentRoute.startsWith('learn/')
+    ? 'learn'
+    : (VALID_NAV_ROUTES.includes(currentRoute as NavRoute)
+      ? (currentRoute as NavRoute)
+      : 'home');
 
   return (
     <div className="min-h-screen bg-transparent text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -138,6 +144,13 @@ export default function App() {
             {currentRoute === 'solutions' && <SolutionsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'apps' && <AppsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'learn' && <LearnPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute.startsWith('learn/') && (
+              <LearnArticlePage
+                slug={currentRoute.replace(/^learn\//, '')}
+                onNavigate={navigateTo}
+                onAsk={(q) => navigateTo('ask', q)}
+              />
+            )}
             {currentRoute === 'tools' && <ToolsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'about' && <AboutPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'ask' && <AskPage initialPrompt={activePrompt} onNavigate={navigateTo} />}

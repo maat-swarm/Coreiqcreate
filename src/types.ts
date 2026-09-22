@@ -1,4 +1,4 @@
-export type NavRoute = 'home' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' | 'ask' | 'command';
+export type NavRoute = 'home' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' | 'ask' | 'command' | `learn/${string}`;
 
 export interface NavItem {
   id: NavRoute;

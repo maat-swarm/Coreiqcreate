@@ -136,6 +136,27 @@ export interface PlatformRegistryItem {
 
 export type ContentCategory = 'hero_background' | 'news' | 'learning' | 'case_study' | 'general';
 
+export type ContentType = 
+  | 'text'
+  | 'article'
+  | 'guide'
+  | 'topic'
+  | 'learning_path'
+  | 'pdf'
+  | 'video'
+  | 'external'
+  | 'resource'
+  | 'coming_soon';
+
+export type ContentStatus = 
+  | 'MISSING'
+  | 'PLACEHOLDER'
+  | 'DRAFT'
+  | 'REVIEW'
+  | 'APPROVED'
+  | 'PUBLISHED'
+  | 'STALE';
+
 export interface CommandContentItem {
   id: string;
   created_at: string;
@@ -147,6 +168,16 @@ export interface CommandContentItem {
   key?: string;
   value?: string;
   type?: 'text' | 'image' | 'json';
+  // Extended fields
+  content_key?: string;
+  slug?: string;
+  content_type?: ContentType | string;
+  status?: ContentStatus | string;
+  summary?: string;
+  metadata?: Record<string, any>;
+  asset_url?: string;
+  version?: number;
+  updated_by?: string;
 }
 
 export type ContentItem = CommandContentItem;

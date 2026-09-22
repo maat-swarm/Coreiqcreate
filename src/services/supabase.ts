@@ -759,11 +759,33 @@ export const CoreIQData = {
     return getLocalTable<CommandContentItem>('content');
   },
 
+  async getContentByContentKey(contentKey: string): Promise<CommandContentItem | null> {
+    const client = getSupabase();
+    if (client) {
+      try {
+        const { data, error } = await client
+          .from('content')
+          .select('*')
+          .or(`content_key.eq.${contentKey},key.eq.${contentKey}`)
+          .maybeSingle();
+        if (!error && data) return data as CommandContentItem;
+      } catch (e) {
+        console.warn('Using local content fallback for content_key:', e);
+      }
+    }
+    const current = getLocalTable<CommandContentItem>('content');
+    return current.find((c) => c.content_key === contentKey || c.key === contentKey || c.id === contentKey) || null;
+  },
+
   async insertContentItem(item: Omit<CommandContentItem, 'id' | 'created_at'>): Promise<CommandContentItem> {
     const newItem: CommandContentItem = {
       ...item,
       id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cnt_${Date.now()}`,
       created_at: new Date().toISOString(),
+      content_key: item.content_key || item.key,
+      content_type: item.content_type || 'text',
+      status: item.status || 'PLACEHOLDER',
+      version: item.version ?? 1,
     };
 
     const client = getSupabase();
@@ -816,17 +838,19 @@ export const CoreIQData = {
     if (typeof keyOrItem === 'string') {
       const key = keyOrItem;
       const current = await this.getContentItems();
-      const existing = current.find((c) => c.key === key || c.id === key);
+      const existing = current.find((c) => c.content_key === key || c.key === key || c.id === key);
       if (existing) {
         await this.updateContentItem(existing.id, {
           key,
+          content_key: existing.content_key || key,
           value: value ?? '',
           type: type || 'text',
         });
-        return { ...existing, key, value: value ?? '', type: type || 'text' };
+        return { ...existing, key, content_key: existing.content_key || key, value: value ?? '', type: type || 'text' };
       }
       return this.insertContentItem({
         key,
+        content_key: key,
         value: value ?? '',
         type: type || 'text',
         title: key,
@@ -834,6 +858,7 @@ export const CoreIQData = {
         category: 'general',
         media_reference: type === 'image' ? (value ?? '') : '',
         published: true,
+        status: 'PUBLISHED',
       });
     }
 
@@ -847,8 +872,16 @@ export const CoreIQData = {
       body: item.body || item.value || '',
       category: item.category || 'general',
       media_reference: item.media_reference || '',
-      published: item.published ?? true,
+      published: item.published ?? false,
       key: item.key,
+      content_key: item.content_key || item.key,
+      slug: item.slug,
+      content_type: item.content_type || 'text',
+      status: item.status || 'PLACEHOLDER',
+      summary: item.summary,
+      metadata: item.metadata,
+      asset_url: item.asset_url,
+      version: item.version ?? 1,
       value: item.value,
       type: item.type || 'text',
     });

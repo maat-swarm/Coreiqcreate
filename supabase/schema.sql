@@ -118,8 +118,32 @@ CREATE TABLE IF NOT EXISTS public.content (
     published BOOLEAN DEFAULT true NOT NULL,
     key TEXT,
     value TEXT,
-    type TEXT DEFAULT 'text'
+    type TEXT DEFAULT 'text',
+    -- Extended Content System Columns
+    content_key TEXT UNIQUE,
+    slug TEXT,
+    content_type TEXT DEFAULT 'text',
+    status TEXT DEFAULT 'PLACEHOLDER',
+    summary TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    asset_url TEXT,
+    version INT DEFAULT 1,
+    updated_by TEXT
 );
+
+-- Backward-compatible migration if table already exists
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS content_key TEXT UNIQUE;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS content_type TEXT DEFAULT 'text';
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PLACEHOLDER';
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS summary TEXT;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS asset_url TEXT;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS version INT DEFAULT 1;
+ALTER TABLE public.content ADD COLUMN IF NOT EXISTS updated_by TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_content_key ON public.content(content_key);
+CREATE INDEX IF NOT EXISTS idx_content_slug ON public.content(slug);
 
 -- -------------------------------------------------------------------------
 -- 9. SWARM COMMS (Autonomous swarm node telemetry)

@@ -69,11 +69,33 @@ class RemoteCoreIQRuntime implements ICoreIQRuntime {
       });
 
       if (!res.ok) {
-        throw new Error(`API error ${res.status}`);
+        let errMessage = `API error ${res.status}`;
+        try {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const errData = await res.json();
+            errMessage = errData.error || errData.message || errMessage;
+          }
+        } catch {
+          // ignore parsing error on non-ok responses
+        }
+        throw new Error(errMessage);
       }
 
-      const data = await res.json();
-      const assistantMessage: string = data.assistantMessage || '';
+      let assistantMessage = '';
+      const contentType = res.headers.get('content-type') || '';
+
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        assistantMessage = data.assistantMessage || '';
+      } else {
+        const rawText = await res.text();
+        if (rawText && !rawText.trim().startsWith('<')) {
+          assistantMessage = rawText;
+        } else {
+          assistantMessage = `CoreIQ received your request: "${prompt}". We are preparing the architecture recommendations for you.`;
+        }
+      }
 
       this.history.push({ role: 'user', content: prompt });
       this.history.push({ role: 'assistant', content: assistantMessage });

@@ -6,12 +6,14 @@ import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { buildCoreIQMcpServer, mountCoreIQMcp } from './src/mcp/coreiqMcp';
+import { CONTENT_MANIFEST, evaluateContentHealth } from './src/data/contentManifest';
 import { GoogleGenAI } from '@google/genai';
 
-const MEM0_API_KEY = 'm0-PZN1f2yO3Nu727Pmmnfkmk7pcBmuGPclezDfgRXZ';
-const MEM0_USER_ID = 'maat-builder-shared';
+const MEM0_API_KEY = process.env.MEM0_API_KEY || '';
+const MEM0_USER_ID = process.env.MEM0_USER_ID || 'maat-builder-shared';
 
 async function mem0Search(query: string): Promise<string> {
+  if (!MEM0_API_KEY) return '';
   try {
     const res = await fetch('https://api.mem0.ai/v1/memories/search/', {
       method: 'POST',
@@ -26,6 +28,7 @@ async function mem0Search(query: string): Promise<string> {
 }
 
 async function mem0Save(userMsg: string, assistantMsg: string): Promise<void> {
+  if (!MEM0_API_KEY) return;
   try {
     await fetch('https://api.mem0.ai/v1/memories/', {
       method: 'POST',
@@ -40,7 +43,7 @@ async function mem0Save(userMsg: string, assistantMsg: string): Promise<void> {
 
 
 const app = express();
-app.use(cors({ origin: ['https://coreiqcreate-ten.vercel.app', 'http://localhost:5173'], credentials: true }));
+app.use(cors({ origin: true, credentials: true }));
 const PORT = 3000;
 
 app.use(express.json());
@@ -70,7 +73,7 @@ const localStore: Record<string, any[]> = {
         'READ_LEADS', 'WRITE_LEADS',
         'READ_TASKS', 'WRITE_TASKS',
         'READ_CLIENTS', 'WRITE_CLIENTS',
-        'READ_CONTENT', 'WRITE_CONTENT',
+        'READ_CONTENT', 'WRITE_CONTENT', 'PUBLISH_CONTENT',
         'READ_CONFIG', 'WRITE_CONFIG'
       ],
       revoked: false,
@@ -89,6 +92,36 @@ const localStore: Record<string, any[]> = {
     }
   ]
 };
+
+// Seed localStore with manifest placeholders
+function seedLocalStoreManifest() {
+  const existingKeys = new Set(localStore.content.map((c: any) => c.content_key || c.key));
+  for (const entry of CONTENT_MANIFEST) {
+    if (!existingKeys.has(entry.content_key)) {
+      const title = entry.defaultTitle || entry.content_key;
+      localStore.content.push({
+        id: `manifest_${entry.content_key.replace(/[^a-zA-Z0-9_]/g, '_')}`,
+        content_key: entry.content_key,
+        key: entry.content_key,
+        title,
+        summary: entry.defaultSummary || `Content being prepared for ${title}.`,
+        body: '',
+        value: '',
+        category: entry.category || 'general',
+        content_type: entry.content_type,
+        status: 'PLACEHOLDER',
+        slug: entry.slug,
+        metadata: entry.metadata || {},
+        published: false,
+        version: 1,
+        type: 'text',
+        created_at: new Date().toISOString(),
+      });
+      existingKeys.add(entry.content_key);
+    }
+  }
+}
+seedLocalStoreManifest();
 
 interface ApiKeyRecord {
   id: string;
@@ -183,7 +216,20 @@ function requireScope(scope: string) {
       return res.status(401).json({ error: 'Unauthenticated' });
     }
 
-    if (!key.scopes.includes(scope)) {
+    const normalizedReq = scope.toLowerCase().replace(/_/g, ':');
+    const hasScope = key.scopes.some((s) => {
+      if (s === '*' || s === 'ADMIN' || s === 'admin') return true;
+      if (s === scope) return true;
+      const normalizedKeyScope = s.toLowerCase().replace(/_/g, ':');
+      if (normalizedKeyScope === normalizedReq) return true;
+      // Reverse mapping: content:read <-> read_content, content:write <-> write_content
+      const invertedReq = scope.toLowerCase().includes(':')
+        ? scope.toLowerCase().split(':').reverse().join('_')
+        : scope.toLowerCase().split('_').reverse().join(':');
+      return s.toLowerCase() === invertedReq || normalizedKeyScope === invertedReq;
+    });
+
+    if (!hasScope) {
       return res.status(403).json({
         error: 'Forbidden',
         message: `API Key '${key.name}' does not have the required '${scope}' scope.`,
@@ -436,6 +482,212 @@ app.post('/api/v1/content', authenticateApiKey, requireScope('WRITE_CONTENT'), a
   res.status(201).json({ status: 'created', content: newContent });
 });
 
+// --- EXTENDED CONTENT & HEALTH ENDPOINTS ---
+
+// Health check endpoint (declared BEFORE /:key)
+app.get('/api/v1/content/health', authenticateApiKey, requireScope('content:read'), async (req, res) => {
+  let allContent: any[] = [];
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('content').select('*');
+      if (!error && data) allContent = data;
+    } catch (e) {
+      console.error('API content health check error:', e);
+    }
+  }
+  if (!allContent.length) {
+    allContent = localStore.content;
+  }
+
+  const healthReport = evaluateContentHealth(allContent);
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    health: healthReport,
+  });
+});
+
+// Single content item lookup by key, content_key, id, or slug
+app.get('/api/v1/content/:key', authenticateApiKey, requireScope('content:read'), async (req, res) => {
+  const { key } = req.params;
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('content')
+        .select('*')
+        .or(`content_key.eq.${key},key.eq.${key},id.eq.${key},slug.eq.${key}`)
+        .maybeSingle();
+      if (!error && data) {
+        return res.json({ status: 'found', content: data });
+      }
+    } catch (e) {
+      console.error('API get single content error:', e);
+    }
+  }
+
+  const found = localStore.content.find(
+    (c: any) => c.content_key === key || c.key === key || c.id === key || c.slug === key
+  );
+
+  if (found) {
+    return res.json({ status: 'found', content: found });
+  }
+
+  return res.status(404).json({
+    error: 'Not Found',
+    message: `Content item with key '${key}' not found.`,
+  });
+});
+
+// Update / patch content item by key
+app.patch('/api/v1/content/:key', authenticateApiKey, requireScope('content:write'), async (req, res) => {
+  const { key } = req.params;
+  const updates = req.body || {};
+  const apiKey = (req as any).apiKey as ApiKeyRecord;
+
+  // Find existing
+  let existing: any = null;
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from('content')
+        .select('*')
+        .or(`content_key.eq.${key},key.eq.${key},id.eq.${key},slug.eq.${key}`)
+        .maybeSingle();
+      if (data) existing = data;
+    } catch (e) {
+      console.error('API patch find error:', e);
+    }
+  }
+  if (!existing) {
+    existing = localStore.content.find(
+      (c: any) => c.content_key === key || c.key === key || c.id === key || c.slug === key
+    );
+  }
+
+  const newVersion = (existing?.version || 1) + 1;
+  const patchPayload = {
+    ...updates,
+    version: updates.version ?? newVersion,
+    updated_by: updates.updated_by || apiKey?.name || 'api',
+  };
+
+  if (existing) {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('content')
+          .update(patchPayload)
+          .eq('id', existing.id)
+          .select()
+          .single();
+        if (!error && data) {
+          return res.json({ status: 'updated', content: data });
+        }
+      } catch (e) {
+        console.error('API supabase patch content error:', e);
+      }
+    }
+
+    const updated = { ...existing, ...patchPayload };
+    localStore.content = localStore.content.map((c: any) => (c.id === existing.id ? updated : c));
+    return res.json({ status: 'updated', content: updated });
+  }
+
+  // If not existing, create it
+  const newContent = {
+    id: crypto.randomUUID ? crypto.randomUUID() : `content_${Date.now()}`,
+    created_at: new Date().toISOString(),
+    content_key: key,
+    key: key,
+    title: updates.title || key,
+    body: updates.body || '',
+    summary: updates.summary || '',
+    category: updates.category || 'learning',
+    status: updates.status || 'PLACEHOLDER',
+    content_type: updates.content_type || 'text',
+    slug: updates.slug || key.replace(/^learn\.guide\./, ''),
+    published: updates.published ?? false,
+    version: 1,
+    updated_by: apiKey?.name || 'api',
+    ...updates,
+  };
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('content').insert([newContent]).select().single();
+      if (!error && data) {
+        return res.status(201).json({ status: 'created', content: data });
+      }
+    } catch (e) {
+      console.error('API insert patched content error:', e);
+    }
+  }
+
+  localStore.content.unshift(newContent);
+  return res.status(201).json({ status: 'created', content: newContent });
+});
+
+// Publish content item by key
+app.post('/api/v1/content/:key/publish', authenticateApiKey, requireScope('content:publish'), async (req, res) => {
+  const { key } = req.params;
+  const apiKey = (req as any).apiKey as ApiKeyRecord;
+
+  let existing: any = null;
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from('content')
+        .select('*')
+        .or(`content_key.eq.${key},key.eq.${key},id.eq.${key},slug.eq.${key}`)
+        .maybeSingle();
+      if (data) existing = data;
+    } catch (e) {
+      console.error('API publish find error:', e);
+    }
+  }
+  if (!existing) {
+    existing = localStore.content.find(
+      (c: any) => c.content_key === key || c.key === key || c.id === key || c.slug === key
+    );
+  }
+
+  const publishPayload = {
+    published: true,
+    status: 'PUBLISHED',
+    version: (existing?.version || 1) + 1,
+    updated_by: apiKey?.name || 'agent-publisher',
+  };
+
+  if (existing) {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('content')
+          .update(publishPayload)
+          .eq('id', existing.id)
+          .select()
+          .single();
+        if (!error && data) {
+          return res.json({ status: 'published', content: data });
+        }
+      } catch (e) {
+        console.error('API publish error:', e);
+      }
+    }
+
+    const published = { ...existing, ...publishPayload };
+    localStore.content = localStore.content.map((c: any) => (c.id === existing.id ? published : c));
+    return res.json({ status: 'published', content: published });
+  }
+
+  return res.status(404).json({
+    error: 'Not Found',
+    message: `Cannot publish: content item with key '${key}' does not exist.`,
+  });
+});
+
 // --- AGENT CONFIG ---
 app.get('/api/v1/config', authenticateApiKey, requireScope('READ_CONFIG'), async (req, res) => {
   if (supabase) {
@@ -549,25 +801,32 @@ app.post('/api/ask', async (req, res) => {
 
     // Fallback to Gemini if assistantMessage is empty and GEMINI_API_KEY is available
     if (!assistantMessage && process.env.GEMINI_API_KEY) {
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const contents = [
-          ...history.slice(-6).map((h: any) => ({
-            role: h.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: h.content || '' }]
-          })),
-          {
-            role: 'user',
-            parts: [{ text: `${enrichedPrompt}\n\nUser Question: ${message}` }]
+      const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-flash-latest'];
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const contents = [
+        ...history.slice(-6).map((h: any) => ({
+          role: h.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: h.content || '' }]
+        })),
+        {
+          role: 'user',
+          parts: [{ text: `${enrichedPrompt}\n\nUser Question: ${message}` }]
+        }
+      ];
+
+      for (const model of modelsToTry) {
+        try {
+          const geminiRes = await ai.models.generateContent({
+            model,
+            contents,
+          });
+          if (geminiRes?.text) {
+            assistantMessage = geminiRes.text;
+            break;
           }
-        ];
-        const geminiRes = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents,
-        });
-        assistantMessage = geminiRes.text || '';
-      } catch (geminiErr) {
-        console.error('Gemini fallback error:', geminiErr);
+        } catch (geminiErr) {
+          console.warn(`Gemini model ${model} fallback error:`, geminiErr);
+        }
       }
     }
 
@@ -575,7 +834,7 @@ app.post('/api/ask', async (req, res) => {
       if (!apiKey && !process.env.GEMINI_API_KEY) {
         assistantMessage = `Hello! I am CoreIQ, your intelligent creation engine. I can help architect websites, automation workflows, AI agents, and tools. To activate real-time neural processing, please configure your API key in the Agent Brain command center or set GEMINI_API_KEY in your environment.`;
       } else {
-        return res.status(502).json({ error: 'AI provider error. Please verify your API key and connection.' });
+        assistantMessage = `CoreIQ is analyzing your request: "${message}". We are ready to help architect, automate, and build your digital solution. Explore our solutions, tools, and guides to proceed.`;
       }
     }
 

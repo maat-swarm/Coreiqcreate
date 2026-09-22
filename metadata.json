@@ -1,5 +1,5 @@
 {
-  "name": "Core IQ Create",
+  "name": "CoreIQ Create",
   "description": "CoreIQ Create — AI agents, custom apps, and automation built for your business. Deployed in days, not months.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

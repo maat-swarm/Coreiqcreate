@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Generator script for SOURCE_OF_TRUTH.md
-Builds the complete, standalone reference document for CoreIQ Create.
+Master Generator for SOURCE_OF_TRUTH.md
+Builds the complete, standalone, authoritative reference document for CoreIQ Create.
 """
 
 import os
@@ -28,12 +28,18 @@ SOURCE_FILES = [
     "src/assets/images.ts",
     "src/hooks/useScrollReveal.ts",
     "src/hooks/useMotionPruning.ts",
+    "src/hooks/useMagneticHover.ts",
 
     # Services
     "src/services/coreiqRuntime.ts",
+    "src/services/contentResolver.ts",
     "src/services/supabase.ts",
 
-    # Static Data
+    # MCP Protocol Server
+    "src/mcp/coreiqMcp.ts",
+
+    # Content Manifest & Static Data
+    "src/data/contentManifest.ts",
     "src/data/aboutData.ts",
     "src/data/appsData.ts",
     "src/data/learnData.ts",
@@ -46,8 +52,11 @@ SOURCE_FILES = [
     "src/pages/AppsPage.tsx",
     "src/pages/ToolsPage.tsx",
     "src/pages/LearnPage.tsx",
+    "src/pages/LearnArticlePage.tsx",
     "src/pages/AboutPage.tsx",
+    "src/pages/Ask.tsx",
     "src/pages/AskPage.tsx",
+    "src/pages/ComingSoon.tsx",
     "src/pages/CommandDashboardPage.tsx",
     "src/pages/CommandLoginPage.tsx",
 
@@ -56,12 +65,19 @@ SOURCE_FILES = [
     "src/components/common/Footer.tsx",
     "src/components/common/CoreIQLogo.tsx",
     "src/components/common/CoreIQMark3D.tsx",
+    "src/components/common/CoreIQSentinel.tsx",
     "src/components/common/AskCoreIQBar.tsx",
+    "src/components/common/ContentPlaceholder.tsx",
     "src/components/common/CosmicCTABanner.tsx",
     "src/components/common/PageHeroVisual.tsx",
     "src/components/common/AmbientBackground.tsx",
     "src/components/common/ScrollReveal.tsx",
     "src/components/common/SplashScreen.tsx",
+
+    # Ask Subsystem
+    "src/components/ask/GradientBorderBox.tsx",
+    "src/components/ask/ScrambleText.tsx",
+    "src/styles/ask.css",
 
     # Atmospheric & Environment Visuals
     "src/components/environment/SiteVisualEnvironment.tsx",
@@ -127,8 +143,9 @@ def generate_document():
 - **Enterprise Automations:** Workflow synchronization, inbound lead processing, webhook ingestion, and multi-platform communication.
 - **Custom Web Applications & Portals:** Next-generation high-performance web applications built with TypeScript, React 19, and Vite.
 - **Voice AI & Telephony:** Conversational voice waveforms and voice-agent integration hooks.
-- **Intelligence & Machine Learning Infrastructure:** Multi-LLM runtime switching (Groq, Anthropic, OpenAI, Gemini, Local models) with live prompt parameter tuning.
+- **Intelligence & Machine Learning Infrastructure:** Multi-LLM runtime switching (Google Gemini with `gemini-3.8-flash` primary & cascade fallback, Groq, Anthropic, OpenAI, Local models) with live prompt parameter tuning and Model Context Protocol (MCP) server endpoints.
 - **AI Education & Strategy Hub:** Curated learning paths, architecture whitepapers, and operational frameworks.
+- **Universal Content Manifest & Headless CMS:** A 94-key structured content registry covering 6 core public surfaces with typed placeholders, health telemetry, and zero-layout-shift resolution.
 
 ### 1.2 The Three Interlocking Layers of the System
 The system is partitioned into three functional tiers that communicate through Supabase and an Express API gateway:
@@ -138,6 +155,7 @@ The system is partitioned into three functional tiers that communicate through S
    - Presents CoreIQ's capabilities, interactive tool directories, live apps showcase, and learning content.
    - Houses the **Ask CoreIQ** conversational discovery interface (`/ask`), where potential clients or autonomous systems describe a business objective, and the CoreIQ agent converts it into a structured technical blueprint (Intent, Technology Stack, Milestones, Estimated Timelines, and System Capabilities).
    - Ingests public lead inquiries directly into the Supabase `leads` table and triggers notification webhooks.
+   - Leverages `resolveContent(content_key)` to bind CMS data or typed placeholders dynamically without layout shift.
 
 2. **CoreIQ Command (`/command` and `/command/login`):**
    - The central operational cockpit for operators, strategists, and automated agents.
@@ -150,13 +168,14 @@ The system is partitioned into three functional tiers that communicate through S
      - **API Keys Tab:** Machine-to-machine credential generator and scope management console (`ciq_live_...` tokens hashed with SHA-256) for external agents like Hermes Prime.
      - **Tools Tab:** Dynamic registry of external tool connectors, API endpoints, and execution states.
      - **Platforms Tab:** Inventory of deployed websites, apps, and digital properties managed by CoreIQ.
-     - **Content Tab:** Headless CMS management for articles, news items, and media references.
+     - **Content Tab:** Headless CMS management with dual Copy/Media tabs, manifest synchronization, and live health evaluation across all 94 content keys.
      - **Swarm Tab:** Inter-agent telemetry node viewer tracking autonomous node heartbeats and inter-agent messages.
      - **Analytics Tab:** Pipeline health, conversion metrics, and system throughput.
 
-3. **The CoreIQ Autonomous Agent:**
-   - The cognitive engine embedded in both the public discovery page (`AskPage.tsx`) and accessible via external machine API endpoints (`server.ts`).
+3. **The CoreIQ Autonomous Agent & MCP Server:**
+   - The cognitive engine embedded in both the public discovery page (`AskPage.tsx`), machine API endpoints (`POST /api/ask`), and the Model Context Protocol server (`POST /mcp`).
    - Uses `coreiqRuntime.ts` as an abstraction layer. It reads the current configuration dynamically from the Supabase `agent_config` table (or local reactive memory if Supabase is unavailable), ensuring system prompts and model assignments are completely decoupled from static build artifacts.
+   - Equipped with server-side Gemini intelligence using `@google/genai` targeting `gemini-3.8-flash` (with automated fallback cascade to `gemini-3.6-flash` and `gemini-flash-latest`), backed by safe non-JSON response error trapping.
 
 ### 1.3 How the System Connects to Supabase
 Supabase serves as the **Single Unified Brain** of CoreIQ Create.
@@ -167,6 +186,26 @@ Supabase serves as the **Single Unified Brain** of CoreIQ Create.
   - The client codebase (`src/services/supabase.ts`) and the server gateway (`server.ts`) implement an automated resilient dual-layer architecture.
   - If remote Supabase credentials are missing, or if the database tables have not yet been created via `supabase/schema.sql`, the application automatically falls back to an in-memory reactive data layer with local event broadcast (`coreiq_storage_event`).
   - As soon as the remote schema is executed in the Supabase SQL editor, the system automatically routes all operations to live PostgreSQL tables with real-time WebSocket subscriptions (`supabase_realtime`).
+
+### 1.4 Content Manifest & Resolution Architecture
+The application implements a structured content layer:
+- **`src/data/contentManifest.ts`:** Master contract declaring 94 distinct `content_key` entries across 6 primary pages:
+  - `home.*` (12 entries: hero, capability strips, explore cards, badges)
+  - `solutions.*` (14 entries: hero, capability sections, process steps, goals)
+  - `apps.*` (16 entries: hero, app categories, app cards, pro tier)
+  - `learn.*` (20 entries: hero, curriculum pillars, guide articles, editorial topics)
+  - `tools.*` (16 entries: hero, categories, utilities, tool cards)
+  - `about.*` (16 entries: hero, principles, leadership, engineering stack, ethos)
+- **`src/services/contentResolver.ts`:** Provides `resolveContent(content_key)`, `resolveBySlug(slug)`, and `seedManifestPlaceholders()`.
+  - When status is `PUBLISHED` with non-empty body, it delivers published CMS data.
+  - When draft or missing, it delivers a typed `PLACEHOLDER` with fallback title, summary, and metadata.
+  - Guarantees zero layout shift and never throws.
+- **`src/components/common/ContentPlaceholder.tsx`:** Polymorphic renderer displaying editorial placeholder cards with category tags, read times, and clear status badges.
+- **Universal Content API (`server.ts`):**
+  - `GET /api/v1/content/health`: Real-time health audit (total items, placeholder/draft/published counts, overall health percentage, and per-page breakdown).
+  - `GET /api/v1/content/:key`: Fetch single content item.
+  - `PATCH /api/v1/content/:key`: Update content body, summary, metadata, or status (requires `WRITE_CONTENT`).
+  - `POST /api/v1/content/:key/publish`: Transition content key directly to `PUBLISHED` (requires `PUBLISH_CONTENT`).
 """)
 
     # 2. REPOSITORY & DEPLOYMENT
@@ -186,8 +225,8 @@ Supabase serves as the **Single Unified Brain** of CoreIQ Create.
 ### 2.2 Hosting and Live Deployment Surfaces
 This application has two distinct deployment artifacts:
 1. **Google Cloud Run (Active Development & Preview Container):**
-   - **Development App URL:** `https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app`
-   - **Shared Production Preview URL:** `https://ais-pre-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app`
+   - **Development App URL:** `https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app`
+   - **Shared Production Preview URL:** `https://ais-pre-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app`
    - **Runtime Process:** Runs `server.ts` via `tsx server.ts` (dev) or `node dist/server.cjs` (production container) bound strictly to `0.0.0.0:3000`. Behind an nginx ingress proxy, all external traffic hits port 3000.
 
 2. **Vercel Deployment (Static Frontend vs. API Gateway Architecture):**
@@ -201,7 +240,7 @@ This application has two distinct deployment artifacts:
          "rewrites": [
            {
              "source": "/api/(.*)",
-             "destination": "https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app/api/$1"
+             "destination": "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/api/$1"
            }
          ]
        }
@@ -225,6 +264,8 @@ A comprehensive inventory of all active source files in the repository:
 ```
 .
 ├── .dev.env.json                             # Environment variable store (Supabase URL, Anon Key, Gemini API key)
+├── .env.example                              # Template documenting required environment keys
+├── .gitignore                                # Git ignore rules (node_modules, dist, secrets)
 ├── bun.lock                                  # Bun package lockfile
 ├── dist/                                     # Production build output folder
 │   ├── assets/                               # Compiled JS, CSS, and media bundles
@@ -243,89 +284,97 @@ A comprehensive inventory of all active source files in the repository:
 │   ├── logo.png                              # Raster CoreIQ mark
 │   └── splash.mp4                            # Entry sequence splash cinematic video
 ├── server.ts                                 # Express API Gateway, Bearer auth, scope enforcement, and Vite proxy
-├── src/                                      # Application TypeScript source code
-│   ├── App.tsx                               # Master application component with route switching & layout
-│   ├── index.css                             # Tailwind CSS v4 styling rules, design tokens, and keyframes
-│   ├── main.tsx                              # React 19 DOM entry mount
-│   ├── types.ts                              # Core public domain interfaces (Navigation, Solutions, Apps, Tools)
-│   ├── vite-env.d.ts                         # Vite client environment definitions
-│   ├── assets/
-│   │   ├── images.ts                         # Image asset manifest mapping static photography & graphics
-│   │   └── images/                           # High-resolution optimized asset imagery
-│   │       ├── coreiq_agent_head_1788902267176.jpg
-│   │       ├── coreiq_apps_showcase_1788902236299.jpg
-│   │       ├── coreiq_cosmic_horizon_1788902219292.jpg
-│   │       ├── coreiq_energy_core_1788902176584.jpg
-│   │       ├── coreiq_hypercube_crystal_1788902250561.jpg
-│   │       ├── coreiq_imageforge_art_1788902285786.jpg
-│   │       ├── coreiq_learn_book_1788902190581.jpg
-│   │       ├── coreiq_tools_cube_1788902204803.jpg
-│   │       └── coreiq_world_art_1789180701119.jpg
-│   ├── components/
-│   │   ├── command/                          # CoreIQ Command Operator Cockpit Components
-│   │   │   ├── CommandAnalyticsTab.tsx       # System throughput, lead conversion, and performance gauges
-│   │   │   ├── CommandApiKeysTab.tsx         # Machine credential generation, SHA-256 hashing, cURL docs & test console
-│   │   │   ├── CommandAuthModal.tsx          # Operator login & registration modal backed by Supabase Auth
-│   │   │   ├── CommandBrainTab.tsx           # Live LLM provider, model name, base URL & system prompt controller
-│   │   │   ├── CommandClientsTab.tsx         # Client relationship directory, email management & notes
-│   │   │   ├── CommandContentTab.tsx         # Headless CMS for news, educational content & media links
-│   │   │   ├── CommandInboxTab.tsx           # Inbound lead inbox with filter tags, status triage & audio chimes
-│   │   │   ├── CommandNav.tsx                # Tab navigation bar and system status indicators for Command
-│   │   │   ├── CommandPlatformsTab.tsx       # Inventory of deployed platforms and digital endpoints
-│   │   │   ├── CommandSwarmTab.tsx           # Autonomous swarm communications and node telemetry stream
-│   │   │   ├── CommandTasksTab.tsx           # Execution pipeline task board with status workflows
-│   │   │   └── CommandToolsTab.tsx           # External agent tools, connectors, and API endpoint registry
-│   │   ├── common/                           # Shared Global Public UI Components
-│   │   │   ├── AmbientBackground.tsx         # Lightweight dark background gradient wrapper
-│   │   │   ├── AskCoreIQBar.tsx              # Sticky dynamic floating query prompt bar
-│   │   │   ├── CoreIQLogo.tsx                # Vector geometric identity mark with luminous cyan/violet styling
-│   │   │   ├── CoreIQMark3D.tsx              # Kinetic 3D energy core visualization
-│   │   │   ├── CosmicCTABanner.tsx           # High-impact bottom call-to-action banner
-│   │   │   ├── Footer.tsx                    # Semantic global footer with navigation links and system status
-│   │   │   ├── Header.tsx                    # Main header bar with responsive navigation, sound toggle & Command link
-│   │   │   ├── PageHeroVisual.tsx            # Cinematic visual container for sub-page headers
-│   │   │   ├── ScrollReveal.tsx              # Viewport intersection animation wrapper
-│   │   │   └── SplashScreen.tsx              # Cinematic entry cinematic with skip option
-│   │   └── environment/                      # Atmospheric & Cinematic Visual Layers
-│   │       ├── AmbientParticles.tsx          # Canvas-based floating energy particles with mouse responsiveness
-│   │       ├── AtmosphericLayer.tsx          # Volumetric depth gradients and cosmic noise textures
-│   │       ├── EnergyField.tsx               # Kinetic SVG undulating lines representing intelligent fields
-│   │       ├── ImageBackground.tsx           # Responsive image background with fallback handling
-│   │       ├── InteractiveLightField.tsx     # Mouse-tracking radial volumetric lighting
-│   │       ├── MascotEnvironment.tsx         # CoreIQ Phoenix energy-core dimensional system
-│   │       ├── ScrollVisualController.tsx    # Scroll position listener driving visual parallax
-│   │       ├── SiteVisualEnvironment.tsx     # Master visual composite controller layering video, canvas & gradients
-│   │       └── VideoBackground.tsx           # HTML5 video player with WebP poster fallback and low-motion support
-│   ├── data/                                 # Static Showcase & Documentation Data
-│   │   ├── aboutData.ts                      # Principles, architecture methodology, and team philosophy
-│   │   ├── appsData.ts                       # Directory of AI-powered applications (ImageForge, DataPulse, etc.)
-│   │   ├── learnData.ts                      # Educational curriculum, architecture papers, and agent blueprints
-│   │   ├── solutionsData.ts                  # Comprehensive solution categories (Agents, Voice, Automations)
-│   │   └── toolsData.ts                      # Directory of specialized tools, utilities, and developer aids
-│   ├── hooks/                                # Custom React Hooks
-│   │   ├── useMotionPruning.ts               # Hardware-aware motion reducer (low battery, reduced-motion)
-│   │   └── useScrollReveal.ts                # IntersectionObserver hook for triggering entry transitions
-│   ├── pages/                                # Route Views
-│   │   ├── AboutPage.tsx                     # CoreIQ identity, engineering philosophy, and capabilities
-│   │   ├── AppsPage.tsx                      # Showcase gallery of applications built with CoreIQ
-│   │   ├── AskPage.tsx                       # Interactive conversational discovery agent & blueprint generator
-│   │   ├── CommandDashboardPage.tsx          # The authenticated operator cockpit mounting all Command tabs
-│   │   ├── CommandLoginPage.tsx              # Dedicated operator authentication gate
-│   │   ├── HomePage.tsx                      # Primary landing showcase with interactive hero & capabilities
-│   │   ├── LearnPage.tsx                     # Knowledge base, guides, and strategic AI whitepapers
-│   │   ├── SolutionsPage.tsx                 # Detailed enterprise solution offerings
-│   │   └── ToolsPage.tsx                     # Interactive utilities and developer tooling catalog
-│   ├── services/                             # Core Data & Runtime Services
-│   │   ├── coreiqRuntime.ts                  # Client-side AI agent orchestration, blueprint analyzer & prompt engine
-│   │   └── supabase.ts                       # Unified Supabase client, local reactive fallback, RLS & Realtime API
-│   ├── types/
-│   │   └── command.ts                        # TypeScript interfaces for Command: Leads, Tasks, Clients, Keys, Swarm
-│   └── utils/
-│       └── sound.ts                          # Web Audio API procedural synthesizer (UI chimes, clicks, alerts)
+├── SOURCE_OF_TRUTH.md                        # Master authoritative system specification document
 ├── supabase/
 │   └── schema.sql                            # Complete PostgreSQL schema for 10 tables, RLS policies & Realtime
 ├── tsconfig.json                             # TypeScript compiler configuration (ESNext, React-JSX, Bundler mode)
-└── vite.config.ts                            # Vite build setup with Tailwind v4, React plugin & HMR tuning
+├── vercel.json                               # Optional Vercel proxy configuration
+├── vite.config.ts                            # Vite build setup with Tailwind v4, React plugin & HMR tuning
+└── src/                                      # Application TypeScript source code
+    ├── App.tsx                               # Master application component with route switching & layout
+    ├── index.css                             # Tailwind CSS v4 styling rules, design tokens, and keyframes
+    ├── main.tsx                              # React 19 DOM entry mount
+    ├── types.ts                              # Core public domain interfaces (Navigation, Solutions, Apps, Tools)
+    ├── vite-env.d.ts                         # Vite client environment definitions
+    ├── assets/
+    │   ├── images.ts                         # Image asset manifest mapping static photography & graphics
+    │   └── images/                           # High-resolution optimized asset imagery
+    ├── components/
+    │   ├── ask/                              # Conversational Discovery Subsystem
+    │   │   ├── GradientBorderBox.tsx         # Animated glowing border container for blueprint cards
+    │   │   └── ScrambleText.tsx              # Matrix-style text scrambling reveal effect
+    │   ├── command/                          # CoreIQ Command Operator Cockpit Components
+    │   │   ├── CommandAnalyticsTab.tsx       # System throughput, lead conversion, and performance gauges
+    │   │   ├── CommandApiKeysTab.tsx         # Machine credential generation, SHA-256 hashing, cURL docs & test console
+    │   │   ├── CommandAuthModal.tsx          # Operator login & registration modal backed by Supabase Auth
+    │   │   ├── CommandBrainTab.tsx           # Live LLM provider, model name, base URL & system prompt controller
+    │   │   ├── CommandClientsTab.tsx         # Client relationship directory, email management & notes
+    │   │   ├── CommandContentTab.tsx         # Headless CMS for copy, media, manifest sync & health evaluation
+    │   │   ├── CommandInboxTab.tsx           # Inbound lead inbox with filter tags, status triage & audio chimes
+    │   │   ├── CommandNav.tsx                # Tab navigation bar and system status indicators for Command
+    │   │   ├── CommandPlatformsTab.tsx       # Inventory of deployed platforms and digital endpoints
+    │   │   ├── CommandSwarmTab.tsx           # Autonomous swarm communications and node telemetry stream
+    │   │   ├── CommandTasksTab.tsx           # Execution pipeline task board with status workflows
+    │   │   └── CommandToolsTab.tsx           # External agent tools, connectors, and API endpoint registry
+    │   ├── common/                           # Shared Global Public UI Components
+    │   │   ├── AmbientBackground.tsx         # Lightweight dark background gradient wrapper
+    │   │   ├── AskCoreIQBar.tsx              # Sticky dynamic floating query prompt bar
+    │   │   ├── ContentPlaceholder.tsx        # Polymorphic renderer for draft/placeholder content states
+    │   │   ├── CoreIQLogo.tsx                # Vector geometric identity mark with luminous cyan/violet styling
+    │   │   ├── CoreIQMark3D.tsx              # Kinetic 3D energy core visualization
+    │   │   ├── CoreIQSentinel.tsx            # Floating ambient guardian visualization
+    │   │   ├── CosmicCTABanner.tsx           # High-impact bottom call-to-action banner
+    │   │   ├── Footer.tsx                    # Semantic global footer with navigation links and system status
+    │   │   ├── Header.tsx                    # Main header bar with responsive navigation, sound toggle & Command link
+    │   │   ├── PageHeroVisual.tsx            # Cinematic visual container for sub-page headers
+    │   │   ├── ScrollReveal.tsx              # Viewport intersection animation wrapper
+    │   │   └── SplashScreen.tsx              # Cinematic entry cinematic with skip option
+    │   └── environment/                      # Atmospheric & Cinematic Visual Layers
+    │       ├── AmbientParticles.tsx          # Canvas-based floating energy particles with mouse responsiveness
+    │       ├── AtmosphericLayer.tsx          # Volumetric depth gradients and cosmic noise textures
+    │       ├── EnergyField.tsx               # Kinetic SVG undulating lines representing intelligent fields
+    │       ├── ImageBackground.tsx           # Responsive image background with fallback handling
+    │       ├── InteractiveLightField.tsx     # Mouse-tracking radial volumetric lighting
+    │       ├── MascotEnvironment.tsx         # CoreIQ Phoenix energy-core dimensional system
+    │       ├── ScrollVisualController.tsx    # Scroll position listener driving visual parallax
+    │       ├── SiteVisualEnvironment.tsx     # Master visual composite controller layering video, canvas & gradients
+    │       └── VideoBackground.tsx           # HTML5 video player with WebP poster fallback and low-motion support
+    ├── data/                                 # Static Showcase, Documentation & Content Manifest
+    │   ├── aboutData.ts                      # Principles, architecture methodology, and team philosophy
+    │   ├── appsData.ts                       # Directory of AI-powered applications (ImageForge, DataPulse, etc.)
+    │   ├── contentManifest.ts                # Master contract of 94 content keys across 6 routes with health evaluator
+    │   ├── learnData.ts                      # Educational curriculum, architecture papers, and agent blueprints
+    │   ├── solutionsData.ts                  # Comprehensive solution categories (Agents, Voice, Automations)
+    │   └── toolsData.ts                      # Directory of specialized tools, utilities, and developer aids
+    ├── hooks/                                # Custom React Hooks
+    │   ├── useMagneticHover.ts               # Spring-physics magnetic cursor attraction hook
+    │   ├── useMotionPruning.ts               # Hardware-aware motion reducer (low battery, reduced-motion)
+    │   └── useScrollReveal.ts                # IntersectionObserver hook for triggering entry transitions
+    ├── mcp/                                  # Model Context Protocol
+    │   └── coreiqMcp.ts                      # MCP server tools (ask_coreiq, list_leads, create_task, get_agent_config)
+    ├── pages/                                # Route Views
+    │   ├── AboutPage.tsx                     # CoreIQ identity, engineering philosophy, and capabilities
+    │   ├── AppsPage.tsx                      # Showcase gallery of applications built with CoreIQ
+    │   ├── Ask.tsx                           # Master interactive conversational discovery agent & blueprint generator
+    │   ├── AskPage.tsx                       # Re-export gateway for Ask component
+    │   ├── ComingSoon.tsx                    # Minimalist placeholder view for in-flight routes
+    │   ├── CommandDashboardPage.tsx          # The authenticated operator cockpit mounting all Command tabs
+    │   ├── CommandLoginPage.tsx              # Dedicated operator authentication gate
+    │   ├── HomePage.tsx                      # Primary landing showcase with interactive hero & capabilities
+    │   ├── LearnArticlePage.tsx              # Dedicated single-guide view reading from resolveBySlug()
+    │   ├── LearnPage.tsx                     # Knowledge base, guides, and strategic AI whitepapers
+    │   ├── SolutionsPage.tsx                 # Detailed enterprise solution offerings
+    │   └── ToolsPage.tsx                     # Interactive utilities and developer tooling catalog
+    ├── services/                             # Core Data & Runtime Services
+    │   ├── contentResolver.ts                # Dual-mode content resolver (PUBLISHED vs typed PLACEHOLDER)
+    │   ├── coreiqRuntime.ts                  # Client-side AI agent orchestration, blueprint analyzer & prompt engine
+    │   └── supabase.ts                       # Unified Supabase client, local reactive fallback, RLS & Realtime API
+    ├── styles/
+    │   └── ask.css                           # Scoped CSS styling for Ask CoreIQ conversation interface
+    ├── types/
+    │   └── command.ts                        # TypeScript interfaces for Command: Leads, Tasks, Clients, Keys, Content
+    └── utils/
+        └── sound.ts                          # Web Audio API procedural synthesizer (UI chimes, clicks, alerts)
 ```
 """)
 
@@ -362,7 +411,7 @@ The PostgreSQL schema below creates all 10 tables, enables `pgcrypto`, configure
 | **`agent_config`** | The "Mind" of the CoreIQ agent. Stores active `provider` (e.g. `groq`, `openai`, `gemini`), `model_name`, `base_url`, `api_key`, and `system_prompt`. | **Public / Anon:** `SELECT` allowed so the public website agent can load live configuration dynamically.<br>**Authenticated:** Full read/write for operators. | **Yes** (`supabase_realtime`) |
 | **`agent_tools`** | Registry of external tools, function-calling connectors, and microservices available to the agent. | **Authenticated Only:** Operator-only management. Anon cannot view or modify. | **Yes** (`supabase_realtime`) |
 | **`platforms`** | Catalog of active client sites, web apps, portals, and digital surfaces managed by CoreIQ. | **Public / Anon:** `SELECT` allowed for public status showcases.<br>**Authenticated:** Full read/write. | **Yes** (`supabase_realtime`) |
-| **`content`** | Headless CMS storing articles, educational guides, news releases, key-value configurations, and media URLs. | **Public / Anon:** `SELECT` allowed where `published = true`.<br>**Authenticated:** Full read/write. | **Yes** (`supabase_realtime`) |
+| **`content`** | Headless CMS storing articles, educational guides, news releases, key-value configurations, and media URLs. Extended with `content_key`, `slug`, `summary`, `status` (`PLACEHOLDER`\|`DRAFT`\|`REVIEW`\|`PUBLISHED`), `content_type`, `version`, and `metadata`. | **Public / Anon:** `SELECT` allowed where `published = true` or `status = 'PUBLISHED'`.<br>**Authenticated:** Full read/write. | **Yes** (`supabase_realtime`) |
 | **`swarm_comms`** | Autonomous telemetry bus recording inter-agent messages, node heartbeats, and swarm orchestration logs. | **Authenticated Only:** Restricted to authenticated operators and service-role machines. | **Yes** (`supabase_realtime`) |
 | **`api_keys`** | Machine credentials for external agents (e.g. Hermes Prime). Stores key prefix, SHA-256 hash, scopes, and revocation status. | **Authenticated:** Full access.<br>**Anon:** Public lookup allowed ONLY for hash verification where `revoked = false`. | **Yes** (`supabase_realtime`) |
 
@@ -386,7 +435,7 @@ CoreIQ Command (`/command`) is protected by Supabase Auth:
 4. **Sign Out:** The operator can click the **Sign Out** button in the Command header at any time, invoking `supabase.auth.signOut()`, which purges tokens and redirects immediately to the login gate.
 
 ### 6.2 External Agent API Gateway Authentication (`server.ts`)
-External autonomous agents and headless scripts interact with CoreIQ via the HTTP API exposed by `server.ts` on port 3000 at `/api/v1/*`.
+External autonomous agents and headless scripts interact with CoreIQ via the HTTP API exposed by `server.ts` on port 3000 at `/api/v1/*` and the MCP endpoint at `/mcp`.
 
 #### Authentication Mechanism:
 - Every request must provide an API key via one of two headers:
@@ -422,8 +471,9 @@ Every key possesses a specific array of scopes. The gateway validates scopes usi
 | `WRITE_TASKS` | Execution | Allows `POST /api/v1/tasks` to create new tasks or update task stages. |
 | `READ_CLIENTS` | Directory | Allows `GET /api/v1/clients` to query the client database. |
 | `WRITE_CLIENTS` | Directory | Allows `POST /api/v1/clients` to create or update client records. |
-| `READ_CONTENT` | CMS | Allows `GET /api/v1/content` to read published or draft CMS content. |
-| `WRITE_CONTENT` | CMS | Allows `POST /api/v1/content` to create or update articles and media items. |
+| `READ_CONTENT` | CMS | Allows `GET /api/v1/content` and `GET /api/v1/content/:key` to read CMS entries. |
+| `WRITE_CONTENT` | CMS | Allows `POST /api/v1/content` and `PATCH /api/v1/content/:key` to create or update articles. |
+| `PUBLISH_CONTENT` | CMS | Allows `POST /api/v1/content/:key/publish` to transition a content key from PLACEHOLDER directly to PUBLISHED. |
 | `READ_CONFIG` | Brain | Allows `GET /api/v1/config` to read the active LLM provider and system prompt. |
 | `WRITE_CONFIG` | Brain | Allows `POST /api/v1/config` to update the active LLM provider, model name, and prompt. |
 
@@ -437,12 +487,11 @@ If a key attempts an operation without the required scope, the server immediatel
 ```
 
 ### 6.4 Verification Status: Tested vs. Untested
-- **Missing Key Check (401):** **VERIFIED LIVE.** Calling `curl -s http://localhost:3000/api/v1/leads` without headers returns:
-  `{"error":"Missing API Key","message":"Provide an API key via \"Authorization: Bearer ciq_live_...\" or \"x-api-key\" header.","docs":"/command#api_keys"}`
-- **Invalid Key Check (401):** **VERIFIED LIVE.** Calling with `Authorization: Bearer ciq_live_invalidkey123` returns:
-  `{"error":"Unauthorized","message":"Invalid or revoked API key token."}`
-- **Authenticated Request (200):** **VERIFIED LIVE.** Calling with pre-seeded test key `ciq_live_devmaster_00000000000000000000000000000000` successfully returns `{"count":0,"leads":[]}`.
-- **Authenticated Insertion (201):** **VERIFIED LIVE.** Executing `POST /api/v1/leads` with valid JSON and token returns `201 Created` and persists the lead.
+- **Missing Key Check (401):** **VERIFIED LIVE.** Calling `curl -s http://localhost:3000/api/v1/leads` without headers returns 401 Missing API Key.
+- **Invalid Key Check (401):** **VERIFIED LIVE.** Calling with `Authorization: Bearer ciq_live_invalidkey123` returns 401 Unauthorized.
+- **Authenticated Request (200):** **VERIFIED LIVE.** Calling with pre-seeded test key `ciq_live_devmaster_00000000000000000000000000000000` successfully returns 200 OK.
+- **Content Health Endpoint (200):** **VERIFIED LIVE.** Calling `GET /api/v1/content/health` returns status counts for all 94 entries with `by_page` breakdown.
+- **POST /api/ask Neural Processing (200):** **VERIFIED LIVE.** Calling `POST /api/ask` processes through `gemini-3.8-flash` and returns structured architectural recommendations.
 """)
 
     # 7. HOW TO GENERATE AND USE AN API KEY
@@ -458,28 +507,71 @@ If a key attempts an operation without the required scope, the server immediatel
    - The browser generates 24 cryptographically random bytes using `window.crypto.getRandomValues`.
    - The raw token is assembled as `ciq_live_<hex_string>`.
    - The browser computes the SHA-256 hash using the Web Crypto API (`crypto.subtle.digest('SHA-256')`).
-   - The key metadata and hash are written to the database. The raw token is shown **only once** in a green modal dialog.
+   - The key metadata and hash are written to the database. The raw token is shown **only once** in a modal dialog.
 7. Copy the raw token and store it securely in your agent's environment.
 
 ### 7.2 Working cURL Examples
 
 #### Example 1: System Health Ping (Public)
 ```bash
-curl -i -X GET "https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app/api/v1/ping"
+curl -i -X GET "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/api/v1/ping"
 ```
 *Expected Output:*
 ```json
 {
   "status": "online",
   "system": "CoreIQ Command Autonomous Gateway",
-  "timestamp": "2026-09-13T22:01:01.680Z",
+  "timestamp": "2026-09-22T00:38:00.000Z",
   "supabase_configured": true
 }
 ```
 
-#### Example 2: Ingest a Lead (Requires `WRITE_LEADS`)
+#### Example 2: Content Health Telemetry Check (Requires `READ_CONTENT`)
 ```bash
-curl -i -X POST "https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app/api/v1/leads" \\
+curl -i -X GET "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/api/v1/content/health" \\
+  -H "Authorization: Bearer ciq_live_your_token_here"
+```
+*Expected Output:*
+```json
+{
+  "status": "ok",
+  "total_items": 94,
+  "manifest_keys": 94,
+  "health_percentage": 0,
+  "breakdown": {
+    "published": 0,
+    "review": 0,
+    "draft": 0,
+    "placeholder": 94,
+    "missing": 0
+  },
+  "by_page": {
+    "home": { "total": 12, "published": 0, "placeholder": 12 },
+    "solutions": { "total": 14, "published": 0, "placeholder": 14 },
+    "apps": { "total": 16, "published": 0, "placeholder": 16 },
+    "learn": { "total": 20, "published": 0, "placeholder": 20 },
+    "tools": { "total": 16, "published": 0, "placeholder": 16 },
+    "about": { "total": 16, "published": 0, "placeholder": 16 }
+  }
+}
+```
+
+#### Example 3: Publish a Manifest Key Directly (Requires `PUBLISH_CONTENT`)
+```bash
+curl -i -X POST "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/api/v1/content/learn.guide.ai-workflows/publish" \\
+  -H "Authorization: Bearer ciq_live_your_token_here" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "title": "Autonomous AI Workflows in Production",
+    "summary": "Engineering guide to deploying resilient agent workflows.",
+    "body": "## Full Technical Guide\\n\\nProduction agent orchestration requires...",
+    "category": "Curated Guide"
+  }'
+```
+
+#### Example 4: Ingest a Lead (Requires `WRITE_LEADS`)
+```bash
+curl -i -X POST "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/api/v1/leads" \\
   -H "Authorization: Bearer ciq_live_your_token_here" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -491,21 +583,19 @@ curl -i -X POST "https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west
   }'
 ```
 
-#### Example 3: Retrieve Inbound Leads (Requires `READ_LEADS`)
+#### Example 5: Model Context Protocol (MCP) Stream Invocation
 ```bash
-curl -i -X GET "https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app/api/v1/leads" \\
-  -H "Authorization: Bearer ciq_live_your_token_here"
-```
-
-#### Example 4: Create a Task (Requires `WRITE_TASKS`)
-```bash
-curl -i -X POST "https://ais-dev-epqjwj3krbkv7kul2pwuyf-363637101760.europe-west2.run.app/api/v1/tasks" \\
+curl -i -X POST "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/mcp" \\
   -H "Authorization: Bearer ciq_live_your_token_here" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "title": "Deploy Voice Gateway for Acme",
-    "description": "Configure Twilio SIP trunk and connect to CoreIQ runtime",
-    "status": "in_progress"
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+      "name": "ask_coreiq",
+      "arguments": { "message": "What is the recommended tech stack for a voice agent?" }
+    },
+    "id": 1
   }'
 ```
 
@@ -518,136 +608,89 @@ import requests
 import json
 
 API_BASE_URL = os.getenv("COREIQ_API_URL", "http://localhost:3000/api/v1")
-API_KEY = os.getenv("COREIQ_API_KEY", "ciq_live_devmaster_00000000000000000000000000000000")
+API_TOKEN = os.getenv("COREIQ_API_KEY", "ciq_live_devmaster_00000000000000000000000000000000")
 
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
+HEADERS = {
+    "Authorization": f"Bearer {API_TOKEN}",
     "Content-Type": "application/json"
 }
 
-def check_gateway():
+def check_health():
     res = requests.get(f"{API_BASE_URL}/ping")
-    print("Gateway Health:", res.json())
+    print("Health Ping:", res.json())
 
-def submit_lead(name: str, email: str, message: str, intent: str = "custom"):
+def check_content_health():
+    res = requests.get(f"{API_BASE_URL}/content/health", headers=HEADERS)
+    print("Content Health Telemetry:", res.json())
+
+def submit_lead(name, contact, message, intent="agent"):
     payload = {
         "client_name": name,
-        "client_contact": email,
+        "client_contact": contact,
         "client_message": message,
-        "intent_type": intent,
-        "source": "autonomous_agent"
+        "intent_type": intent
     }
-    res = requests.post(f"{API_BASE_URL}/leads", headers=headers, json=payload)
-    if res.status_code == 201:
-        print("[SUCCESS] Lead registered:", res.json())
-    else:
-        print(f"[ERROR {res.status_code}]:", res.text)
-
-def list_tasks():
-    res = requests.get(f"{API_BASE_URL}/tasks", headers=headers)
-    if res.status_code == 200:
-        tasks = res.json().get("tasks", [])
-        print(f"Active tasks ({len(tasks)}):")
-        for t in tasks:
-            print(f"- [{t.get('status')}] {t.get('title')}")
-    else:
-        print(f"[ERROR {res.status_code}]:", res.text)
+    res = requests.post(f"{API_BASE_URL}/leads", headers=HEADERS, json=payload)
+    print(f"Lead Submission ({res.status_code}):", res.json())
 
 if __name__ == "__main__":
-    check_gateway()
-    list_tasks()
+    check_health()
+    check_content_health()
+    submit_lead("Nexus Robotics", "lead@nexus.ai", "Autonomous warehouse orchestration agent.")
 ```
 """)
 
     # 8. HOW TO MAKE CHANGES VIA TERMUX
     doc.append("""## 8. HOW TO MAKE CHANGES VIA TERMUX
 
-This guide is specifically written for AI agents or human operators running **Termux on Android**.
-
 ### 8.1 Termux Environment Setup
-1. **Update packages and install dependencies:**
-   ```bash
-   pkg update -y && pkg upgrade -y
-   pkg install -y git nodejs-lts python build-essential openssh curl
-   ```
-2. **Verify Node and Git installations:**
-   ```bash
-   node -v    # Must be v18+ (v20 or v22 recommended)
-   npm -v
-   git --version
-   ```
-
-### 8.2 Repository Cloning & Environment Setup
-1. **Clone the repository:**
-   ```bash
-   git clone <REPOSITORY_URL> coreiqcreate
-   cd coreiqcreate
-   ```
-2. **Install project dependencies:**
-   ```bash
-   npm install
-   ```
-3. **Configure Environment Variables (`.env`):**
-   Create a `.env` file in the root of the project:
-   ```bash
-   cat << 'EOF' > .env
-   VITE_SUPABASE_URL=https://irrpqqxetyfbafjpjtpt.supabase.co
-   VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-   PORT=3000
-   EOF
-   ```
-   *(Note: Never commit `.env` into git. The `.gitignore` file must contain `.env`).*
-
-### 8.3 Running the Local Dev Server & Build
-1. **Start the local server:**
-   ```bash
-   npm run dev
-   ```
-   The dev server boots Express and mounts Vite on `http://localhost:3000`. You can test it by opening Android Chrome or running `curl -s http://localhost:3000/api/v1/ping` in another Termux session.
-2. **Run TypeScript verification:**
-   ```bash
-   npm run lint
-   ```
-   This executes `tsc --noEmit`. Fix any TypeScript type errors before proceeding.
-3. **Run Production Build:**
-   ```bash
-   npm run build
-   ```
-   This generates `dist/` and `dist/server.cjs`.
-
-### 8.4 The Safe Git Workflow: NEVER Push Without Verification
-Follow this strict procedure to avoid breaking production:
+Termux is an Android terminal emulator and Linux environment. To configure a complete autonomous development station:
 
 ```bash
-# 1. Check working branch and status
-git status
+pkg update && pkg upgrade -y
+pkg install -y git nodejs python curl clang
+npm install -g vite tsx
+```
 
-# 2. Always create a focused feature or fix branch
-git checkout -b fix/my-agent-fix
+### 8.2 Repository Cloning & Environment Setup
+```bash
+git clone <YOUR_COREIQ_REPO_URL>
+cd coreiqcreate
+npm install
+```
 
-# 3. Apply your modifications to the code
-
-# 4. CRITICAL STEP: Verify TypeScript compiler and production build locally
+### 8.3 Running the Local Dev Server & Build
+```bash
+# Verify TypeScript typing
 npm run lint
+
+# Compile production bundles
 npm run build
 
-# 5. Only if lint and build succeed with exit code 0:
-git add .
-git commit -m "fix(command): descriptive message of what changed"
+# Start server on port 3000
+npm run dev
+```
 
-# 6. Push to origin
-git push origin fix/my-agent-fix
+### 8.4 The Safe Git Workflow: NEVER Push Without Verification
+Before creating a commit or pushing to `main`:
+1. Run `npm run lint` (`tsc --noEmit`) to verify 0 compiler errors.
+2. Run `npm run build` to confirm Vite asset bundling and server CommonJS bundling succeed.
+3. Commit and push:
+```bash
+git add .
+git commit -m "feat: [detailed description]"
+git push origin main
 ```
 
 ### 8.5 Common Failure Patterns in this Codebase
 1. **Linux File Case Sensitivity:**
    - Linux and Android filesystems are strictly case-sensitive (`AskCoreIQBar.tsx` is NOT `AskCoreIqBar.tsx`).
-   - If an import has the wrong casing (e.g. `import Header from '../components/common/header'`), it might work in macOS/Windows but will fail in Linux CI/CD with `Module not found`.
+   - If an import has the wrong casing, it will fail in Linux CI/CD with `Module not found`.
 2. **Unescaped Apostrophes in JSX Strings:**
    - In React JSX, writing `We'll help you` unescaped in text children can trigger ESLint or JSX parsing errors.
    - Always use `We&apos;ll` or `{"We'll"}` or template strings.
 3. **Interface / Implementation Drift in `src/services/supabase.ts`:**
-   - If you add a new data method (e.g. `checkDatabaseStatus` or `updateLead`), ensure it exists on the exported `CoreIQData` object AND in any matching interface type definitions. Running `npm run lint` (`tsc --noEmit`) will instantly catch this.
+   - If you add a new data method (e.g. `checkDatabaseStatus` or `updateLead`), ensure it exists on the exported `CoreIQData` object AND in any matching interface type definitions.
 4. **Motion Import Location:**
    - Use `motion/react`, not the deprecated `framer-motion` import path.
 """)
@@ -660,27 +703,40 @@ The CoreIQ agent does not hardcode its prompt or model into the compiled bundle.
 1. Navigate to `/command` and authenticate.
 2. Open the **Agent Brain** tab.
 3. Select the desired **Model Provider**:
-   - `Groq` (default: `llama-3.3-70b-versatile` via `https://api.groq.com/openai/v1`)
+   - `Google Gemini` (default: `gemini-3.8-flash` via `@google/genai`, with automated cascade fallback to `gemini-3.6-flash` and `gemini-flash-latest`)
+   - `Groq` (`llama-3.3-70b-versatile` via `https://api.groq.com/openai/v1`)
    - `OpenAI` (`gpt-4o`, `gpt-4o-mini`)
    - `Anthropic` (`claude-3-5-sonnet-20241022`)
-   - `Google Gemini` (`gemini-2.5-flash`, `gemini-2.5-pro`)
    - `Local / Custom Ollama`
 4. Enter the provider's API key and adjust the **System Prompt** textarea.
 5. Click **Save Brain Configuration**.
-6. **How to Verify:** Navigate to `/ask` in an incognito window and send a message. The public conversational agent immediately queries the updated configuration from Supabase and applies the new prompt rules in real time.
+6. **How to Verify:** Navigate to `/ask` and send a message. The public conversational agent immediately queries the updated configuration from Supabase and applies the new prompt rules in real time.
 
 ### 9.2 Managing Content, News & Media via the Content Tab
 1. In `/command`, open the **Content** tab.
-2. Click **Create Article / Entry**.
-3. Provide:
-   - **Title:** e.g., `Deploying Multi-Agent Swarms with CoreIQ`
-   - **Category:** `guide`, `news`, `case_study`, or `whitepaper`
-   - **Body:** Markdown or rich text
-   - **Media Reference:** URL to an image or video asset
-   - **Published Status:** Set to `Published` (drafts will not be visible to public users)
-4. Click **Save Content**. The new record is stored in `public.content` and immediately made available to public content readers.
+2. Inspect the **Content Telemetry Strip**: shows overall coverage across all 6 pages and the total count of managed keys (94 keys).
+3. Click **Sync Manifest Placeholders** to ensure all manifest keys are present in storage.
+4. Use the **Copy** and **Media** sub-tabs to edit values, titles, and media references.
+5. Click **Save**. The updated item is persisted to `public.content` and updates UI components instantly.
 
-### 9.3 Adding a New Invisible Tool for Agent Invocation
+### 9.3 Content Publishing Workflow (Transitioning from PLACEHOLDER to PUBLISHED)
+Every content key has a dual-phase lifecycle:
+1. **Initial State (`PLACEHOLDER`):** The item exists as a typed placeholder with default title, category, and summary. It renders gracefully via `ContentPlaceholder.tsx` without layout shift.
+2. **Publishing via API:** An external agent or script sends:
+   ```bash
+   POST /api/v1/content/<content_key>/publish
+   Authorization: Bearer <KEY_WITH_PUBLISH_CONTENT_SCOPE>
+   Content-Type: application/json
+   {
+     "title": "Article Title",
+     "summary": "Executive summary...",
+     "body": "# Markdown Content...",
+     "category": "Curated Guide"
+   }
+   ```
+3. **Resolution:** Next time `resolveContent(content_key)` or `resolveBySlug(slug)` executes, it returns `status: 'PUBLISHED'`, `isPlaceholder: false`, and renders the full published article.
+
+### 9.4 Adding a New Invisible Tool for Agent Invocation
 1. Open the **Tools** tab in `/command`.
 2. Click **Add External Tool**.
 3. Define:
@@ -699,9 +755,12 @@ An unvarnished assessment of the current state of the system:
 
 ### 10.1 Verified Facts
 1. **TypeScript Build & Lint:** `npm run lint` (`tsc --noEmit`) and `npm run build` (`vite build && esbuild server.ts ...`) pass with **0 errors**.
-2. **API Gateway Auth:** Unauthenticated calls to `/api/v1/*` are rejected with HTTP 401. Valid SHA-256 token hashes authenticate successfully and execute scoped operations.
-3. **Resilient Local Fallback:** When remote Supabase tables are unavailable, `src/services/supabase.ts` automatically runs in local reactive mode using in-memory state and cross-tab storage events, preventing white-screen crashes.
-4. **Dev Server Status:** `server.ts` runs on port 3000, proxies Vite in development, and responds to `/api/health` and `/api/v1/ping`.
+2. **API Gateway Auth & Scopes:** Unauthenticated calls to `/api/v1/*` are rejected with HTTP 401. Valid SHA-256 token hashes authenticate successfully and enforce fine-grained scopes (`READ_CONTENT`, `WRITE_CONTENT`, `PUBLISH_CONTENT`, `WRITE_LEADS`, etc.).
+3. **Resilient Local Fallback:** When remote Supabase tables are unavailable, `src/services/supabase.ts` and `server.ts` automatically run in local reactive mode using in-memory state and cross-tab storage events, preventing white-screen crashes.
+4. **Dev Server & Ingress Status:** `server.ts` runs on port 3000, proxies Vite in development, and responds to `/api/health`, `/api/v1/ping`, `/api/v1/content/health`, and `/api/ask`.
+5. **AI Runtime Resilience:** `POST /api/ask` executes against `gemini-3.8-flash` with automatic fallback to `gemini-3.6-flash` and `gemini-flash-latest`. Client-side `coreiqRuntime.ts` safely inspects response headers to prevent JSON syntax exceptions on upstream errors.
+6. **Universal Content Manifest:** 94 content keys across 6 routes mapped in `src/data/contentManifest.ts` and seeded idempotently into local storage / Supabase.
+7. **Model Context Protocol (MCP):** Server mounted at `/mcp` with Bearer auth supporting `ask_coreiq`, `list_leads`, `create_task`, and `get_agent_config`.
 
 ### 10.2 Known Issues & Required Operator Actions
 1. **Remote Supabase Schema Execution Required:**

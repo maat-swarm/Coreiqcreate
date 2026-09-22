@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowRight, 
   Clock, 
@@ -12,13 +12,24 @@ import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
 import { CosmicCTABanner } from '../components/common/CosmicCTABanner';
 import { PageHeroVisual } from '../components/common/PageHeroVisual';
 import { ScrollReveal } from '../components/common/ScrollReveal';
+import { ContentPlaceholder } from '../components/common/ContentPlaceholder';
 import { NavRoute } from '../types';
-import { LEARN_TOPICS, LEARN_CATEGORIES, FOUR_PILLARS } from '../data/learnData';
+import { LEARN_CATEGORIES, FOUR_PILLARS } from '../data/learnData';
+import { resolveContent, seedManifestPlaceholders, ResolvedContent } from '../services/contentResolver';
 
 interface LearnPageProps {
   onNavigate: (route: NavRoute) => void;
   onAsk: (query: string) => void;
 }
+
+const MANIFEST_GUIDE_KEYS = [
+  'learn.guide.ai-workflows',
+  'learn.guide.prompt-engineering',
+  'learn.guide.automation',
+  'learn.guide.agents',
+  'learn.guide.ai-tools',
+  'learn.guide.workflows',
+];
 
 const EDITORIAL_TOPICS = [
   { num: '01', label: 'AI News', query: 'What are the latest AI news and updates?' },
@@ -35,10 +46,40 @@ const EDITORIAL_TOPICS = [
 
 export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [resolvedGuides, setResolvedGuides] = useState<ResolvedContent[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    seedManifestPlaceholders().then(() => {
+      Promise.all(MANIFEST_GUIDE_KEYS.map((k) => resolveContent(k))).then((items) => {
+        if (isMounted) setResolvedGuides(items);
+      });
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const displayedGuides: ResolvedContent[] = resolvedGuides.length > 0
+    ? resolvedGuides
+    : MANIFEST_GUIDE_KEYS.map((key) => {
+        const slug = key.replace('learn.guide.', '');
+        return {
+          content_key: key,
+          status: 'PLACEHOLDER' as const,
+          content_type: 'guide' as const,
+          title: slug.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' '),
+          summary: 'Content being prepared.',
+          body: null,
+          slug,
+          category: 'Curated Guide',
+          isPlaceholder: true,
+        };
+      });
 
   const filteredTopics = selectedCategory === 'All'
-    ? LEARN_TOPICS
-    : LEARN_TOPICS.filter(t => t.category === selectedCategory);
+    ? displayedGuides
+    : displayedGuides.filter(t => (t.category || 'General') === selectedCategory);
 
   const learnPills = [
     { label: 'Browse all', query: 'Show me all available Core IQ learning guides' },
@@ -123,8 +164,8 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
 
               <div className="pt-2">
                 <button
-                  onClick={() => onAsk('Guide: How to turn an AI idea into a useful workflow')}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all duration-200"
+                  onClick={() => onNavigate('learn/ai-workflows' as NavRoute)}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all duration-200 cursor-pointer"
                 >
                   <span>Read the guide</span>
                   <ArrowRight className="w-4 h-4" />
@@ -302,42 +343,60 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
 
         {/* Learning Guides Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTopics.map((topic) => (
-            <div
-              key={topic.id}
-              onClick={() => onAsk(`Teach me about: ${topic.title}. Explain key concepts and practical execution.`)}
-              className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-72 relative border border-cyan-500/15"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                    {topic.category}
+          {filteredTopics.map((topic) => {
+            const isPublished = topic.status === 'PUBLISHED' && Boolean(topic.body);
+            const targetSlug = topic.slug || topic.content_key.replace('learn.guide.', '');
+
+            if (!isPublished) {
+              return (
+                <ContentPlaceholder
+                  key={topic.content_key}
+                  title={topic.title}
+                  category={topic.category || 'Curated Guide'}
+                  contentKey={topic.content_key}
+                  slug={targetSlug}
+                  onClick={() => onNavigate(`learn/${targetSlug}` as NavRoute)}
+                />
+              );
+            }
+
+            return (
+              <div
+                key={topic.content_key}
+                onClick={() => onNavigate(`learn/${targetSlug}` as NavRoute)}
+                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-72 relative border border-cyan-500/15"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                      {topic.category || 'Curated Guide'}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-slate-400 text-xs">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{topic.metadata?.readTime || '15 min read'}</span>
+                    </div>
+                  </div>
+
+                  <h3 className="text-white font-bold text-lg mb-2 group-hover:text-cyan-300 transition-colors">
+                    {topic.title}
+                  </h3>
+                  <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                    {topic.summary}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-slate-800/80 text-xs">
+                  <span className="text-slate-400 font-mono">
+                    Level: {topic.metadata?.level || 'All Levels'}
                   </span>
-                  <div className="flex items-center gap-1.5 text-slate-400 text-xs">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{topic.readTime}</span>
+                  <div className="flex items-center gap-1.5 text-cyan-400 font-semibold group-hover:text-cyan-300">
+                    <span>Read guide</span>
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
                   </div>
                 </div>
-
-                <h3 className="text-white font-bold text-lg mb-2 group-hover:text-cyan-300 transition-colors">
-                  {topic.title}
-                </h3>
-                <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
-                  {topic.description}
-                </p>
               </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-slate-800/80 text-xs">
-                <span className="text-slate-400 font-mono">
-                  Level: {topic.level}
-                </span>
-                <div className="flex items-center gap-1.5 text-cyan-400 font-semibold group-hover:text-cyan-300">
-                  <span>Read guide</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 

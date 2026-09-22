@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   FolderKanban, 
   Image as ImageIcon, 
@@ -11,10 +11,14 @@ import {
   ExternalLink, 
   RotateCcw,
   Sparkles,
-  X
+  X,
+  Activity,
+  RefreshCw
 } from 'lucide-react';
 import { ContentItem } from '../../types/command';
 import { CoreIQData } from '../../services/supabase';
+import { evaluateContentHealth } from '../../data/contentManifest';
+import { seedManifestPlaceholders } from '../../services/contentResolver';
 
 interface CommandContentTabProps {
   contentItems: ContentItem[];
@@ -77,6 +81,19 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
   const copyItems = contentItems.filter((c) => c.type === 'text');
   const mediaItems = contentItems.filter((c) => c.type === 'image');
 
+  const health = useMemo(() => evaluateContentHealth(contentItems), [contentItems]);
+  const [seeding, setSeeding] = useState(false);
+
+  const handleSyncManifest = async () => {
+    setSeeding(true);
+    try {
+      await seedManifestPlaceholders();
+      onRefresh();
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   // Seed default copy presets if empty
   const handleSeedDefaults = async () => {
     const defaults = [
@@ -120,6 +137,66 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Dynamic Content Manifest Health Summary Strip */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-[#030717]/90 border border-slate-800/90 font-mono text-xs shadow-inner">
+        <div className="flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">
+              MANIFEST HEALTH
+            </span>
+            <span className="text-[10px] text-cyan-400/80 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20">
+              6 Pages
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Total */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+            <span className="text-[10px] text-slate-500 uppercase">Total</span>
+            <span className="font-bold text-slate-200">{health.total}</span>
+          </div>
+
+          {/* Published */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400">
+            <span className="text-[10px] text-emerald-500/80 uppercase">Published</span>
+            <span className="font-bold">{health.published}</span>
+          </div>
+
+          {/* Placeholder */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/40 border border-cyan-500/30 text-cyan-400">
+            <span className="text-[10px] text-cyan-500/80 uppercase">Placeholder</span>
+            <span className="font-bold">{health.placeholder}</span>
+          </div>
+
+          {/* Missing */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-400">
+            <span className="text-[10px] text-amber-500/80 uppercase">Missing</span>
+            <span className="font-bold">{health.missing}</span>
+          </div>
+
+          {/* Stale */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-950/40 border border-rose-500/30 text-rose-400">
+            <span className="text-[10px] text-rose-500/80 uppercase">Stale</span>
+            <span className="font-bold">{health.stale}</span>
+          </div>
+
+          {/* Sync / Seed button */}
+          <button
+            onClick={handleSyncManifest}
+            disabled={seeding}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-colors disabled:opacity-50 cursor-pointer"
+            title="Seed missing manifest placeholders in local store / DB"
+          >
+            <RefreshCw className={`w-3 h-3 ${seeding ? 'animate-spin' : ''}`} />
+            <span className="text-[10px] uppercase font-bold tracking-wider">
+              {seeding ? 'Syncing...' : 'Sync Manifest'}
+            </span>
+          </button>
+        </div>
+      </div>
+
       {/* Top Header & Sub-tab Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#060b1c]/90 border border-slate-800/80">
         <div className="flex items-center gap-2">

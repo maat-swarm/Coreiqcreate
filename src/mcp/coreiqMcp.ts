@@ -26,6 +26,20 @@ export function buildCoreIQMcpServer(supabase: SupabaseClient | null, localStore
     async ({ message }) => {
       const config = await getAgentConfig();
       if (!config?.api_key || !config?.base_url) {
+        if (process.env.GEMINI_API_KEY) {
+          try {
+            const { GoogleGenAI } = await import('@google/genai');
+            const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+            const geminiRes = await ai.models.generateContent({
+              model: 'gemini-3.8-flash',
+              contents: [{ role: 'user', parts: [{ text: `${config?.system_prompt || 'You are CoreIQ'}\n\n${message}` }] }],
+            });
+            const reply = geminiRes.text || '(empty response)';
+            return { content: [{ type: 'text', text: reply }] };
+          } catch (e: any) {
+            return { content: [{ type: 'text', text: `Gemini fallback error: ${e.message}` }], isError: true };
+          }
+        }
         return { content: [{ type: 'text', text: 'CoreIQ agent brain has no active provider/API key configured.' }], isError: true };
       }
       const endpoint = config.base_url.endsWith('/') ? `${config.base_url}chat/completions` : `${config.base_url}/chat/completions`;

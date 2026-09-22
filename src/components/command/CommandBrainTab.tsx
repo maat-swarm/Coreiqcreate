@@ -178,7 +178,7 @@ export const CommandBrainTab: React.FC<CommandBrainTabProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => applyProviderPreset('google', 'gemini-2.5-pro', 'https://generativelanguage.googleapis.com')}
+                onClick={() => applyProviderPreset('google', 'gemini-3.8-flash', 'https://generativelanguage.googleapis.com')}
                 className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300"
               >
                 Google
