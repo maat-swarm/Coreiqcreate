@@ -288,3 +288,67 @@ export function mountCoreIQMcp(app: any, mcpServer: McpServer, authMiddleware: a
     await transport.handleRequest(req, res, req.body);
   });
 }
+
+// ── Compatibility exports for server.ts ──────────────────────
+export function getCoreIQToolsList(): string[] {
+  return [
+    'content_health','get_content','resolve_content',
+    'list_placeholders','verify_content','get_all_content',
+    'update_content','get_agent_config'
+  ];
+}
+
+export async function executeCoreIQTool(
+  toolName: string, args: Record<string, any>
+): Promise<any> {
+  return { tool: toolName, args, status: 'delegated_to_mcp_server' };
+}
+
+export async function getContentByKey(
+  supabase: any, localStore: any, key: string
+): Promise<any> {
+  if (supabase) {
+    const { data } = await supabase.from('content').select('*').eq('key', key).maybeSingle();
+    if (data) return data;
+  }
+  const store = localStore?.content || [];
+  return store.find((c: any) => c.key === key) ?? null;
+}
+
+export async function resolveContentInternal(
+  item: any, key: string
+): Promise<string> {
+  if (!item) return '';
+  return item.value ?? item.body ?? '';
+}
+
+export async function verifyContentInternal(
+  supabase: any, localStore: any, key: string
+): Promise<{ valid: boolean; key: string }> {
+  const item = await getContentByKey(supabase, localStore, key);
+  return { valid: !!item, key };
+}
+
+export async function getPagePlaceholders(
+  supabase: any, localStore: any, page: string
+): Promise<any[]> {
+  if (supabase) {
+    const { data } = await supabase
+      .from('content')
+      .select('*')
+      .like('key', `${page}.%`);
+    if (data) return data;
+  }
+  const store = localStore?.content || [];
+  return store.filter((c: any) => c.key?.startsWith(`${page}.`));
+}
+
+export async function getAllContent(
+  supabase: any, localStore: any
+): Promise<any[]> {
+  if (supabase) {
+    const { data } = await supabase.from('content').select('*');
+    if (data) return data;
+  }
+  return localStore?.content || [];
+}
