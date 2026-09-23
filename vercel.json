@@ -1,5 +1,16 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/mcp",
+      "destination": "https://coreiqcreate.onrender.com/mcp"
+    },
+    {
+      "source": "/mcp/(.*)",
+      "destination": "https://coreiqcreate.onrender.com/mcp/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

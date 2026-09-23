@@ -161,6 +161,8 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
     rawToken = authHeader.substring(7).trim();
   } else if (apiKeyHeader) {
     rawToken = apiKeyHeader.trim();
+  } else if ((req.query as any).api_key) {
+    rawToken = String((req.query as any).api_key).trim();
   }
 
   if (!rawToken) {
