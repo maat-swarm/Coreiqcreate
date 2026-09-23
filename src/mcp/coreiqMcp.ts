@@ -17,7 +17,7 @@ export function buildCoreIQMcpServer(supabase: SupabaseClient | null, localStore
   }
 
   server.registerTool(
-    'ask_coreiq',
+    'coreiq_ask',
     {
       title: 'Ask CoreIQ',
       description: "Send a message to the live CoreIQ agent brain (the website's actual configured provider/model/system prompt) and return its real response.",
@@ -61,7 +61,7 @@ export function buildCoreIQMcpServer(supabase: SupabaseClient | null, localStore
   );
 
   server.registerTool(
-    'list_leads',
+    'coreiq_list_leads',
     { title: 'List Leads', description: 'List recent website leads/inquiries.', inputSchema: { limit: z.number().optional() } },
     async ({ limit }) => {
       let leads: any[] = [];
@@ -76,7 +76,7 @@ export function buildCoreIQMcpServer(supabase: SupabaseClient | null, localStore
   );
 
   server.registerTool(
-    'create_task',
+    'coreiq_create_task',
     { title: 'Create Task', description: 'Create an operator task in CoreIQ Command.', inputSchema: { title: z.string(), description: z.string().optional() } },
     async ({ title, description }) => {
       const newTask = {
@@ -91,7 +91,7 @@ export function buildCoreIQMcpServer(supabase: SupabaseClient | null, localStore
   );
 
   server.registerTool(
-    'get_agent_config',
+    'coreiq_get_config',
     { title: 'Get Agent Config', description: "Read CoreIQ's current provider/model/system prompt (API key redacted).", inputSchema: {} },
     async () => {
       const config = await getAgentConfig();
@@ -101,7 +101,7 @@ export function buildCoreIQMcpServer(supabase: SupabaseClient | null, localStore
   );
 
   server.registerTool(
-    'update_content',
+    'coreiq_update_content',
     {
       title: 'Update Content',
       description: 'Create or update a content record by key (upserts by content_key), optionally publishing it immediately.',
@@ -156,7 +156,7 @@ export function buildCoreIQMcpServer(supabase: SupabaseClient | null, localStore
   );
 
   server.registerTool(
-    'publish_content',
+    'coreiq_publish_content',
     {
       title: 'Publish Content',
       description: 'Set an existing content record\'s status to PUBLISHED by content_key.',
@@ -188,7 +188,7 @@ export function buildCoreIQMcpServer(supabase: SupabaseClient | null, localStore
 
 
   server.registerTool(
-    'content_health',
+    'coreiq_content_health',
     {
       title: 'Content Health',
       description: 'Returns live published/placeholder counts for all 94 manifest keys (Scope: READ_CONTENT).',
@@ -209,7 +209,7 @@ export function buildCoreIQMcpServer(supabase: SupabaseClient | null, localStore
   );
 
   server.registerTool(
-    'get_content',
+    'coreiq_get_content',
     {
       title: 'Get Content',
       description: 'Fetch a single content item by manifest key (Scope: READ_CONTENT).',
@@ -232,7 +232,7 @@ export function buildCoreIQMcpServer(supabase: SupabaseClient | null, localStore
   );
 
   server.registerTool(
-    'resolve_content',
+    'coreiq_resolve_content',
     {
       title: 'Resolve Content',
       description: 'Resolve a content key the same way the frontend does.',
@@ -255,7 +255,7 @@ export function buildCoreIQMcpServer(supabase: SupabaseClient | null, localStore
   );
 
   server.registerTool(
-    'list_placeholders',
+    'coreiq_list_placeholders',
     {
       title: 'List Placeholders',
       description: 'Return all keys still in PLACEHOLDER status for a given page.',
@@ -292,9 +292,9 @@ export function mountCoreIQMcp(app: any, mcpServer: McpServer, authMiddleware: a
 // ── Compatibility exports for server.ts ──────────────────────
 export function getCoreIQToolsList(): string[] {
   return [
-    'content_health','get_content','resolve_content',
-    'list_placeholders','verify_content','get_all_content',
-    'update_content','get_agent_config'
+    'coreiq_content_health','coreiq_get_content','coreiq_resolve_content',
+    'coreiq_list_placeholders','verify_content','get_all_content',
+    'coreiq_update_content','coreiq_get_config'
   ];
 }
 
