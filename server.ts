@@ -6,7 +6,18 @@ import path from 'path';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { buildCoreIQMcpServer, mountCoreIQMcp, getCoreIQToolsList, executeCoreIQTool } from './src/mcp/coreiqMcp';
+import {
+  buildCoreIQMcpServer,
+  mountCoreIQMcp,
+  getCoreIQToolsList,
+  executeCoreIQTool,
+  getContentByKey,
+  resolveContentInternal,
+  verifyContentInternal,
+  getPagePlaceholders,
+  getAllContent,
+} from './src/mcp/coreiqMcp';
+import { buildOpenApiSpec } from './src/mcp/openApiSpec';
 import { CONTENT_MANIFEST, evaluateContentHealth } from './src/data/contentManifest';
 import { GoogleGenAI } from '@google/genai';
 
@@ -271,8 +282,17 @@ app.get('/api/v1/ping', (req, res) => {
   });
 });
 
+// OpenAPI 3.0 Specification for External Connectors (ORC-GROK, Grok, GPTs, Swarm)
+app.get(['/openapi.json', '/api/v1/openapi.json', '/api/openapi.json'], (req, res) => {
+  const host = req.get('host') || 'localhost:3000';
+  const proto = req.get('x-forwarded-proto') || req.protocol || 'http';
+  const baseUrl = `${proto}://${host}`;
+  res.json(buildOpenApiSpec(baseUrl));
+});
+
 // --- TOOLS REGISTRY & EXECUTION (REST Connector Surface) ---
-app.get('/api/v1/tools', authenticateApiKey, (req, res) => {
+// Discovery: unauthenticated inspection allowed; if Bearer key provided, it attaches caller identity
+app.get(['/api/v1/tools', '/api/tools'], (req, res) => {
   const tools = getCoreIQToolsList();
   res.json({
     status: 'ok',
@@ -471,6 +491,11 @@ app.post('/api/v1/clients', authenticateApiKey, requireScope('WRITE_CLIENTS'), a
 
 // --- CONTENT ---
 app.get('/api/v1/content', authenticateApiKey, requireScope('READ_CONTENT'), async (req, res) => {
+  const page = (req.query.page as string) || '';
+  const status = (req.query.status as string) || '';
+  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 100;
+
+  let allContent: any[] = [];
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -478,13 +503,34 @@ app.get('/api/v1/content', authenticateApiKey, requireScope('READ_CONTENT'), asy
         .select('*')
         .order('created_at', { ascending: false });
       if (!error && data) {
-        return res.json({ count: data.length, content: data });
+        allContent = data;
       }
     } catch (e) {
       console.error('API get content error:', e);
     }
   }
-  res.json({ count: localStore.content.length, content: localStore.content });
+  if (!allContent.length) {
+    allContent = localStore.content;
+  }
+
+  let filtered = allContent;
+  if (page) {
+    const cleanPage = page.toLowerCase().replace(/^\/+/, '');
+    filtered = filtered.filter((c: any) =>
+      (c.content_key || c.key || '').toLowerCase().startsWith(cleanPage)
+    );
+  }
+  if (status) {
+    filtered = filtered.filter(
+      (c: any) => (c.status || '').toUpperCase() === status.toUpperCase()
+    );
+  }
+
+  res.json({
+    count: filtered.length,
+    total: allContent.length,
+    content: filtered.slice(0, limit),
+  });
 });
 
 app.post('/api/v1/content', authenticateApiKey, requireScope('WRITE_CONTENT'), async (req, res) => {
@@ -536,10 +582,59 @@ app.get('/api/v1/content/health', authenticateApiKey, requireScope('content:read
   }
 
   const healthReport = evaluateContentHealth(allContent);
+  const healthPct = healthReport.total > 0 ? Math.round((healthReport.published / healthReport.total) * 100) : 0;
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
+    total_manifest_keys: healthReport.total,
+    published: healthReport.published,
+    placeholder: healthReport.placeholder,
+    missing: healthReport.missing,
+    stale: healthReport.stale,
+    overall_health_pct: healthPct,
+    by_page: healthReport.by_page,
     health: healthReport,
+  });
+});
+
+// Get all placeholder keys for a given page (e.g. /home, /solutions, /learn, etc.)
+app.get('/api/v1/content/placeholders/:page', authenticateApiKey, requireScope('content:read'), async (req, res) => {
+  const { page } = req.params;
+  const result = await getPagePlaceholders(supabase, localStore, page);
+  return res.json({
+    status: 'ok',
+    page,
+    ...result,
+  });
+});
+
+// Direct REST content resolution preview through frontend contentResolver layer
+app.get('/api/v1/content/:key/resolve', authenticateApiKey, requireScope('content:read'), async (req, res) => {
+  const { key } = req.params;
+  const item = await getContentByKey(supabase, localStore, key);
+  const resolved = resolveContentInternal(item, key);
+  return res.json({
+    status: 'ok',
+    content_key: key,
+    resolved,
+  });
+});
+
+// Direct REST content verification endpoint
+app.post('/api/v1/content/:key/verify', authenticateApiKey, requireScope('content:read'), async (req, res) => {
+  const { key } = req.params;
+  const { expected_status, expected_body_substring } = req.body || {};
+  const verification = await verifyContentInternal(
+    supabase,
+    localStore,
+    key,
+    expected_status || 'PUBLISHED',
+    expected_body_substring
+  );
+  return res.json({
+    status: verification.verified ? 'verified' : 'failed',
+    content_key: key,
+    verification,
   });
 });
 

@@ -429,11 +429,112 @@ console.log('System Prompt:', config.system_prompt);`}
           </div>
 
           {/* Endpoints Matrix */}
-          <div className="space-y-2 pt-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
-              Available REST Endpoints
-            </h4>
-            <div className="space-y-1.5 text-xs font-mono">
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
+                Available REST Endpoints & Tools Surface
+              </h4>
+              <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                17 Routes • 25 Tools Active
+              </span>
+            </div>
+
+            {/* Content Control Plane */}
+            <div className="space-y-1 text-xs font-mono">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400/90 py-1">
+                Content Control Plane (94-Key Universal Manifest)
+              </div>
+              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300">GET</span>
+                  <span className="text-slate-300">/api/v1/content/health</span>
+                </div>
+                <span className="text-[11px] text-cyan-400">READ_CONTENT</span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300">GET</span>
+                  <span className="text-slate-300">/api/v1/content</span>
+                </div>
+                <span className="text-[11px] text-cyan-400">READ_CONTENT</span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300">GET</span>
+                  <span className="text-slate-300">/api/v1/content/:key</span>
+                </div>
+                <span className="text-[11px] text-cyan-400">READ_CONTENT</span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300">GET</span>
+                  <span className="text-slate-300">/api/v1/content/:key/resolve</span>
+                </div>
+                <span className="text-[11px] text-cyan-400">READ_CONTENT</span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300">PATCH</span>
+                  <span className="text-slate-300">/api/v1/content/:key</span>
+                </div>
+                <span className="text-[11px] text-cyan-400">WRITE_CONTENT</span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300">POST</span>
+                  <span className="text-slate-300">/api/v1/content/:key/publish</span>
+                </div>
+                <span className="text-[11px] text-purple-400">PUBLISH_CONTENT</span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300">GET</span>
+                  <span className="text-slate-300">/api/v1/content/placeholders/:page</span>
+                </div>
+                <span className="text-[11px] text-cyan-400">READ_CONTENT</span>
+              </div>
+            </div>
+
+            {/* Autonomous Tools & MCP Connectors */}
+            <div className="space-y-1 text-xs font-mono pt-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400/90 py-1">
+                Autonomous Tools & External Connectors
+              </div>
+              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">GET</span>
+                  <span className="text-slate-300">/openapi.json</span>
+                </div>
+                <span className="text-[11px] text-emerald-400">PUBLIC SPEC</span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300">GET</span>
+                  <span className="text-slate-300">/api/v1/tools</span>
+                </div>
+                <span className="text-[11px] text-slate-400">PUBLIC / REGISTRY</span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">POST</span>
+                  <span className="text-slate-300">/api/v1/tools/execute</span>
+                </div>
+                <span className="text-[11px] text-cyan-400">SCOPED BY TOOL</span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300">POST</span>
+                  <span className="text-slate-300">/mcp</span>
+                </div>
+                <span className="text-[11px] text-purple-400">STREAMABLE MCP</span>
+              </div>
+            </div>
+
+            {/* Core Ingestion Endpoints */}
+            <div className="space-y-1 text-xs font-mono pt-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400/90 py-1">
+                Data & Ingestion Endpoints
+              </div>
               <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300">GET</span>
@@ -461,6 +562,13 @@ console.log('System Prompt:', config.system_prompt);`}
                   <span className="text-slate-300">/api/v1/tasks</span>
                 </div>
                 <span className="text-[11px] text-cyan-400">WRITE_TASKS</span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300">GET</span>
+                  <span className="text-slate-300">/api/v1/clients</span>
+                </div>
+                <span className="text-[11px] text-cyan-400">READ_CLIENTS</span>
               </div>
               <div className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -511,6 +619,13 @@ console.log('System Prompt:', config.system_prompt);`}
                 onChange={(e) => setTestEndpoint(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700/80 text-white text-xs font-mono focus:outline-none focus:border-cyan-400"
               >
+                <option value="/api/v1/content/health">GET /api/v1/content/health (READ_CONTENT - 94 Keys)</option>
+                <option value="/api/v1/content">GET /api/v1/content (READ_CONTENT - All Items)</option>
+                <option value="/api/v1/content/learn.guide.ai-workflows">GET /api/v1/content/:key (READ_CONTENT - Learn Guide)</option>
+                <option value="/api/v1/content/learn.guide.ai-workflows/resolve">GET /api/v1/content/:key/resolve (READ_CONTENT - Resolution)</option>
+                <option value="/api/v1/content/placeholders/learn">GET /api/v1/content/placeholders/:page (Placeholders)</option>
+                <option value="/api/v1/tools">GET /api/v1/tools (Tools Registry - 25 Tools)</option>
+                <option value="/openapi.json">GET /openapi.json (OpenAPI 3.0 Specification)</option>
                 <option value="/api/v1/ping">GET /api/v1/ping (Public Health)</option>
                 <option value="/api/v1/leads">GET /api/v1/leads (READ_LEADS)</option>
                 <option value="/api/v1/tasks">GET /api/v1/tasks (READ_TASKS)</option>

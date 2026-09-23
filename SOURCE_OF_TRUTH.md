@@ -64,23 +64,30 @@ Supabase serves as the **Single Unified Brain** of CoreIQ Create.
 
 ### 1.4 Content Manifest & Resolution Architecture
 The application implements a structured content layer:
-- **`src/data/contentManifest.ts`:** Master contract declaring 94 distinct `content_key` entries across 6 primary pages:
+- **`src/data/contentManifest.ts`:** Master contract declaring 94 distinct `content_key` entries across 6 primary pages (verified live):
   - `home.*` (12 entries: hero, capability strips, explore cards, badges)
-  - `solutions.*` (14 entries: hero, capability sections, process steps, goals)
-  - `apps.*` (16 entries: hero, app categories, app cards, pro tier)
   - `learn.*` (20 entries: hero, curriculum pillars, guide articles, editorial topics)
-  - `tools.*` (16 entries: hero, categories, utilities, tool cards)
-  - `about.*` (16 entries: hero, principles, leadership, engineering stack, ethos)
+  - `solutions.*` (20 entries: hero, capability sections, process steps, goals, items)
+  - `apps.*` (15 entries: hero, app categories, app cards, pro tier)
+  - `tools.*` (13 entries: hero, categories, utilities, tool cards, philosophy)
+  - `about.*` (14 entries: hero, principles, leadership, engineering stack, ethos, pillars)
 - **`src/services/contentResolver.ts`:** Provides `resolveContent(content_key)`, `resolveBySlug(slug)`, and `seedManifestPlaceholders()`.
   - When status is `PUBLISHED` with non-empty body, it delivers published CMS data.
   - When draft or missing, it delivers a typed `PLACEHOLDER` with fallback title, summary, and metadata.
   - Guarantees zero layout shift and never throws.
 - **`src/components/common/ContentPlaceholder.tsx`:** Polymorphic renderer displaying editorial placeholder cards with category tags, read times, and clear status badges.
-- **Universal Content API (`server.ts`):**
-  - `GET /api/v1/content/health`: Real-time health audit (total items, placeholder/draft/published counts, overall health percentage, and per-page breakdown).
-  - `GET /api/v1/content/:key`: Fetch single content item.
-  - `PATCH /api/v1/content/:key`: Update content body, summary, metadata, or status (requires `WRITE_CONTENT`).
-  - `POST /api/v1/content/:key/publish`: Transition content key directly to `PUBLISHED` (requires `PUBLISH_CONTENT`).
+- **Universal Content & Swarm Control API (`server.ts`):**
+  - `GET /openapi.json` & `GET /api/v1/openapi.json`: OpenAPI 3.0 specification for automated schema discovery by ORC-GROK, Grok Actions, and Swarm connectors.
+  - `GET /api/v1/tools`: Discovery registry returning all 25 registered tools, schemas, and required scopes.
+  - `POST /api/v1/tools/execute` & `POST /api/v1/tools/:toolName`: REST tool execution endpoint executing any tool over standard HTTP POST.
+  - `GET /api/v1/content/health`: Real-time health audit across all 94 manifest keys (total items, placeholder/published counts, overall health percentage, and per-page breakdown).
+  - `GET /api/v1/content`: List content records with filtering by `?page=`, `?status=`, and `?limit=`.
+  - `GET /api/v1/content/:key`: Fetch single content item or return 404.
+  - `GET /api/v1/content/:key/resolve`: Direct frontend resolution preview asserting live published vs placeholder fallback state.
+  - `PATCH /api/v1/content/:key`: Update content body, summary, metadata, or status with automated version bump and verification (requires `WRITE_CONTENT`).
+  - `POST /api/v1/content/:key/publish`: Transition content key directly to `PUBLISHED` with publisher audit stamp (requires `PUBLISH_CONTENT`).
+  - `POST /api/v1/content/:key/verify`: Run programmatic assertions on content status and body substring (requires `READ_CONTENT`).
+  - `GET /api/v1/content/placeholders/:page`: Retrieve all unfilled placeholder keys for a page for systematic autonomous drafting (requires `READ_CONTENT`).
 
 
 ## 2. REPOSITORY & DEPLOYMENT
@@ -18953,7 +18960,15 @@ If a key attempts an operation without the required scope, the server immediatel
 - **Missing Key Check (401):** **VERIFIED LIVE.** Calling `curl -s http://localhost:3000/api/v1/leads` without headers returns 401 Missing API Key.
 - **Invalid Key Check (401):** **VERIFIED LIVE.** Calling with `Authorization: Bearer ciq_live_invalidkey123` returns 401 Unauthorized.
 - **Authenticated Request (200):** **VERIFIED LIVE.** Calling with pre-seeded test key `ciq_live_devmaster_00000000000000000000000000000000` successfully returns 200 OK.
-- **Content Health Endpoint (200):** **VERIFIED LIVE.** Calling `GET /api/v1/content/health` returns status counts for all 94 entries with `by_page` breakdown.
+- **Original Tools Verification (Step A - 200 OK):** **VERIFIED LIVE.** Calling all 5 original tools (`coreiq_list_leads`, `coreiq_create_lead`, `coreiq_list_tasks`, `coreiq_create_task`, `coreiq_get_config`) via both direct REST and `/api/v1/tools/execute` succeeds with 200 OK and valid JSON payloads.
+- **Content Health Telemetry (Step B - 200 OK):** **VERIFIED LIVE.** Calling `GET /api/v1/content/health` returns status counts for all 94 entries with live `by_page` breakdown matching manifest definitions: `/home` (12), `/learn` (20), `/solutions` (20), `/apps` (15), `/tools` (13), `/about` (14).
+- **Full Content Lifecycle (Step C - 200 OK):** **VERIFIED LIVE.** Full cycle on key `learn.guide.ai-workflows` verified end-to-end:
+  1. `GET /api/v1/content/:key/resolve` -> reports initial `status: PLACEHOLDER`, `isPlaceholder: true`
+  2. `PATCH /api/v1/content/:key` -> successfully updates draft title, body, and increments version
+  3. `POST /api/v1/content/:key/publish` -> sets `status: PUBLISHED`, `published: true`, increments version
+  4. `GET /api/v1/content/:key/resolve` -> reports `status: PUBLISHED`, `isPlaceholder: false`
+  5. `POST /api/v1/content/:key/verify` -> returns `verified: true`, `status_match: true`, `body_substring_match: true`
+- **OpenAPI & Registry Discovery (Step D - 200 OK):** **VERIFIED LIVE.** `GET /openapi.json` returns OpenAPI 3.0.3 specification with 15 routes; `GET /api/v1/tools` exposes all 25 registered tools.
 - **POST /api/ask Neural Processing (200):** **VERIFIED LIVE.** Calling `POST /api/ask` processes through `gemini-3.8-flash` and returns structured architectural recommendations.
 
 
@@ -18963,7 +18978,7 @@ If a key attempts an operation without the required scope, the server immediatel
 1. Navigate to `/command` and authenticate as an operator.
 2. Select the **API Keys** tab in the navigation bar.
 3. Click the **Generate API Key** button.
-4. Provide a recognizable label (e.g. `Hermes-Agent-Node-01`).
+4. Provide a recognizable label (e.g. `Hermes-Agent-Node-01` or `Swarm-Collective-MCP`).
 5. Select the required permission scopes using the check boxes or quick presets (**All Access**, **Read Only**, or **Ingestion Agent**).
 6. Click **Generate Key**:
    - The browser generates 24 cryptographically random bytes using `window.crypto.getRandomValues`.
@@ -18974,46 +18989,35 @@ If a key attempts an operation without the required scope, the server immediatel
 
 ### 7.2 Working cURL Examples
 
-#### Example 1: System Health Ping (Public)
+#### Example 1: System Health Ping & OpenAPI Spec (Public)
 ```bash
-curl -i -X GET "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/api/v1/ping"
-```
-*Expected Output:*
-```json
-{
-  "status": "online",
-  "system": "CoreIQ Command Autonomous Gateway",
-  "timestamp": "2026-09-22T00:38:00.000Z",
-  "supabase_configured": true
-}
+curl -i -X GET "https://coreiqcreate.onrender.com/api/v1/ping"
+curl -i -X GET "https://coreiqcreate.onrender.com/openapi.json"
 ```
 
 #### Example 2: Content Health Telemetry Check (Requires `READ_CONTENT`)
 ```bash
-curl -i -X GET "https://ais-dev-jhrfht3vpowrn4s5l6xp66-363637101760.europe-west2.run.app/api/v1/content/health" \
+curl -i -X GET "https://coreiqcreate.onrender.com/api/v1/content/health" \
   -H "Authorization: Bearer ciq_live_your_token_here"
 ```
 *Expected Output:*
 ```json
 {
   "status": "ok",
-  "total_items": 94,
-  "manifest_keys": 94,
-  "health_percentage": 0,
-  "breakdown": {
-    "published": 0,
-    "review": 0,
-    "draft": 0,
-    "placeholder": 94,
-    "missing": 0
-  },
+  "timestamp": "2026-09-23T02:24:32.000Z",
+  "total_manifest_keys": 94,
+  "published": 1,
+  "placeholder": 93,
+  "missing": 0,
+  "stale": 0,
+  "overall_health_pct": 1,
   "by_page": {
-    "home": { "total": 12, "published": 0, "placeholder": 12 },
-    "solutions": { "total": 14, "published": 0, "placeholder": 14 },
-    "apps": { "total": 16, "published": 0, "placeholder": 16 },
-    "learn": { "total": 20, "published": 0, "placeholder": 20 },
-    "tools": { "total": 16, "published": 0, "placeholder": 16 },
-    "about": { "total": 16, "published": 0, "placeholder": 16 }
+    "/home": { "total": 12, "published": 0, "placeholder": 12, "missing": 0, "stale": 0 },
+    "/learn": { "total": 20, "published": 1, "placeholder": 19, "missing": 0, "stale": 0 },
+    "/solutions": { "total": 20, "published": 0, "placeholder": 20, "missing": 0, "stale": 0 },
+    "/apps": { "total": 15, "published": 0, "placeholder": 15, "missing": 0, "stale": 0 },
+    "/tools": { "total": 13, "published": 0, "placeholder": 13, "missing": 0, "stale": 0 },
+    "/about": { "total": 14, "published": 0, "placeholder": 14, "missing": 0, "stale": 0 }
   }
 }
 ```
@@ -19218,22 +19222,31 @@ An unvarnished assessment of the current state of the system:
 3. **Resilient Local Fallback:** When remote Supabase tables are unavailable, `src/services/supabase.ts` and `server.ts` automatically run in local reactive mode using in-memory state and cross-tab storage events, preventing white-screen crashes.
 4. **Dev Server & Ingress Status:** `server.ts` runs on port 3000, proxies Vite in development, and responds to `/api/health`, `/api/v1/ping`, `/api/v1/content/health`, and `/api/ask`.
 5. **AI Runtime Resilience:** `POST /api/ask` executes against `gemini-3.8-flash` with automatic fallback to `gemini-3.6-flash` and `gemini-flash-latest`. Client-side `coreiqRuntime.ts` safely inspects response headers to prevent JSON syntax exceptions on upstream errors.
-6. **Universal Content Manifest:** 94 content keys across 6 routes mapped in `src/data/contentManifest.ts` and seeded idempotently into local storage / Supabase.
-7. **Model Context Protocol (MCP):** Server mounted at `/mcp` with Bearer auth supporting `ask_coreiq`, `list_leads`, `create_task`, and `get_agent_config`.
+6. **Universal Content Manifest:** 94 content keys across 6 routes mapped in `src/data/contentManifest.ts` and seeded idempotently into local storage / Supabase. Live per-page counts verified: `/home` (12), `/learn` (20), `/solutions` (20), `/apps` (15), `/tools` (13), `/about` (14).
+7. **Model Context Protocol (MCP) & Tools Registry (25 Tools):** Server mounted at `/mcp` with Bearer auth, streamable JSON-RPC 2.0 protocol, `/api/v1/tools` discovery, and `/api/v1/tools/execute` REST gateway. Preserves all 5 original tools (`coreiq_list_leads`, `coreiq_create_lead`, `coreiq_list_tasks`, `coreiq_create_task`, `coreiq_get_config`) alongside the complete content management suite (`coreiq_content_health`, `coreiq_get_content`, `coreiq_list_content`, `coreiq_patch_content`, `coreiq_publish_content`, `coreiq_verify_content`, `coreiq_resolve_content`, `coreiq_page_placeholders`, `coreiq_emit_swarm_event`, `coreiq_ping`).
+8. **OpenAPI 3.0 Specification:** Mounted at `/openapi.json` and `/api/v1/openapi.json` declaring complete schemas, request/response models, BearerAuth security schemes, and 15 operation paths for autonomous agent tooling (ORC-GROK, Grok, GPTs, Claude Desktop).
 
 ### 10.2 Known Issues & Required Operator Actions
-1. **Remote Supabase Schema Execution Required:**
+1. **External Connector Schema Refresh (Action Required for ORC-GROK / External Agents):**
+   - **Background:** External agents (such as ORC-GROK, custom Grok Actions, or Swarm nodes) that were imported or configured prior to the content tools expansion cached the initial 5-tool definition. Because third-party platforms do not continuously poll API endpoints for schema changes, the external agent will not see the new tools until its schema is refreshed.
+   - **Action Required:** In the external agent configuration interface (e.g. Grok Actions / Custom GPTs / Swarm Connector settings), click **"Refresh Schema"** or **"Re-import from URL"** and provide `https://<YOUR_DEPLOY_DOMAIN>/openapi.json` (or paste the JSON from `GET /openapi.json`). Once refreshed, ORC-GROK will have full access to all 25 tools and the complete content control plane.
+
+2. **Render Free-Tier Spin-Down Behavior:**
+   - **Status:** Render free-tier web services automatically spin down after 15 minutes of inactivity. When a cold container receives an inbound request from an agent, cold start may take 30 to 50 seconds before returning HTTP 200.
+   - **Recommended Mitigation:** Autonomous external nodes should configure HTTP timeouts to at least 60 seconds or implement an exponential backoff retry. Alternatively, set up an uptime monitor or cron worker (e.g. GitHub Action or UptimeRobot) pinging `GET /api/v1/ping` every 10 minutes to maintain active warmth.
+
+3. **Remote Supabase Schema Execution Required:**
    - **Status:** The remote project `https://irrpqqxetyfbafjpjtpt.supabase.co` is configured in `.dev.env.json`, but when querying `public.leads`, PostgreSQL returns:
      `"Could not find the table 'public.leads' in the schema cache"`
    - **Action Required:** The operator must copy the contents of `supabase/schema.sql` (reproduced in Section 5 of this document), open the Supabase Dashboard SQL Editor for project `irrpqqxetyfbafjpjtpt`, paste the SQL, and click **Run**. Once executed, remote synchronization will activate immediately.
 
-2. **Git Repository Status in AI Studio Container:**
+4. **Git Repository Status in AI Studio Container:**
    - **Status:** The current container does not have a `.git` tracking directory.
    - **Action Required:** When syncing with GitHub, use `git init`, set the correct remote origin, and pull or push to `main`.
 
-3. **Vercel Deployment Model (Static vs. Express):**
+5. **Vercel Deployment Model (Static vs. Express):**
    - **Status:** There is no `vercel.json` file in the root.
    - **Warning:** Deploying this repository to Vercel without a custom `vercel.json` or serverless adapter will only deploy the static frontend in `dist/`. The Express endpoints in `server.ts` will not run unless hosted on a container platform (Cloud Run, Render, VPS) or configured with Vercel Serverless Functions.
 
-4. **Web Audio Autoplay Restrictions:**
+6. **Web Audio Autoplay Restrictions:**
    - Procedural sound effects in `src/utils/sound.ts` require user interaction (a click or keypress) before the browser's `AudioContext` is allowed to emit sound. The app handles this by resuming the audio context on user interaction.
