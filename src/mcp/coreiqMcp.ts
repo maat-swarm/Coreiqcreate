@@ -3,6 +3,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { z } from 'zod';
 import type { Request, Response } from 'express';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 import { CONTENT_MANIFEST } from '../data/contentManifest';
 
 // ---- Types ----
@@ -196,6 +197,14 @@ export function getCoreIQToolsList(): CoreIQTool[] {
     { name: 'get_all_content', description: 'Return all content items in the store.', inputSchema: {} },
     { name: 'get_content_health', description: 'Full health report with per-page breakdown.', inputSchema: {} },
     { name: 'search_content', description: 'Search content by keyword.', inputSchema: { query: { type: 'string' } } },
+    { name: 'patch_content', description: 'Update or create a content item by key (body, summary, title, status, etc.).', inputSchema: { key: { type: 'string' }, title: { type: 'string' }, summary: { type: 'string' }, body: { type: 'string' }, category: { type: 'string' }, status: { type: 'string' }, dry_run: { type: 'boolean' } } },
+    { name: 'publish_content', description: 'Publish a content item by key.', inputSchema: { key: { type: 'string' } } },
+    { name: 'ask_coreiq', description: "Send a message to the live CoreIQ agent brain and return its response.", inputSchema: { message: { type: 'string' } } },
+    { name: 'list_leads', description: 'List recent website leads/inquiries.', inputSchema: { limit: { type: 'number' } } },
+    { name: 'create_lead', description: 'Create a new client lead/inquiry.', inputSchema: { client_name: { type: 'string' }, client_contact: { type: 'string' }, client_message: { type: 'string' } } },
+    { name: 'list_tasks', description: 'List operator tasks in CoreIQ Command.', inputSchema: { limit: { type: 'number' } } },
+    { name: 'create_task', description: 'Create an operator task in CoreIQ Command.', inputSchema: { title: { type: 'string' }, description: { type: 'string' } } },
+    { name: 'get_agent_config', description: "Read CoreIQ's current provider/model/system prompt (API key redacted).", inputSchema: {} },
   ];
 }
 
@@ -204,7 +213,7 @@ export async function executeCoreIQTool(
   args: Record<string, any>,
   ctx: { supabase: SupabaseClient | null; localStore: Record<string, any[]>; callerApiKey?: any }
 ): Promise<ToolResult> {
-  const { localStore } = ctx;
+  const { localStore, supabase, callerApiKey } = ctx;
   try {
     switch (toolName) {
       case 'content_health': {
@@ -253,6 +262,337 @@ export async function executeCoreIQTool(
           (c.value||'').toLowerCase().includes(q)
         );
         return { success: true, data: { count: hits.length, items: hits } };
+      }
+      case 'patch_content':
+      case 'update_content': {
+        const key = args.key || args.content_key;
+        if (!key) return { success: false, error: 'Missing content key' };
+
+        const { dry_run, ...rawUpdates } = args;
+        const updates: Record<string, any> = {};
+        for (const [k, v] of Object.entries(rawUpdates)) {
+          if (k !== 'key' && k !== 'content_key' && v !== undefined) {
+            updates[k] = v;
+          }
+        }
+
+        // Find existing
+        let existing: any = null;
+        if (supabase) {
+          try {
+            const { data } = await supabase
+              .from('content')
+              .select('*')
+              .or(`content_key.eq.${key},key.eq.${key},id.eq.${key},slug.eq.${key}`)
+              .maybeSingle();
+            if (data) existing = data;
+          } catch {}
+        }
+        if (!existing) {
+          existing = (localStore.content as any[]).find(
+            (c: any) => c.content_key === key || c.key === key || c.id === key || c.slug === key
+          );
+        }
+
+        if (dry_run) {
+          return {
+            success: true,
+            data: {
+              status: 'dry_run',
+              key,
+              will_create: !existing,
+              existing_version: existing?.version || 1,
+              proposed_updates: updates,
+            },
+          };
+        }
+
+        const newVersion = (existing?.version || 1) + 1;
+        const patchPayload = {
+          ...updates,
+          version: updates.version ?? newVersion,
+          updated_by: updates.updated_by || callerApiKey?.name || 'mcp',
+        };
+
+        if (existing) {
+          if (supabase) {
+            try {
+              const { data, error } = await supabase
+                .from('content')
+                .update(patchPayload)
+                .eq('id', existing.id)
+                .select()
+                .single();
+              if (!error && data) {
+                return { success: true, data: { status: 'updated', content: data } };
+              }
+            } catch {}
+          }
+          const updated = { ...existing, ...patchPayload };
+          localStore.content = (localStore.content as any[]).map((c: any) =>
+            c.id === existing.id ? updated : c
+          );
+          return { success: true, data: { status: 'updated', content: updated } };
+        }
+
+        // Create new if not existing
+        const newContent = {
+          id: crypto.randomUUID ? crypto.randomUUID() : `content_${Date.now()}`,
+          created_at: new Date().toISOString(),
+          content_key: key,
+          key,
+          title: updates.title || key,
+          body: updates.body || '',
+          summary: updates.summary || '',
+          category: updates.category || 'learning',
+          status: updates.status || 'PLACEHOLDER',
+          content_type: updates.content_type || 'text',
+          slug: updates.slug || key.replace(/^learn\.guide\./, ''),
+          published: updates.published ?? false,
+          version: 1,
+          updated_by: callerApiKey?.name || 'mcp',
+          ...updates,
+        };
+
+        if (supabase) {
+          try {
+            const { data, error } = await supabase
+              .from('content')
+              .insert([newContent])
+              .select()
+              .single();
+            if (!error && data) {
+              return { success: true, data: { status: 'created', content: data } };
+            }
+          } catch {}
+        }
+
+        (localStore.content as any[]).unshift(newContent);
+        return { success: true, data: { status: 'created', content: newContent } };
+      }
+      case 'publish_content': {
+        const key = args.key || args.content_key;
+        if (!key) return { success: false, error: 'Missing content key' };
+
+        let existing: any = null;
+        if (supabase) {
+          try {
+            const { data } = await supabase
+              .from('content')
+              .select('*')
+              .or(`content_key.eq.${key},key.eq.${key},id.eq.${key},slug.eq.${key}`)
+              .maybeSingle();
+            if (data) existing = data;
+          } catch {}
+        }
+        if (!existing) {
+          existing = (localStore.content as any[]).find(
+            (c: any) => c.content_key === key || c.key === key || c.id === key || c.slug === key
+          );
+        }
+
+        if (!existing) {
+          return {
+            success: false,
+            error: `Cannot publish: content item with key '${key}' does not exist.`,
+            isNotFound: true,
+          };
+        }
+
+        const publishPayload = {
+          published: true,
+          status: 'PUBLISHED',
+          version: (existing.version || 1) + 1,
+          updated_by: callerApiKey?.name || 'mcp-publisher',
+        };
+
+        if (supabase) {
+          try {
+            const { data, error } = await supabase
+              .from('content')
+              .update(publishPayload)
+              .eq('id', existing.id)
+              .select()
+              .single();
+            if (!error && data) {
+              return { success: true, data: { status: 'published', content: data } };
+            }
+          } catch {}
+        }
+
+        const published = { ...existing, ...publishPayload };
+        localStore.content = (localStore.content as any[]).map((c: any) =>
+          c.id === existing.id ? published : c
+        );
+        return { success: true, data: { status: 'published', content: published } };
+      }
+      case 'ask_coreiq': {
+        const message = args.message;
+        if (!message) return { success: false, error: 'Message is required' };
+
+        let config: any = null;
+        if (supabase) {
+          try {
+            const { data, error } = await supabase
+              .from('agent_config')
+              .select('*')
+              .eq('id', 'coreiq_primary_mind')
+              .single();
+            if (!error && data) config = data;
+          } catch {}
+        }
+        if (!config && localStore.agent_config) {
+          config = localStore.agent_config[0];
+        }
+
+        if (!config?.api_key || !config?.base_url) {
+          if (process.env.GEMINI_API_KEY) {
+            try {
+              const { GoogleGenAI } = await import('@google/genai');
+              const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+              const geminiRes = await ai.models.generateContent({
+                model: 'gemini-3.8-flash',
+                contents: [{ role: 'user', parts: [{ text: `${config?.system_prompt || 'You are CoreIQ'}\n\n${message}` }] }],
+              });
+              const reply = geminiRes.text || '(empty response)';
+              return { success: true, data: { reply } };
+            } catch (e: any) {
+              return { success: false, error: `Gemini fallback error: ${e.message}` };
+            }
+          }
+          return { success: false, error: 'CoreIQ agent brain has no active provider/API key configured.' };
+        }
+
+        const endpoint = config.base_url.endsWith('/') ? `${config.base_url}chat/completions` : `${config.base_url}/chat/completions`;
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.api_key}` },
+          body: JSON.stringify({
+            model: config.model_name,
+            messages: [{ role: 'system', content: config.system_prompt }, { role: 'user', content: message }],
+            temperature: 0.7,
+            max_tokens: 1024,
+          }),
+        });
+
+        if (!res.ok) return { success: false, error: `CoreIQ provider error: ${res.status} ${res.statusText}` };
+        const json: any = await res.json();
+        const reply = json.choices?.[0]?.message?.content ?? '(empty response)';
+        return { success: true, data: { reply } };
+      }
+      case 'list_leads': {
+        const limit = args.limit ?? 20;
+        let leads: any[] = [];
+        if (supabase) {
+          try {
+            const { data } = await supabase
+              .from('leads')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .limit(limit);
+            leads = data ?? [];
+          } catch {}
+        }
+        if (!leads.length && localStore.leads) {
+          leads = (localStore.leads as any[]).slice(0, limit);
+        }
+        return { success: true, data: leads };
+      }
+      case 'create_lead': {
+        const { client_name, client_contact, client_message, intent_type, budget_range, notes } = args;
+        if (!client_name || !client_contact) {
+          return { success: false, error: 'client_name and client_contact are required' };
+        }
+
+        const newLead = {
+          id: crypto.randomUUID ? crypto.randomUUID() : `lead_${Date.now()}`,
+          created_at: new Date().toISOString(),
+          client_name,
+          client_contact,
+          client_message: client_message || '',
+          conversation_summary: args.conversation_summary || '',
+          intent_type: intent_type || 'custom',
+          source: args.source || 'mcp',
+          status: 'new',
+          budget_range: budget_range || '',
+          notes: notes || '',
+        };
+
+        if (supabase) {
+          try {
+            const { data, error } = await supabase.from('leads').insert([newLead]).select().single();
+            if (!error && data) {
+              return { success: true, data: data };
+            }
+          } catch {}
+        }
+
+        (localStore.leads as any[]).unshift(newLead);
+        return { success: true, data: newLead };
+      }
+      case 'list_tasks': {
+        const limit = args.limit ?? 20;
+        let tasks: any[] = [];
+        if (supabase) {
+          try {
+            const { data } = await supabase
+              .from('tasks')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .limit(limit);
+            tasks = data ?? [];
+          } catch {}
+        }
+        if (!tasks.length && localStore.tasks) {
+          tasks = (localStore.tasks as any[]).slice(0, limit);
+        }
+        return { success: true, data: tasks };
+      }
+      case 'create_task': {
+        const { title, description, status, due_date, linked_lead_id, linked_client_id } = args;
+        if (!title) return { success: false, error: 'title is required' };
+
+        const newTask = {
+          id: crypto.randomUUID ? crypto.randomUUID() : `task_${Date.now()}`,
+          created_at: new Date().toISOString(),
+          title,
+          description: description || '',
+          status: status || 'not_started',
+          due_date: due_date || null,
+          linked_lead_id: linked_lead_id || null,
+          linked_client_id: linked_client_id || null,
+        };
+
+        if (supabase) {
+          try {
+            const { data, error } = await supabase.from('tasks').insert([newTask]).select().single();
+            if (!error && data) {
+              return { success: true, data: data };
+            }
+          } catch {}
+        }
+
+        (localStore.tasks as any[]).unshift(newTask);
+        return { success: true, data: newTask };
+      }
+      case 'get_agent_config':
+      case 'get_config': {
+        let config: any = null;
+        if (supabase) {
+          try {
+            const { data, error } = await supabase
+              .from('agent_config')
+              .select('*')
+              .eq('id', 'coreiq_primary_mind')
+              .single();
+            if (!error && data) config = data;
+          } catch {}
+        }
+        if (!config && localStore.agent_config) {
+          config = localStore.agent_config[0];
+        }
+        const safe = { ...config, api_key: config?.api_key ? '***redacted***' : '' };
+        return { success: true, data: safe };
       }
       default:
         return { success: false, error: `Unknown tool: ${toolName}`, isNotFound: true };
@@ -339,6 +679,116 @@ export function buildCoreIQMcpServer(
     inputSchema: { query: z.string().describe('Search keyword') },
   }, async ({ query }) => {
     const result = await executeCoreIQTool('search_content', { query }, { supabase, localStore, callerApiKey });
+    return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  });
+
+  server.registerTool('patch_content', {
+    title: 'Patch Content',
+    description: 'Update or create a content item by key (body, summary, title, category, status, etc.). Supports dry_run.',
+    inputSchema: {
+      key: z.string().describe('Content manifest key (e.g. home.hero.title or learn.guide.my-topic)'),
+      title: z.string().optional().describe('Headline or title for the content item'),
+      summary: z.string().optional().describe('Short summary or excerpt'),
+      body: z.string().optional().describe('Main markdown or text body'),
+      category: z.string().optional().describe('Content category (e.g. learning, solutions, general)'),
+      status: z.string().optional().describe('Content status (PUBLISHED or PLACEHOLDER)'),
+      dry_run: z.boolean().optional().describe('If true, simulates the patch without persisting'),
+    },
+  }, async (args) => {
+    const result = await executeCoreIQTool('patch_content', args, { supabase, localStore, callerApiKey });
+    if (!result.success) {
+      return { content: [{ type: 'text', text: `Error: ${result.error}` }], isError: true };
+    }
+    return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  });
+
+  server.registerTool('publish_content', {
+    title: 'Publish Content',
+    description: 'Publish a content item by key, setting its status to PUBLISHED and published flag to true.',
+    inputSchema: {
+      key: z.string().describe('Content manifest key to publish'),
+    },
+  }, async ({ key }) => {
+    const result = await executeCoreIQTool('publish_content', { key }, { supabase, localStore, callerApiKey });
+    if (!result.success) {
+      return { content: [{ type: 'text', text: `Error: ${result.error}` }], isError: true };
+    }
+    return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  });
+
+  server.registerTool('ask_coreiq', {
+    title: 'Ask CoreIQ',
+    description: "Send a message to the live CoreIQ agent brain (the website's configured provider/model/system prompt) and return its real response.",
+    inputSchema: { message: z.string().describe('Message or prompt to send to CoreIQ') },
+  }, async ({ message }) => {
+    const result = await executeCoreIQTool('ask_coreiq', { message }, { supabase, localStore, callerApiKey });
+    if (!result.success) {
+      return { content: [{ type: 'text', text: `Error: ${result.error}` }], isError: true };
+    }
+    const reply = (result.data as any)?.reply || '(empty response)';
+    return { content: [{ type: 'text', text: reply }] };
+  });
+
+  server.registerTool('list_leads', {
+    title: 'List Leads',
+    description: 'List recent website leads/inquiries.',
+    inputSchema: { limit: z.number().optional().describe('Max number of leads to return (default 20)') },
+  }, async ({ limit }) => {
+    const result = await executeCoreIQTool('list_leads', { limit }, { supabase, localStore, callerApiKey });
+    return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  });
+
+  server.registerTool('create_lead', {
+    title: 'Create Lead',
+    description: 'Create a new client lead/inquiry record.',
+    inputSchema: {
+      client_name: z.string().describe('Name of the lead/client'),
+      client_contact: z.string().describe('Email or phone contact'),
+      client_message: z.string().optional().describe('Message or inquiry text'),
+      intent_type: z.string().optional().describe('Intent type (e.g. agents, apps, automation, custom)'),
+      budget_range: z.string().optional().describe('Client budget range'),
+      notes: z.string().optional().describe('Internal operator notes'),
+    },
+  }, async (args) => {
+    const result = await executeCoreIQTool('create_lead', args, { supabase, localStore, callerApiKey });
+    if (!result.success) {
+      return { content: [{ type: 'text', text: `Error: ${result.error}` }], isError: true };
+    }
+    return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  });
+
+  server.registerTool('list_tasks', {
+    title: 'List Tasks',
+    description: 'List operator tasks in CoreIQ Command.',
+    inputSchema: { limit: z.number().optional().describe('Max number of tasks to return (default 20)') },
+  }, async ({ limit }) => {
+    const result = await executeCoreIQTool('list_tasks', { limit }, { supabase, localStore, callerApiKey });
+    return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  });
+
+  server.registerTool('create_task', {
+    title: 'Create Task',
+    description: 'Create an operator task in CoreIQ Command.',
+    inputSchema: {
+      title: z.string().describe('Task title'),
+      description: z.string().optional().describe('Task details or instructions'),
+      status: z.string().optional().describe('Initial status: not_started, in_progress, completed, blocked'),
+      due_date: z.string().optional().describe('Due date ISO string'),
+    },
+  }, async (args) => {
+    const result = await executeCoreIQTool('create_task', args, { supabase, localStore, callerApiKey });
+    if (!result.success) {
+      return { content: [{ type: 'text', text: `Error: ${result.error}` }], isError: true };
+    }
+    return { content: [{ type: 'text', text: `Task created: ${args.title}` }] };
+  });
+
+  server.registerTool('get_agent_config', {
+    title: 'Get Agent Config',
+    description: "Read CoreIQ's current provider/model/system prompt (API key redacted).",
+    inputSchema: {},
+  }, async () => {
+    const result = await executeCoreIQTool('get_agent_config', {}, { supabase, localStore, callerApiKey });
     return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
   });
 
