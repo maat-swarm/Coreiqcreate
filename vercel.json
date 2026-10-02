@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/v1/:path*",
+      "destination": "https://coreiqcreate.onrender.com/api/v1/:path*"
+    },
+    {
       "source": "/mcp",
       "destination": "https://coreiqcreate.onrender.com/mcp"
     },
