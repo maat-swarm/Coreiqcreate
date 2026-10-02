@@ -35,7 +35,7 @@ The system is partitioned into three functional tiers that communicate through S
 2. **CoreIQ Command (`/command` and `/command/login`):**
    - The central operational cockpit for operators, strategists, and automated agents.
    - Gated behind Supabase Auth (`CommandLoginPage.tsx`). Unauthorized users are rejected and cannot access operational telemetry.
-   - Contains 10 specialized operational sub-consoles:
+   - Contains 11 specialized operational sub-consoles:
      - **Inbox Tab:** Real-time ingestion of website leads and social webhooks (Meta, X, LinkedIn, WhatsApp) with instant audio chime alerts.
      - **Tasks Tab:** Kanban and status pipeline (`not_started`, `in_progress`, `review`, `completed`) linked to specific leads or clients.
      - **Clients Tab:** Unified client relationship registry, contacts, notes, and activity history.
@@ -44,6 +44,7 @@ The system is partitioned into three functional tiers that communicate through S
      - **Tools Tab:** Dynamic registry of external tool connectors, API endpoints, and execution states.
      - **Platforms Tab:** Inventory of deployed websites, apps, and digital properties managed by CoreIQ.
      - **Content Tab:** Headless CMS management with dual Copy/Media tabs, manifest synchronization, and live health evaluation across all 94 content keys.
+     - **Upload Tab (Media Slots Gateway):** Operational asset management system allowing operators to upload, configure, reorder, and publish images, videos, and external media into typed and bounded slots without redeploying code. Connected directly to the single source of truth placement map (`src/config/mediaPlacements.ts`).
      - **Swarm Tab:** Inter-agent telemetry node viewer tracking autonomous node heartbeats and inter-agent messages.
      - **Analytics Tab:** Pipeline health, conversion metrics, and system throughput.
 
@@ -55,7 +56,7 @@ The system is partitioned into three functional tiers that communicate through S
 ### 1.3 How the System Connects to Supabase
 Supabase serves as the **Single Unified Brain** of CoreIQ Create.
 - **Project URL:** `https://irrpqqxetyfbafjpjtpt.supabase.co`
-- **Tables (10 Total):** `leads`, `social_messages`, `tasks`, `clients`, `agent_config`, `agent_tools`, `platforms`, `content`, `swarm_comms`, `api_keys`.
+- **Tables (12 Total):** `leads`, `social_messages`, `tasks`, `clients`, `agent_config`, `agent_tools`, `platforms`, `content`, `swarm_comms`, `api_keys`, `media_slots`, `media_slot_items`.
 - **Public Interaction:** Anon users can INSERT into `leads` and `social_messages`, and SELECT from `agent_config`, `platforms`, and published `content`. All other tables require authenticated operator access.
 - **Dual-Engine Resilience (Local Reactive Mode vs. Remote Supabase):**
   - The client codebase (`src/services/supabase.ts`) and the server gateway (`server.ts`) implement an automated resilient dual-layer architecture.
@@ -88,6 +89,30 @@ The application implements a structured content layer:
   - `POST /api/v1/content/:key/publish`: Transition content key directly to `PUBLISHED` with publisher audit stamp (requires `PUBLISH_CONTENT`).
   - `POST /api/v1/content/:key/verify`: Run programmatic assertions on content status and body substring (requires `READ_CONTENT`).
   - `GET /api/v1/content/placeholders/:page`: Retrieve all unfilled placeholder keys for a page for systematic autonomous drafting (requires `READ_CONTENT`).
+
+### 1.5 Media Slots Operational Gateway & Dynamic Placement Architecture
+The application features a production-grade **Media Slots** management system allowing operators to upload, swap, configure, and reorder public media assets on demand without code deployments:
+- **Single Source of Truth Placement Map (`src/config/mediaPlacements.ts`):**
+  - Declares all operational slots (`home.showcase`, `home.intro_video`, `home.intro_poster`, `site.background`, `site.background_poster`, `solutions.showcase`, `apps.showcase`, `learn.showcase`, `tools.showcase`, `about.showcase`).
+  - Exports typed `SlotPlacement` records defining the exact page route, target component (`CoreIQSentinel`, `CoreIQRuntimeCard`, `VideoBackground`), placement anchor, and live wiring state.
+- **Hero Zone & `CoreIQSentinel` Carousel (`src/components/common/CoreIQSentinel.tsx`):**
+  - Renders directly in the Hero Zone below the Ask CoreIQ bar and above the capability strip.
+  - Zero-drift guarantee: When a page showcase slot has 0 published items, it renders the original HUD panel frame, label row (`COREIQ SENTINEL // SYSTEM ONLINE`), and quick-action chips (`01 AI Agent`, `02 Web App`) completely unchanged.
+  - When 1+ items are published, it smoothly replaces the panel body with a compliant 16:9 carousel supporting touch swipe gestures, keyboard arrow navigation, min-44px touch targets, below-image caption blocks, and `prefers-reduced-motion`.
+- **Runtime Video Preview & Click-to-Load Facade (`CoreIQRuntimeCard` in `HomePage.tsx`):**
+  - Positioned inside the Process section directly above the CoreIQ Intent card.
+  - With 0 published items, renders the looping background video.
+  - With a published item, renders a zero-network-overhead click-to-load facade with custom poster and accessible Play button (`aria-label="Play intro video"`). Supports both uploaded MP4/WebM videos and YouTube/Vimeo embed players.
+- **Switchable Global Site Background (`src/components/environment/VideoBackground.tsx` & `ImageBackground.tsx`):**
+  - Binds `site.background` (video) and `site.background_poster` (image) dynamically behind all public surfaces.
+  - Falls back to default celestial world assets seamlessly when empty.
+- **Media Slots API (`server.ts`):**
+  - `GET /api/v1/media/slots?page=`: Operator slot inventory with item counts and status chips.
+  - `GET /api/v1/media/slots/:slot_key`: Slot definition and items (anonymous access receives published items only).
+  - `POST /api/v1/media/slots/:slot_key/items`: Multipart file upload or JSON URL item creation with MIME validation, file size enforcement, and accessibility alt-text checking (requires `WRITE_MEDIA` or operator session).
+  - `PATCH /api/v1/media/slots/:slot_key/items/:id`: Item metadata and published state toggles.
+  - `PUT /api/v1/media/slots/:slot_key/order`: Drag-and-drop sort order synchronization.
+  - `DELETE /api/v1/media/slots/:slot_key/items/:id`: Asset deletion with automatic storage cleanup.
 
 
 ## 2. REPOSITORY & DEPLOYMENT
@@ -18871,7 +18896,7 @@ You are an architectural strategist, product engineer, and capability orchestrat
 
 ```
 
-### 5.2 Detailed Explanation of the 10 Tables
+### 5.2 Detailed Explanation of the 12 Tables
 
 | Table Name | Primary Purpose | Row Level Security (RLS) Policy | Realtime Enabled |
 |---|---|---|---|
@@ -18885,11 +18910,14 @@ You are an architectural strategist, product engineer, and capability orchestrat
 | **`content`** | Headless CMS storing articles, educational guides, news releases, key-value configurations, and media URLs. Extended with `content_key`, `slug`, `summary`, `status` (`PLACEHOLDER`\|`DRAFT`\|`REVIEW`\|`PUBLISHED`), `content_type`, `version`, and `metadata`. | **Public / Anon:** `SELECT` allowed where `published = true` or `status = 'PUBLISHED'`.<br>**Authenticated:** Full read/write. | **Yes** (`supabase_realtime`) |
 | **`swarm_comms`** | Autonomous telemetry bus recording inter-agent messages, node heartbeats, and swarm orchestration logs. | **Authenticated Only:** Restricted to authenticated operators and service-role machines. | **Yes** (`supabase_realtime`) |
 | **`api_keys`** | Machine credentials for external agents (e.g. Hermes Prime). Stores key prefix, SHA-256 hash, scopes, and revocation status. | **Authenticated:** Full access.<br>**Anon:** Public lookup allowed ONLY for hash verification where `revoked = false`. | **Yes** (`supabase_realtime`) |
+| **`media_slots`** | Master operational registry for dynamic media slots across public pages (`slot_key`, `page`, `label`, `allowed_types`, `max_items`, `max_bytes`, `aspect`). | **Public / Anon:** `SELECT` allowed for all slots.<br>**Writes:** Service role only (via server gateway). | **Yes** (`supabase_realtime`) |
+| **`media_slot_items`** | Media assets associated with slots (`slot_key`, `type`, `storage_path`, `url`, `alt`, `title`, `caption`, `cta_label`, `cta_url`, `sort_order`, `published`). | **Public / Anon:** `SELECT` allowed ONLY where `published = true`.<br>**Writes:** Service role only. Anon INSERT/UPDATE/DELETE strictly blocked. | **Yes** (`supabase_realtime`) |
 
 ### 5.3 Row Level Security (RLS) Analysis
 - **Zero-Trust Defaults:** Every table has `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`.
 - **Public Write Protection:** Anon clients cannot modify or delete existing leads, cannot read other users' leads, and cannot alter tasks, clients, or agent system prompts.
 - **Dynamic Config Access:** Public clients can read `agent_config` without authentication so that when an operator adjusts the prompt or model in Command, visitors immediately experience the updated behavior without an app redeployment.
+- **Public Media Access:** Public visitors can read media slot metadata and published media slot items (`published = true`). All item creation, editing, file uploads, reordering, and deletions are strictly guarded behind `service_role` and operator API scopes (`WRITE_MEDIA`).
 
 
 ## 6. AUTHENTICATION & SECURITY MODEL
@@ -18946,6 +18974,8 @@ Every key possesses a specific array of scopes. The gateway validates scopes usi
 | `PUBLISH_CONTENT` | CMS | Allows `POST /api/v1/content/:key/publish` to transition a content key from PLACEHOLDER directly to PUBLISHED. |
 | `READ_CONFIG` | Brain | Allows `GET /api/v1/config` to read the active LLM provider and system prompt. |
 | `WRITE_CONFIG` | Brain | Allows `POST /api/v1/config` to update the active LLM provider, model name, and prompt. |
+| `READ_MEDIA` | Media Slots | Allows `GET /api/v1/media/slots` to list slots, limits, and unpublished draft assets. |
+| `WRITE_MEDIA` | Media Slots | Allows `POST /api/v1/media/slots/:slot/items`, `PATCH ...`, `PUT .../order`, and `DELETE ...` to manage media assets. |
 
 If a key attempts an operation without the required scope, the server immediately rejects the request with HTTP `403 Forbidden`:
 ```json

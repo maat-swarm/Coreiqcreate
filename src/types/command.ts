@@ -7,6 +7,7 @@ export type CommandTab =
   | 'tools'
   | 'platforms'
   | 'content'
+  | 'upload'
   | 'swarm'
   | 'analytics';
 
@@ -20,7 +21,44 @@ export type ApiScope =
   | 'READ_CONTENT'
   | 'WRITE_CONTENT'
   | 'READ_CONFIG'
-  | 'WRITE_CONFIG';
+  | 'WRITE_CONFIG'
+  | 'READ_MEDIA'
+  | 'WRITE_MEDIA';
+
+export type MediaSlotType = 'image' | 'video' | 'url';
+
+export interface MediaSlot {
+  slot_key: string;
+  page: string;
+  label: string;
+  allowed_types: MediaSlotType[];
+  max_items: number;
+  max_bytes: number;
+  aspect?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  // Computed for UI
+  item_count?: number;
+  status?: 'empty' | 'filled' | 'error';
+  items?: MediaSlotItem[];
+}
+
+export interface MediaSlotItem {
+  id: string;
+  slot_key: string;
+  type: MediaSlotType;
+  storage_path?: string | null;
+  url?: string | null;
+  alt?: string | null;
+  title?: string | null;
+  caption?: string | null;
+  cta_label?: string | null;
+  cta_url?: string | null;
+  sort_order: number;
+  published: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
 
 export interface ApiKeyItem {
   id: string;

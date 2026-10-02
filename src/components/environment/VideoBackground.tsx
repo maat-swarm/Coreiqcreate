@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { ImageBackground } from './ImageBackground';
+import { useMediaSlot } from '../../services/mediaSlots';
 
 interface VideoBackgroundProps {
   isReducedMotion: boolean;
@@ -14,6 +15,17 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
+
+  // Switchable Site Background Media Slots
+  const { items: bgVideoItems } = useMediaSlot('site.background');
+  const { items: bgPosterItems } = useMediaSlot('site.background_poster');
+
+  const publishedVideos = (bgVideoItems || []).filter((v) => v.published);
+  const publishedPosters = (bgPosterItems || []).filter((p) => p.published);
+
+  const customVideoUrl = publishedVideos.length > 0 && publishedVideos[0].url ? publishedVideos[0].url : null;
+  const customPosterUrl = publishedPosters.length > 0 && publishedPosters[0].url ? publishedPosters[0].url : null;
+  const effectivePoster = customPosterUrl || '/assets/backgrounds/coreiq-world.webp';
 
   useEffect(() => {
     const video = videoRef.current;
@@ -81,7 +93,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isReducedMotion]);
+  }, [isReducedMotion, customVideoUrl]);
 
   // If user prefers reduced motion, render static image background
   if (isReducedMotion) {
@@ -90,6 +102,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
         isReducedMotion={isReducedMotion}
         mousePos={mousePos}
         scrollProgress={scrollProgress}
+        customPosterUrl={customPosterUrl}
       />
     );
   }
@@ -106,6 +119,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
         isReducedMotion={isReducedMotion}
         mousePos={mousePos}
         scrollProgress={scrollProgress}
+        customPosterUrl={customPosterUrl}
       />
 
       {/* Primary Video layer */}
@@ -119,13 +133,14 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
         }}
       >
         <video
+          key={customVideoUrl || 'default-bg-video'}
           ref={videoRef}
           autoPlay
           loop
           muted
           playsInline
           preload="auto"
-          poster="/assets/backgrounds/coreiq-world.webp"
+          poster={effectivePoster}
           onPlaying={() => setVideoLoaded(true)}
           onLoadedData={() => setVideoLoaded(true)}
           className="w-full h-full object-cover object-[75%_45%] sm:object-[70%_48%] lg:object-[68%_50%]"
@@ -133,8 +148,14 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
             filter: 'brightness(0.96) contrast(1.06) saturate(1.12)',
           }}
         >
-          <source src="/assets/backgrounds/coreiq-world.mp4" type="video/mp4" />
-          <source src="/hero-bg-clean.mp4" type="video/mp4" />
+          {customVideoUrl ? (
+            <source src={customVideoUrl} type="video/mp4" />
+          ) : (
+            <>
+              <source src="/assets/backgrounds/coreiq-world.mp4" type="video/mp4" />
+              <source src="/hero-bg-clean.mp4" type="video/mp4" />
+            </>
+          )}
         </video>
       </div>
 

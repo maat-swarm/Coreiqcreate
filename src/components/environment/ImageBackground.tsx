@@ -5,12 +5,14 @@ interface ImageBackgroundProps {
   isReducedMotion: boolean;
   mousePos: { x: number; y: number };
   scrollProgress: number;
+  customPosterUrl?: string | null;
 }
 
 export const ImageBackground: React.FC<ImageBackgroundProps> = ({
   isReducedMotion,
   mousePos,
   scrollProgress,
+  customPosterUrl,
 }) => {
   // Delicate camera pan based on mouse coordinates (-0.5 to 0.5)
   const panX = isReducedMotion ? 0 : mousePos.x * 12;
@@ -31,10 +33,9 @@ export const ImageBackground: React.FC<ImageBackgroundProps> = ({
           transform: `translate3d(${panX}px, ${panY - scrollY}px, 0) scale(${isReducedMotion ? 1 : 1.02})`,
         }}
       >
-        <picture>
-          <source srcSet="/assets/backgrounds/coreiq-world.webp" type="image/webp" />
+        {customPosterUrl ? (
           <img
-            src={ASSETS.worldArt || '/assets/backgrounds/coreiq-world.jpg'}
+            src={customPosterUrl}
             alt="Core IQ Living World"
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-[75%_45%] sm:object-[70%_48%] lg:object-[68%_50%] transition-opacity duration-1000"
@@ -42,7 +43,20 @@ export const ImageBackground: React.FC<ImageBackgroundProps> = ({
               filter: 'brightness(0.92) contrast(1.08) saturate(1.12)',
             }}
           />
-        </picture>
+        ) : (
+          <picture>
+            <source srcSet="/assets/backgrounds/coreiq-world.webp" type="image/webp" />
+            <img
+              src={ASSETS.worldArt || '/assets/backgrounds/coreiq-world.jpg'}
+              alt="Core IQ Living World"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover object-[75%_45%] sm:object-[70%_48%] lg:object-[68%_50%] transition-opacity duration-1000"
+              style={{
+                filter: 'brightness(0.92) contrast(1.08) saturate(1.12)',
+              }}
+            />
+          </picture>
+        )}
       </div>
 
       {/* Atmospheric color grade overlay that connects the world seamlessly with the Core IQ midnight theme */}

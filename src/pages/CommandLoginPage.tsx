@@ -6,21 +6,30 @@ import {
   ArrowLeft, 
   Copy, 
   Check, 
-  ExternalLink,
-  Lock,
-  ChevronDown,
-  ChevronUp,
-  Cpu
+  ExternalLink, 
+  Lock, 
+  ChevronDown, 
+  ChevronUp, 
+  Cpu,
+  Database
 } from 'lucide-react';
-import { CoreIQAuth, testSupabaseConnection, SUPABASE_SQL_SCHEMA } from '../services/supabase';
+import { 
+  CoreIQAuth, 
+  testSupabaseConnection, 
+  SUPABASE_SQL_SCHEMA,
+  getSupabaseCredentials 
+} from '../services/supabase';
+import { CommandAuthModal } from '../components/command/CommandAuthModal';
 
 interface CommandLoginPageProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess?: () => void;
+  onAuthenticated?: (session?: any) => void;
   onExitToWebsite: () => void;
 }
 
 export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
   onLoginSuccess,
+  onAuthenticated,
   onExitToWebsite,
 }) => {
   const [email, setEmail] = useState('');
@@ -29,6 +38,9 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedSql, setCopiedSql] = useState(false);
   const [showSqlGuide, setShowSqlGuide] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { url: currentSupabaseUrl, anonKey: currentSupabaseKey } = getSupabaseCredentials();
+
   const [connStatus, setConnStatus] = useState<{
     tested: boolean;
     tablesFound: boolean;
@@ -39,19 +51,18 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
     message: 'Verifying database endpoint...',
   });
 
-  useEffect(() => {
-    let mounted = true;
+  const checkConnection = () => {
     testSupabaseConnection().then((res) => {
-      if (!mounted) return;
       setConnStatus({
         tested: true,
         tablesFound: res.tablesFound,
         message: res.message,
       });
     });
-    return () => {
-      mounted = false;
-    };
+  };
+
+  useEffect(() => {
+    checkConnection();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,11 +77,12 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
 
     setIsLoading(true);
     try {
-      await CoreIQAuth.signIn(cleanEmail, password);
-      onLoginSuccess();
+      const data = await CoreIQAuth.signIn(cleanEmail, password);
+      onAuthenticated?.(data.session);
+      onLoginSuccess?.();
     } catch (err: any) {
       console.error('Operator login error:', err);
-      const msg = err?.message || 'Authentication failed. Please verify credentials in Supabase Auth.';
+      const msg = err?.message || 'Authentication failed. Please verify credentials.';
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -91,22 +103,33 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
 
       {/* Top minimal bar */}
-      <header className="px-6 py-5 flex items-center justify-between z-10">
+      <header className="px-6 py-5 flex items-center justify-between z-10 flex-wrap gap-2">
         <button
           onClick={onExitToWebsite}
-          className="inline-flex items-center gap-2 text-xs font-mono text-slate-400 hover:text-cyan-300 transition-colors py-2 px-3 rounded-lg hover:bg-slate-900/60 border border-transparent hover:border-slate-800"
+          className="inline-flex items-center gap-2 text-xs font-mono text-slate-400 hover:text-cyan-300 transition-colors py-2 px-3 rounded-lg hover:bg-slate-900/60 border border-transparent hover:border-slate-800 min-h-[44px]"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Return to Public Website</span>
         </button>
 
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${connStatus.tablesFound ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-amber-400 animate-pulse'}`} />
-          <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">
-            {connStatus.tested 
-              ? (connStatus.tablesFound ? 'Supabase Unified Brain Live' : 'Database Migration Pending')
-              : 'Checking Connection...'}
-          </span>
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="px-3 py-1.5 rounded-xl text-xs font-mono text-cyan-300 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-cyan-500/30 flex items-center gap-1.5 transition-colors min-h-[44px]"
+            title="Configure Supabase URL & Anon Key"
+          >
+            <Database className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden xs:inline">Database Config</span>
+          </button>
+
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800">
+            <div className={`w-2 h-2 rounded-full ${connStatus.tablesFound ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-amber-400 animate-pulse'}`} />
+            <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">
+              {connStatus.tested 
+                ? (connStatus.tablesFound ? 'Supabase Live' : 'Sovereign Local Mode')
+                : 'Checking Connection...'}
+            </span>
+          </div>
         </div>
       </header>
 
@@ -130,7 +153,7 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
               CoreIQ Command
             </h1>
             <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-              Unified Operator Cockpit & Autonomous Swarm Gateway. Enter your Supabase operator credentials to decrypt access.
+              Unified Operator Cockpit & Autonomous Swarm Gateway. Enter your operator credentials to decrypt access.
             </p>
           </div>
 
@@ -147,7 +170,7 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="operator@coreiq.create"
-                className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-400 font-mono transition-colors"
+                className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-400 font-mono transition-colors min-h-[44px]"
               />
             </div>
 
@@ -162,7 +185,7 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-400 font-mono transition-colors"
+                className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-400 font-mono transition-colors min-h-[44px]"
               />
             </div>
 
@@ -176,7 +199,7 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-98 shadow-[0_0_25px_rgba(25,217,255,0.35)] disabled:opacity-50 mt-2"
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-98 shadow-[0_0_25px_rgba(25,217,255,0.35)] disabled:opacity-50 mt-2 min-h-[44px]"
             >
               {isLoading ? (
                 <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
@@ -191,7 +214,7 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
           <div className="mt-6 pt-5 border-t border-slate-800/80 text-xs">
             <button
               onClick={() => setShowSqlGuide(!showSqlGuide)}
-              className="w-full flex items-center justify-between text-slate-400 hover:text-slate-200 transition-colors py-1"
+              className="w-full flex items-center justify-between text-slate-400 hover:text-slate-200 transition-colors py-1 min-h-[44px]"
             >
               <span className="font-mono text-[11px] flex items-center gap-1.5">
                 <Cpu className="w-3.5 h-3.5 text-cyan-400" />
@@ -212,7 +235,7 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
                 <div className="flex items-center justify-between gap-2 pt-1">
                   <button
                     onClick={handleCopySql}
-                    className="flex-1 py-2 px-3 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                    className="flex-1 py-2 px-3 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors min-h-[44px]"
                   >
                     {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedSql ? 'Schema Copied!' : 'Copy SQL Schema'}</span>
@@ -222,7 +245,7 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
                     href="https://supabase.com/dashboard"
                     target="_blank"
                     rel="noreferrer"
-                    className="py-2 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
+                    className="py-2 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1 transition-colors min-h-[44px]"
                   >
                     <span>Supabase SQL</span>
                     <ExternalLink className="w-3 h-3" />
@@ -239,6 +262,20 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
       <footer className="px-6 py-4 text-center text-[11px] text-slate-500 font-mono z-10">
         <span>Restricted Operator Access — CoreIQ Sovereign Cognitive Architecture</span>
       </footer>
+
+      {/* Database Connection Configuration Modal */}
+      <CommandAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          checkConnection();
+        }}
+        onCredentialsUpdated={() => {
+          checkConnection();
+        }}
+        currentUrl={currentSupabaseUrl}
+        currentKey={currentSupabaseKey}
+      />
 
     </div>
   );

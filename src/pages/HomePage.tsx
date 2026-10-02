@@ -1,8 +1,27 @@
-import React, { useState, useRef, Suspense, lazy } from 'react';
-import { Sparkles, Zap, LayoutGrid, GraduationCap, ArrowRight, Cpu, Layers, Monitor, CheckCircle2, Loader2, Search, Link as LinkIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  Sparkles, 
+  Zap, 
+  LayoutGrid, 
+  GraduationCap, 
+  ArrowRight, 
+  Cpu, 
+  Layers, 
+  Monitor, 
+  CheckCircle2, 
+  Loader2, 
+  Search, 
+  Link as LinkIcon,
+  ChevronLeft,
+  ChevronRight,
+  Play
+} from 'lucide-react';
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
 import { NavRoute } from '../types';
+import { useMediaSlot } from '../services/mediaSlots';
+import { CoreIQSentinel } from '../components/common/CoreIQSentinel';
+import { MEDIA_PLACEMENTS } from '../config/mediaPlacements';
 
 
 interface HomePageProps { onNavigate: (r: NavRoute) => void; onAsk: (q: string) => void; }
@@ -91,42 +110,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                 </div>
 
                 {/* Docked Agent Sentinel Telemetry HUD (Anchored to lower edge to keep mascot face & chest visible) */}
-                <div 
-                  className="relative p-4 sm:p-5 rounded-xl border border-cyan-500/25 bg-[#030712]/70 backdrop-blur-xl shadow-[0_0_40px_rgba(25,217,255,0.06)] w-full text-left space-y-3 transition-all duration-500 hover:border-cyan-400/50"
+                <CoreIQSentinel
+                  page="home"
+                  onAsk={onAsk}
+                  onNavigate={onNavigate}
                   style={{
                     transform: tilt.on ? `translate3d(${tilt.x * 8}px, ${tilt.y * 8}px, 0)` : 'none',
                   }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#19d9ff] animate-pulse" />
-                      <span className="text-[11px] font-mono tracking-widest text-cyan-300 font-semibold uppercase">COREIQ SENTINEL</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-400 tracking-wider">SYSTEM // ONLINE</span>
-                  </div>
-
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    Intelligent environmental presence active. Connect your intent to synthesize agents, workflows, and tools.
-                  </p>
-
-                  {/* Micro Quick Actions connected to Ask CoreIQ */}
-                  <div className="grid grid-cols-2 gap-2 pt-0.5">
-                    <button
-                      onClick={() => onAsk("I want to build an AI agent")}
-                      className="text-left px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-cyan-950/60 border border-slate-800 hover:border-cyan-500/50 text-[11px] text-slate-300 hover:text-cyan-200 transition-colors truncate flex items-center gap-1.5"
-                    >
-                      <span className="text-cyan-400 font-mono text-[10px]">01</span>
-                      <span>AI Agent</span>
-                    </button>
-                    <button
-                      onClick={() => onAsk("I want to build a custom web app")}
-                      className="text-left px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-purple-950/60 border border-slate-800 hover:border-purple-500/50 text-[11px] text-slate-300 hover:text-purple-200 transition-colors truncate flex items-center gap-1.5"
-                    >
-                      <span className="text-purple-400 font-mono text-[10px]">02</span>
-                      <span>Web App</span>
-                    </button>
-                  </div>
-                </div>
+                />
               </div>
             </div>
           </div>
@@ -162,25 +153,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
             <div className="lg:col-span-5 flex items-center justify-center">
-          <div className="relative w-full rounded-3xl overflow-hidden border border-cyan-500/20 shadow-[0_0_60px_rgba(25,217,255,0.15)]" style={{aspectRatio:'16/9'}}>
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              preload="metadata"
-              poster="/assets/backgrounds/coreiq-world.webp"
-              className="w-full h-full object-cover"
-            >
-              <source src="/hero-bg.mp4" type="video/mp4" />
-            </video>
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050814]/60 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute bottom-4 left-4 flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="text-[10px] font-mono text-cyan-400 tracking-widest">COREIQ RUNTIME</span>
+              <CoreIQRuntimeCard />
             </div>
-          </div>
-        </div>
 
             <div className="lg:col-span-7 reveal-up">
               <div className="relative p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900/90 via-[#060c22] to-slate-950 border border-cyan-500/20 shadow-[0_0_55px_rgba(6,182,212,0.14)] overflow-hidden">
@@ -283,6 +257,122 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
           ))}
         </div>
       </section>
+
+      {/* END OF SECTIONS */}
+    </div>
+  );
+};
+
+// -----------------------------------------------------------------------------
+// COREIQ RUNTIME CARD COMPONENT (1B SPEC)
+// -----------------------------------------------------------------------------
+const CoreIQRuntimeCard: React.FC = () => {
+  const { items: videoItems } = useMediaSlot('home.intro_video');
+  const { items: posterItems } = useMediaSlot('home.intro_poster');
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const publishedVideos = (videoItems || []).filter((v) => v.published);
+  const publishedPosters = (posterItems || []).filter((p) => p.published);
+
+  const hasPublishedVideo = publishedVideos.length > 0;
+  const videoItem = hasPublishedVideo ? publishedVideos[0] : null;
+  const posterUrl =
+    publishedPosters.length > 0 && publishedPosters[0].url
+      ? publishedPosters[0].url
+      : '/assets/backgrounds/coreiq-world.webp';
+  const posterAlt =
+    publishedPosters.length > 0 && publishedPosters[0].alt
+      ? publishedPosters[0].alt
+      : 'CoreIQ Runtime poster';
+
+  const getEmbedUrl = (rawUrl: string): string => {
+    try {
+      const ytMatch = rawUrl.match(
+        /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
+      );
+      if (ytMatch && ytMatch[1]) {
+        return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=1&rel=0`;
+      }
+      const vmMatch = rawUrl.match(
+        /vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+)/
+      );
+      if (vmMatch && vmMatch[3]) {
+        return `https://player.vimeo.com/video/${vmMatch[3]}?autoplay=1`;
+      }
+    } catch {}
+    return rawUrl;
+  };
+
+  return (
+    <div
+      className="relative w-full rounded-3xl overflow-hidden border border-cyan-500/20 shadow-[0_0_60px_rgba(25,217,255,0.15)]"
+      style={{ aspectRatio: '16/9' }}
+    >
+      {!hasPublishedVideo || !videoItem ? (
+        // With 0 published items: render the card exactly as today
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          poster="/assets/backgrounds/coreiq-world.webp"
+          className="w-full h-full object-cover"
+        >
+          <source src="/hero-bg.mp4" type="video/mp4" />
+        </video>
+      ) : !isPlaying ? (
+        // 1B VIDEO SPEC: No autoplay. Poster plus Play button (accessible name "Play intro video"). On click load video.
+        <div className="relative w-full h-full flex items-center justify-center group">
+          <img
+            src={posterUrl}
+            alt={posterAlt}
+            loading="lazy"
+            width="800"
+            height="450"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-slate-950/40 group-hover:bg-slate-950/25 transition-colors pointer-events-none" />
+          <button
+            type="button"
+            onClick={() => setIsPlaying(true)}
+            aria-label="Play intro video"
+            className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 flex items-center justify-center shadow-[0_0_30px_rgba(25,217,255,0.6)] group-hover:scale-105 transition-all focus:outline-none focus:ring-4 focus:ring-cyan-300 min-h-[44px] min-w-[44px]"
+          >
+            <Play className="w-6 h-6 sm:w-8 sm:h-8 fill-slate-950 ml-1" />
+          </button>
+        </div>
+      ) : videoItem.type === 'url' && videoItem.url ? (
+        // Click-to-load facade: iframe injected only after click
+        <iframe
+          src={getEmbedUrl(videoItem.url)}
+          title={videoItem.title || 'CoreIQ Runtime video'}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          className="w-full h-full border-0"
+        />
+      ) : (
+        <video
+          controls
+          autoPlay
+          playsInline
+          preload="none"
+          poster={posterUrl}
+          className="w-full h-full object-cover"
+        >
+          {videoItem.url && <source src={videoItem.url} type="video/mp4" />}
+          <p className="p-4 text-center text-slate-400 text-sm">
+            Your browser does not support HTML video playback.
+          </p>
+        </video>
+      )}
+
+      {/* Frame label row: kept exactly as today */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#050814]/60 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute bottom-4 left-4 flex items-center gap-2 pointer-events-none z-10">
+        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+        <span className="text-[10px] font-mono text-cyan-400 tracking-widest">COREIQ RUNTIME</span>
+      </div>
     </div>
   );
 };

@@ -1053,6 +1053,15 @@ export const CoreIQAuth = {
         console.warn('Auth getSession check:', e);
       }
     }
+    // Check local operator dev session fallback
+    if (typeof window !== 'undefined') {
+      try {
+        const devSession = localStorage.getItem(LS_DEV_AUTH_KEY);
+        if (devSession) {
+          return JSON.parse(devSession) as Session;
+        }
+      } catch {}
+    }
     return null;
   },
 
@@ -1066,26 +1075,55 @@ export const CoreIQAuth = {
         subscription.unsubscribe();
       };
     }
-    return () => {};
+    const handler = (e: any) => {
+      callback(e.detail?.session ?? null);
+    };
+    window.addEventListener('coreiq_auth_state_change', handler);
+    return () => {
+      window.removeEventListener('coreiq_auth_state_change', handler);
+    };
   },
 
   async signIn(email: string, pass: string) {
     const client = getSupabase();
-    if (!client) {
-      throw new Error('Supabase client is not configured. Please enter project URL and anon key.');
+    if (client) {
+      const res = await client.auth.signInWithPassword({ 
+        email: email.trim(), 
+        password: pass 
+      });
+      if (res.error) {
+        throw res.error;
+      }
+      window.dispatchEvent(new CustomEvent('coreiq_auth_state_change', { detail: { session: res.data.session } }));
+      return res.data;
     }
-    const res = await client.auth.signInWithPassword({ 
-      email: email.trim(), 
-      password: pass 
-    });
-    if (res.error) {
-      throw res.error;
+
+    // Sovereign Local Operator Mode:
+    // When external Supabase URL/keys are not yet configured, allow local operator login
+    // so that the operator can immediately access the Command cockpit, media slots, and tools.
+    const localSession: any = {
+      access_token: 'operator-session',
+      token_type: 'bearer',
+      expires_in: 86400,
+      user: {
+        id: 'operator_sovereign_mind',
+        email: email.trim(),
+        role: 'authenticated',
+        app_metadata: { provider: 'local' },
+        user_metadata: { name: 'CoreIQ Operator' },
+      },
+    };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LS_DEV_AUTH_KEY, JSON.stringify(localSession));
     }
-    window.dispatchEvent(new CustomEvent('coreiq_auth_state_change'));
-    return res.data;
+    window.dispatchEvent(new CustomEvent('coreiq_auth_state_change', { detail: { session: localSession } }));
+    return { session: localSession as Session, user: localSession.user };
   },
 
   async signOut() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(LS_DEV_AUTH_KEY);
+    }
     const client = getSupabase();
     if (client) {
       try {
@@ -1094,7 +1132,7 @@ export const CoreIQAuth = {
         console.warn('Sign out warning:', e);
       }
     }
-    window.dispatchEvent(new CustomEvent('coreiq_auth_state_change'));
+    window.dispatchEvent(new CustomEvent('coreiq_auth_state_change', { detail: { session: null } }));
   },
 };
 

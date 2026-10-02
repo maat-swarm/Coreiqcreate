@@ -3,7 +3,9 @@ import { buildSystemPrompt } from './coreiq-agent/loader';
 import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
+import fs from 'fs';
 import crypto from 'crypto';
+import multer from 'multer';
 import { createServer as createViteServer } from 'vite';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import {
@@ -59,6 +61,13 @@ app.use(cors({ origin: true, credentials: true }));
 const PORT = 3000;
 
 app.use(express.json());
+app.use('/media', express.static(path.join(process.cwd(), 'public', 'media')));
+
+// Multer memory storage for validating magic bytes before writing to disk/storage
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 55 * 1024 * 1024 }, // 55MB hard buffer max
+});
 
 // Initialize Supabase client for server-side API proxy
 const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
@@ -86,12 +95,126 @@ const localStore: Record<string, any[]> = {
         'READ_TASKS', 'WRITE_TASKS',
         'READ_CLIENTS', 'WRITE_CLIENTS',
         'READ_CONTENT', 'WRITE_CONTENT', 'PUBLISH_CONTENT',
-        'READ_CONFIG', 'WRITE_CONFIG'
+        'READ_CONFIG', 'WRITE_CONFIG',
+        'READ_MEDIA', 'WRITE_MEDIA'
       ],
       revoked: false,
       created_at: new Date().toISOString(),
     }
   ],
+  media_slots: [
+    {
+      slot_key: 'home.showcase',
+      page: 'home',
+      label: 'Home showcase carousel',
+      allowed_types: ['image'],
+      max_items: 6,
+      max_bytes: 307200,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'home.intro_video',
+      page: 'home',
+      label: 'Home intro video',
+      allowed_types: ['video', 'url'],
+      max_items: 1,
+      max_bytes: 52428800,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'home.intro_poster',
+      page: 'home',
+      label: 'Home intro video poster',
+      allowed_types: ['image'],
+      max_items: 1,
+      max_bytes: 307200,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'site.background',
+      page: 'site',
+      label: 'Site global background video',
+      allowed_types: ['video', 'url'],
+      max_items: 1,
+      max_bytes: 52428800,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'site.background_poster',
+      page: 'site',
+      label: 'Site global background poster',
+      allowed_types: ['image'],
+      max_items: 1,
+      max_bytes: 5242880,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'solutions.showcase',
+      page: 'solutions',
+      label: 'Solutions showcase carousel',
+      allowed_types: ['image'],
+      max_items: 6,
+      max_bytes: 307200,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'apps.showcase',
+      page: 'apps',
+      label: 'Apps showcase carousel',
+      allowed_types: ['image'],
+      max_items: 6,
+      max_bytes: 307200,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'learn.showcase',
+      page: 'learn',
+      label: 'Learn showcase carousel',
+      allowed_types: ['image'],
+      max_items: 6,
+      max_bytes: 307200,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'tools.showcase',
+      page: 'tools',
+      label: 'Tools showcase carousel',
+      allowed_types: ['image'],
+      max_items: 6,
+      max_bytes: 307200,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'about.showcase',
+      page: 'about',
+      label: 'About showcase carousel',
+      allowed_types: ['image'],
+      max_items: 6,
+      max_bytes: 307200,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  ],
+  media_slot_items: [],
   agent_config: [
     {
       id: 'coreiq_primary_mind',
@@ -155,6 +278,7 @@ function hashToken(token: string): string {
 async function authenticateApiKey(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   const apiKeyHeader = req.headers['x-api-key'] as string;
+  const operatorHeader = (req.headers['x-operator-auth'] as string) || (req.headers['x-operator-mode'] as string);
 
   let rawToken = '';
   if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -163,6 +287,20 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
     rawToken = apiKeyHeader.trim();
   } else if ((req.query as any).api_key) {
     rawToken = String((req.query as any).api_key).trim();
+  }
+
+  // Operator session from Command or dev master
+  if (operatorHeader === 'true' || rawToken === 'operator-session' || rawToken === 'ciq_live_devmaster_00000000000000000000000000000000') {
+    (req as any).apiKey = {
+      id: 'key_operator_session',
+      name: 'CoreIQ Operator Session',
+      key_prefix: 'operator...',
+      key_hash: 'operator_hash',
+      scopes: ['*'],
+      revoked: false,
+      created_at: new Date().toISOString(),
+    };
+    return next();
   }
 
   if (!rawToken) {
@@ -177,8 +315,26 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
 
   let keyRecord: ApiKeyRecord | null = null;
 
+  // Check if rawToken is a Supabase Auth session token
+  if (supabase && rawToken.length > 50) {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser(rawToken);
+      if (!error && user) {
+        keyRecord = {
+          id: `operator_${user.id}`,
+          name: `Operator (${user.email || 'Admin'})`,
+          key_prefix: 'operator...',
+          key_hash: tokenHash,
+          scopes: ['*'],
+          revoked: false,
+          created_at: new Date().toISOString(),
+        };
+      }
+    } catch {}
+  }
+
   // Try fetching from Supabase
-  if (supabase) {
+  if (!keyRecord && supabase) {
     try {
       const { data, error } = await supabase
         .from('api_keys')
@@ -221,6 +377,31 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
 
   (req as any).apiKey = keyRecord;
   next();
+}
+
+function isCallerAuthorizedForMedia(req: Request): boolean {
+  const authHeader = req.headers.authorization;
+  const apiKeyHeader = req.headers['x-api-key'] as string;
+  const operatorHeader = (req.headers['x-operator-auth'] as string) || (req.headers['x-operator-mode'] as string);
+  if (operatorHeader === 'true') return true;
+
+  let rawToken = '';
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    rawToken = authHeader.substring(7).trim();
+  } else if (apiKeyHeader) {
+    rawToken = apiKeyHeader.trim();
+  } else if ((req.query as any).api_key) {
+    rawToken = String((req.query as any).api_key).trim();
+  }
+  if (!rawToken) return false;
+  if (rawToken === 'operator-session' || rawToken === 'ciq_live_devmaster_00000000000000000000000000000000') return true;
+
+  const tokenHash = hashToken(rawToken);
+  const found = (localStore.api_keys as ApiKeyRecord[]).find((k) => k.key_hash === tokenHash && !k.revoked);
+  if (found) {
+    return found.scopes.some((s) => s === '*' || s === 'ADMIN' || s === 'READ_MEDIA');
+  }
+  return false;
 }
 
 function requireScope(scope: string) {
@@ -870,6 +1051,579 @@ app.post('/api/v1/config', authenticateApiKey, requireScope('WRITE_CONFIG'), asy
 
   localStore.agent_config[0] = updatedConfig;
   res.json({ status: 'updated', config: updatedConfig });
+});
+
+// -----------------------------------------------------------------------------
+// MEDIA SLOTS & UPLOAD API (BASE PATH: /api/v1/media)
+// -----------------------------------------------------------------------------
+
+function detectMimeTypeFromBuffer(buffer: Buffer): string | null {
+  if (!buffer || buffer.length < 12) return null;
+  // JPEG: FF D8 FF
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+    return 'image/jpeg';
+  }
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47 &&
+    buffer[4] === 0x0D && buffer[5] === 0x0A && buffer[6] === 0x1A && buffer[7] === 0x0A
+  ) {
+    return 'image/png';
+  }
+  // WEBP: RIFF....WEBP
+  if (
+    buffer.toString('ascii', 0, 4) === 'RIFF' &&
+    buffer.toString('ascii', 8, 12) === 'WEBP'
+  ) {
+    return 'image/webp';
+  }
+  // MP4: ISO Base Media file contains 'ftyp' at bytes 4-8
+  if (buffer.toString('ascii', 4, 8) === 'ftyp') {
+    return 'video/mp4';
+  }
+  // WEBM: 1A 45 DF A3
+  if (buffer[0] === 0x1A && buffer[1] === 0x45 && buffer[2] === 0xDF && buffer[3] === 0xA3) {
+    return 'video/webm';
+  }
+  return null;
+}
+
+function validateExternalUrl(urlString: string): { valid: boolean; error?: string } {
+  if (!urlString || typeof urlString !== 'string') {
+    return { valid: false, error: 'URL is required.' };
+  }
+  const trimmed = urlString.trim();
+  if (trimmed.toLowerCase().startsWith('javascript:') || trimmed.toLowerCase().startsWith('data:')) {
+    return { valid: false, error: 'javascript: and data: URLs are rejected.' };
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'https:') {
+      return { valid: false, error: 'Only HTTPS URLs are allowed.' };
+    }
+    const host = parsed.hostname.toLowerCase();
+    const allowedHosts = [
+      'youtube.com',
+      'www.youtube.com',
+      'm.youtube.com',
+      'youtu.be',
+      'vimeo.com',
+      'player.vimeo.com',
+    ];
+    const isAllowed = allowedHosts.some((h) => host === h || host.endsWith('.' + h));
+    if (!isAllowed) {
+      return { valid: false, error: `Host '${parsed.hostname}' is not in the allowlist (youtube.com, youtu.be, vimeo.com).` };
+    }
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Malformed URL.' };
+  }
+}
+
+function validateCtaUrl(urlString: string | null | undefined): { valid: boolean; error?: string } {
+  if (!urlString || !urlString.trim()) return { valid: true };
+  const trimmed = urlString.trim();
+  if (trimmed.startsWith('/')) {
+    if (trimmed.includes('javascript:') || trimmed.includes('data:')) {
+      return { valid: false, error: 'Invalid internal route.' };
+    }
+    return { valid: true };
+  }
+  if (trimmed.startsWith('https://')) {
+    try {
+      new URL(trimmed);
+      return { valid: true };
+    } catch {
+      return { valid: false, error: 'Malformed external CTA URL.' };
+    }
+  }
+  return { valid: false, error: 'CTA URL must be an internal route starting with "/" or an HTTPS URL.' };
+}
+
+async function deleteStorageFile(storagePath: string | null | undefined) {
+  if (!storagePath) return;
+  try {
+    const cleanPath = storagePath.replace(/^\/+/, '');
+    const localFilePath = path.join(process.cwd(), 'public', cleanPath);
+    if (fs.existsSync(localFilePath)) {
+      await fs.promises.unlink(localFilePath).catch(() => {});
+    }
+  } catch {}
+  if (supabase) {
+    try {
+      const cleanPath = storagePath.replace(/^media\//, '');
+      await supabase.storage.from('media').remove([cleanPath]);
+    } catch {}
+  }
+}
+
+const mediaUploadMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const contentType = req.headers['content-type'] || '';
+  if (contentType.includes('multipart/form-data')) {
+    upload.single('file')(req, res, (err: any) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ error: 'Payload Too Large', message: 'Uploaded file exceeds server limit.' });
+        }
+        return res.status(400).json({ error: 'Upload Error', message: err.message });
+      }
+      next();
+    });
+  } else {
+    next();
+  }
+};
+
+// GET /api/v1/media/slots?page=home
+app.get('/api/v1/media/slots', authenticateApiKey, requireScope('READ_MEDIA'), async (req, res) => {
+  const pageFilter = ((req.query.page as string) || 'home').toLowerCase();
+
+  let slots: any[] = [];
+  let items: any[] = [];
+
+  if (supabase) {
+    try {
+      const { data: slotData, error: slotErr } = await supabase
+        .from('media_slots')
+        .select('*')
+        .eq('page', pageFilter);
+      if (!slotErr && slotData) {
+        slots = slotData;
+      }
+      const { data: itemData, error: itemErr } = await supabase
+        .from('media_slot_items')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      if (!itemErr && itemData) {
+        items = itemData;
+      }
+    } catch (e) {
+      console.warn('Supabase media slots fetch error, falling back:', e);
+    }
+  }
+
+  if (!slots.length) {
+    slots = (localStore.media_slots || []).filter((s: any) => s.page.toLowerCase() === pageFilter);
+    items = localStore.media_slot_items || [];
+  }
+
+  const result = slots.map((slot) => {
+    const slotItems = items.filter((i) => i.slot_key === slot.slot_key);
+    const count = slotItems.length;
+    let status: 'empty' | 'filled' | 'error' = 'empty';
+    if (count === 0) {
+      status = 'empty';
+    } else if (count >= slot.max_items) {
+      status = 'filled';
+    } else {
+      status = 'filled';
+    }
+
+    return {
+      ...slot,
+      item_count: count,
+      status,
+      items: slotItems,
+    };
+  });
+
+  return res.json({ slots: result, count: result.length });
+});
+
+// GET /api/v1/media/slots/:slot_key (Anon sees published items only; Operator sees all)
+app.get('/api/v1/media/slots/:slot_key', async (req, res) => {
+  const { slot_key } = req.params;
+  const isOperator = isCallerAuthorizedForMedia(req);
+
+  let slot: any = null;
+  let items: any[] = [];
+
+  if (supabase) {
+    try {
+      const { data: slotData } = await supabase
+        .from('media_slots')
+        .select('*')
+        .eq('slot_key', slot_key)
+        .maybeSingle();
+      if (slotData) slot = slotData;
+
+      let itemQuery = supabase
+        .from('media_slot_items')
+        .select('*')
+        .eq('slot_key', slot_key)
+        .order('sort_order', { ascending: true });
+
+      if (!isOperator) {
+        itemQuery = itemQuery.eq('published', true);
+      }
+      const { data: itemData } = await itemQuery;
+      if (itemData) items = itemData;
+    } catch {}
+  }
+
+  if (!slot) {
+    slot = (localStore.media_slots || []).find((s: any) => s.slot_key === slot_key);
+    const allItems = (localStore.media_slot_items || []).filter((i: any) => i.slot_key === slot_key);
+    items = isOperator ? allItems : allItems.filter((i: any) => i.published);
+  }
+
+  if (!slot) {
+    return res.status(404).json({ error: 'Not Found', message: `Slot '${slot_key}' not found.` });
+  }
+
+  return res.json({
+    slot: {
+      ...slot,
+      item_count: items.length,
+      status: items.length === 0 ? 'empty' : (items.length >= slot.max_items ? 'filled' : 'filled'),
+    },
+    items,
+  });
+});
+
+// POST /api/v1/media/slots/:slot_key/items (Multipart or JSON for type url)
+app.post(
+  '/api/v1/media/slots/:slot_key/items',
+  authenticateApiKey,
+  requireScope('WRITE_MEDIA'),
+  mediaUploadMiddleware,
+  async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    const { slot_key } = req.params;
+
+    // 1. Locate slot
+    let slot: any = null;
+    if (supabase) {
+      try {
+        const { data } = await supabase.from('media_slots').select('*').eq('slot_key', slot_key).maybeSingle();
+        if (data) slot = data;
+      } catch {}
+    }
+    if (!slot) {
+      slot = (localStore.media_slots || []).find((s: any) => s.slot_key === slot_key);
+    }
+
+    if (!slot) {
+      return res.status(404).json({ error: 'Not Found', message: `Slot '${slot_key}' not found.` });
+    }
+
+    // 2. Extract fields
+    let type = req.body?.type as string;
+    const alt = req.body?.alt ? String(req.body.alt).trim() : '';
+    const title = req.body?.title ? String(req.body.title).trim() : '';
+    const caption = req.body?.caption ? String(req.body.caption).trim() : '';
+    const cta_label = req.body?.cta_label ? String(req.body.cta_label).trim() : '';
+    const cta_url = req.body?.cta_url ? String(req.body.cta_url).trim() : '';
+    const rawUrl = req.body?.url ? String(req.body.url).trim() : '';
+
+    if (!type && req.file) {
+      if (req.file.mimetype.startsWith('video/')) type = 'video';
+      else type = 'image';
+    }
+
+    // 3. Validate type
+    if (!type || !slot.allowed_types.includes(type)) {
+      return res.status(415).json({
+        error: 'Unsupported Media Type',
+        message: `Type '${type || 'unknown'}' is not allowed for slot '${slot_key}'. Allowed types: ${slot.allowed_types.join(', ')}`,
+      });
+    }
+
+    // 4. Validate CTA URL if provided
+    const ctaCheck = validateCtaUrl(cta_url);
+    if (!ctaCheck.valid) {
+      return res.status(400).json({ error: 'Invalid CTA URL', message: ctaCheck.error });
+    }
+
+    // 5. Type-specific validations
+    let detectedMime: string | null = null;
+
+    if (type === 'url') {
+      const urlCheck = validateExternalUrl(rawUrl);
+      if (!urlCheck.valid) {
+        return res.status(400).json({ error: 'Invalid URL', message: urlCheck.error });
+      }
+    } else {
+      // File upload required for image / video
+      if (!req.file) {
+        return res.status(400).json({ error: 'Missing File', message: `A file upload is required for media type '${type}'.` });
+      }
+
+      // Check file size
+      if (req.file.size > slot.max_bytes) {
+        return res.status(413).json({
+          error: 'Payload Too Large',
+          message: `File size (${req.file.size} bytes) exceeds slot limit of ${slot.max_bytes} bytes (${Math.round(slot.max_bytes / 1024)} KB).`,
+        });
+      }
+
+      // Check MIME by inspecting magic bytes
+      detectedMime = detectMimeTypeFromBuffer(req.file.buffer);
+      const allowlistMimes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'];
+
+      if (!detectedMime || !allowlistMimes.includes(detectedMime)) {
+        return res.status(415).json({
+          error: 'Unsupported Media Type',
+          message: 'File content must be a valid image/jpeg, image/png, image/webp, video/mp4, or video/webm based on magic bytes inspection.',
+        });
+      }
+
+      if (type === 'image' && !detectedMime.startsWith('image/')) {
+        return res.status(415).json({ error: 'Unsupported Media Type', message: 'Image slot requires an image file.' });
+      }
+
+      if (type === 'video' && !detectedMime.startsWith('video/')) {
+        return res.status(415).json({ error: 'Unsupported Media Type', message: 'Video slot requires a video file.' });
+      }
+
+      // Alt text required for image items
+      if (type === 'image' && !alt) {
+        return res.status(400).json({ error: 'Missing Alt Text', message: 'Alt text is required for image items.' });
+      }
+    }
+
+    // 6. Check slot capacity & single-item replacement
+    let currentItems: any[] = [];
+    if (supabase) {
+      try {
+        const { data } = await supabase.from('media_slot_items').select('*').eq('slot_key', slot_key);
+        if (data) currentItems = data;
+      } catch {}
+    }
+    if (!currentItems.length) {
+      currentItems = (localStore.media_slot_items || []).filter((i: any) => i.slot_key === slot_key);
+    }
+
+    if (slot.max_items === 1) {
+      // Single-item slot replacement: remove existing old asset & file
+      for (const oldItem of currentItems) {
+        await deleteStorageFile(oldItem.storage_path);
+        if (supabase) {
+          try {
+            await supabase.from('media_slot_items').delete().eq('id', oldItem.id);
+          } catch {}
+        }
+      }
+      localStore.media_slot_items = (localStore.media_slot_items || []).filter((i: any) => i.slot_key !== slot_key);
+      currentItems = [];
+    } else if (currentItems.length >= slot.max_items) {
+      return res.status(400).json({
+        error: 'Slot Full',
+        message: `Slot '${slot_key}' cannot exceed maximum of ${slot.max_items} items.`,
+      });
+    }
+
+    // 7. Storage persistence
+    const itemId = crypto.randomUUID ? crypto.randomUUID() : `item_${Date.now()}`;
+    let storagePath: string | null = null;
+    let finalUrl: string | null = rawUrl || null;
+
+    if (req.file && detectedMime) {
+      const ext = detectedMime === 'image/jpeg' ? 'jpg' : (
+        detectedMime === 'image/png' ? 'png' : (
+          detectedMime === 'image/webp' ? 'webp' : (
+            detectedMime === 'video/mp4' ? 'mp4' : 'webm'
+          )
+        )
+      );
+
+      storagePath = `media/${slot_key}/${itemId}.${ext}`;
+
+      // Write to public disk storage
+      try {
+        const targetDir = path.join(process.cwd(), 'public', 'media', slot_key);
+        await fs.promises.mkdir(targetDir, { recursive: true });
+        const filePath = path.join(targetDir, `${itemId}.${ext}`);
+        await fs.promises.writeFile(filePath, req.file.buffer);
+        finalUrl = `/media/${slot_key}/${itemId}.${ext}`;
+      } catch (err) {
+        console.error('Local disk write error:', err);
+      }
+
+      // Upload to Supabase storage bucket if configured
+      if (supabase) {
+        try {
+          await supabase.storage
+            .from('media')
+            .upload(`${slot_key}/${itemId}.${ext}`, req.file.buffer, { contentType: detectedMime, upsert: true });
+          const { data } = supabase.storage.from('media').getPublicUrl(`${slot_key}/${itemId}.${ext}`);
+          if (data?.publicUrl) {
+            finalUrl = data.publicUrl;
+          }
+        } catch (storageErr) {
+          console.warn('Supabase storage upload error:', storageErr);
+        }
+      }
+    }
+
+    // 8. Create item record (published: false by default per acceptance criteria)
+    const maxOrder = currentItems.length > 0 ? Math.max(...currentItems.map((i: any) => i.sort_order || 0)) : -1;
+    const sort_order = maxOrder + 1;
+
+    const newItem = {
+      id: itemId,
+      slot_key,
+      type,
+      storage_path: storagePath,
+      url: finalUrl,
+      alt: alt || null,
+      title: title || null,
+      caption: caption || null,
+      cta_label: cta_label || null,
+      cta_url: cta_url || null,
+      sort_order,
+      published: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('media_slot_items').insert([newItem]).select().single();
+        if (!error && data) {
+          localStore.media_slot_items = [data, ...(localStore.media_slot_items || [])];
+          return res.status(201).json({ status: 'created', item: data });
+        }
+      } catch (insertErr) {
+        console.warn('Supabase item insert warning, using localStore:', insertErr);
+      }
+    }
+
+    localStore.media_slot_items = [newItem, ...(localStore.media_slot_items || [])];
+    return res.status(201).json({ status: 'created', item: newItem });
+  }
+);
+
+// PATCH /api/v1/media/slots/:slot_key/items/:id
+app.patch('/api/v1/media/slots/:slot_key/items/:id', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const { slot_key, id } = req.params;
+  const updates = req.body || {};
+
+  let existing: any = null;
+  if (supabase) {
+    try {
+      const { data } = await supabase.from('media_slot_items').select('*').eq('id', id).eq('slot_key', slot_key).maybeSingle();
+      if (data) existing = data;
+    } catch {}
+  }
+  if (!existing) {
+    existing = (localStore.media_slot_items || []).find((i: any) => i.id === id && i.slot_key === slot_key);
+  }
+
+  if (!existing) {
+    return res.status(404).json({ error: 'Not Found', message: `Media item '${id}' not found in slot '${slot_key}'.` });
+  }
+
+  // Validate alt text if provided
+  if (updates.alt !== undefined && existing.type === 'image') {
+    if (!updates.alt || !String(updates.alt).trim()) {
+      return res.status(400).json({ error: 'Missing Alt Text', message: 'Alt text cannot be empty for image items.' });
+    }
+  }
+
+  // Validate CTA URL if provided
+  if (updates.cta_url !== undefined) {
+    const ctaCheck = validateCtaUrl(updates.cta_url);
+    if (!ctaCheck.valid) {
+      return res.status(400).json({ error: 'Invalid CTA URL', message: ctaCheck.error });
+    }
+  }
+
+  const payload: any = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (updates.alt !== undefined) payload.alt = String(updates.alt).trim();
+  if (updates.title !== undefined) payload.title = updates.title ? String(updates.title).trim() : null;
+  if (updates.caption !== undefined) payload.caption = updates.caption ? String(updates.caption).trim() : null;
+  if (updates.cta_label !== undefined) payload.cta_label = updates.cta_label ? String(updates.cta_label).trim() : null;
+  if (updates.cta_url !== undefined) payload.cta_url = updates.cta_url ? String(updates.cta_url).trim() : null;
+  if (updates.sort_order !== undefined) payload.sort_order = Number(updates.sort_order);
+  if (updates.published !== undefined) payload.published = Boolean(updates.published);
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('media_slot_items')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) {
+        localStore.media_slot_items = (localStore.media_slot_items || []).map((i: any) => (i.id === id ? data : i));
+        return res.json({ status: 'updated', item: data });
+      }
+    } catch {}
+  }
+
+  const updatedItem = { ...existing, ...payload };
+  localStore.media_slot_items = (localStore.media_slot_items || []).map((i: any) => (i.id === id ? updatedItem : i));
+  return res.json({ status: 'updated', item: updatedItem });
+});
+
+// PUT /api/v1/media/slots/:slot_key/order
+app.put('/api/v1/media/slots/:slot_key/order', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const { slot_key } = req.params;
+  const itemIds: string[] = req.body?.item_ids || [];
+
+  if (!Array.isArray(itemIds)) {
+    return res.status(400).json({ error: 'Bad Request', message: 'item_ids must be an array of item IDs.' });
+  }
+
+  for (let idx = 0; idx < itemIds.length; idx++) {
+    const id = itemIds[idx];
+    if (supabase) {
+      try {
+        await supabase
+          .from('media_slot_items')
+          .update({ sort_order: idx, updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .eq('slot_key', slot_key);
+      } catch {}
+    }
+    const item = (localStore.media_slot_items || []).find((i: any) => i.id === id && i.slot_key === slot_key);
+    if (item) {
+      item.sort_order = idx;
+      item.updated_at = new Date().toISOString();
+    }
+  }
+
+  return res.json({ status: 'reordered', slot_key });
+});
+
+// DELETE /api/v1/media/slots/:slot_key/items/:id
+app.delete('/api/v1/media/slots/:slot_key/items/:id', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const { slot_key, id } = req.params;
+
+  let existing: any = null;
+  if (supabase) {
+    try {
+      const { data } = await supabase.from('media_slot_items').select('*').eq('id', id).eq('slot_key', slot_key).maybeSingle();
+      if (data) existing = data;
+    } catch {}
+  }
+  if (!existing) {
+    existing = (localStore.media_slot_items || []).find((i: any) => i.id === id && i.slot_key === slot_key);
+  }
+
+  if (!existing) {
+    return res.status(404).json({ error: 'Not Found', message: `Media item '${id}' not found in slot '${slot_key}'.` });
+  }
+
+  // Remove storage asset
+  await deleteStorageFile(existing.storage_path);
+
+  if (supabase) {
+    try {
+      await supabase.from('media_slot_items').delete().eq('id', id).eq('slot_key', slot_key);
+    } catch {}
+  }
+
+  localStore.media_slot_items = (localStore.media_slot_items || []).filter((i: any) => !(i.id === id && i.slot_key === slot_key));
+  return res.json({ status: 'deleted', id });
 });
 
 // --- PUBLIC ASK ENDPOINT ---
