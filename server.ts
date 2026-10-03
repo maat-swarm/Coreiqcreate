@@ -73,9 +73,11 @@ const upload = multer({
 const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
 
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
 let supabase: SupabaseClient | null = null;
-if (supabaseUrl && supabaseAnonKey) {
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (supabaseUrl && (supabaseServiceKey || supabaseAnonKey)) {
+  supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey);
 }
 
 // In-memory fallback stores if Supabase tables are still initializing
