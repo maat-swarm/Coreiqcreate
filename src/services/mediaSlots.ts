@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { MediaSlot, MediaSlotItem } from '../types/command';
 import { getSupabase } from './supabase';
 
+const API_BASE = (import.meta as any).env?.VITE_API_URL ?? '';
+
 // Short in-memory cache for public slot queries
 interface CacheEntry {
   slot: MediaSlot | null;
@@ -65,7 +67,7 @@ export async function getMediaSlotPublished(
 
   // 2. Fetch from Express API
   try {
-    const res = await fetch(`/api/v1/media/slots/${encodeURIComponent(slotKey)}`, {
+    const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}`, {
       headers: {
         'Accept': 'application/json',
       },
@@ -162,7 +164,7 @@ function getAuthHeaders(isJson = true): Record<string, string> {
 }
 
 export async function fetchCommandMediaSlots(page = 'home'): Promise<MediaSlot[]> {
-  const res = await fetch(`/api/v1/media/slots?page=${encodeURIComponent(page)}`, {
+  const res = await fetch(`${API_BASE}/api/v1/media/slots?page=${encodeURIComponent(page)}`, {
     headers: getAuthHeaders(true),
   });
   if (!res.ok) {
@@ -174,7 +176,7 @@ export async function fetchCommandMediaSlots(page = 'home'): Promise<MediaSlot[]
 }
 
 export async function fetchCommandMediaSlotDetail(slotKey: string): Promise<{ slot: MediaSlot; items: MediaSlotItem[] }> {
-  const res = await fetch(`/api/v1/media/slots/${encodeURIComponent(slotKey)}`, {
+  const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}`, {
     headers: getAuthHeaders(true),
   });
   if (!res.ok) {
@@ -189,7 +191,7 @@ export async function uploadMediaItem(
   formData: FormData
 ): Promise<MediaSlotItem> {
   const headers = getAuthHeaders(false);
-  const res = await fetch(`/api/v1/media/slots/${encodeURIComponent(slotKey)}/items`, {
+  const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}/items`, {
     method: 'POST',
     headers,
     body: formData,
@@ -215,7 +217,7 @@ export async function createUrlMediaItem(
     cta_url?: string;
   }
 ): Promise<MediaSlotItem> {
-  const res = await fetch(`/api/v1/media/slots/${encodeURIComponent(slotKey)}/items`, {
+  const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}/items`, {
     method: 'POST',
     headers: getAuthHeaders(true),
     body: JSON.stringify(payload),
@@ -234,7 +236,7 @@ export async function updateMediaItem(
   itemId: string,
   updates: Partial<MediaSlotItem>
 ): Promise<MediaSlotItem> {
-  const res = await fetch(`/api/v1/media/slots/${encodeURIComponent(slotKey)}/items/${encodeURIComponent(itemId)}`, {
+  const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}/items/${encodeURIComponent(itemId)}`, {
     method: 'PATCH',
     headers: getAuthHeaders(true),
     body: JSON.stringify(updates),
@@ -252,7 +254,7 @@ export async function reorderMediaItems(
   slotKey: string,
   itemIds: string[]
 ): Promise<void> {
-  const res = await fetch(`/api/v1/media/slots/${encodeURIComponent(slotKey)}/order`, {
+  const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}/order`, {
     method: 'PUT',
     headers: getAuthHeaders(true),
     body: JSON.stringify({ item_ids: itemIds }),
@@ -269,7 +271,7 @@ export async function deleteMediaItem(
   slotKey: string,
   itemId: string
 ): Promise<void> {
-  const res = await fetch(`/api/v1/media/slots/${encodeURIComponent(slotKey)}/items/${encodeURIComponent(itemId)}`, {
+  const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}/items/${encodeURIComponent(itemId)}`, {
     method: 'DELETE',
     headers: getAuthHeaders(true),
   });
