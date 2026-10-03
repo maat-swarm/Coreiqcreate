@@ -110,18 +110,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                 </div>
 
                 {/* Docked Agent Sentinel Telemetry HUD (Anchored to lower edge to keep mascot face & chest visible) */}
-                <CoreIQSentinel
-                  page="home"
-                  onAsk={onAsk}
-                  onNavigate={onNavigate}
-                  style={{
-                    transform: tilt.on ? `translate3d(${tilt.x * 8}px, ${tilt.y * 8}px, 0)` : 'none',
-                  }}
-                />
               </div>
             </div>
           </div>
         </div>
+      </section>
+
+      {/* SHOWCASE (full width) */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 mb-12 relative z-10">
+        <CoreIQSentinel page="home" onAsk={onAsk} onNavigate={onNavigate} />
       </section>
 
       {/* CAPABILITY STRIP */}
