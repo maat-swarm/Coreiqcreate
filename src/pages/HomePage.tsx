@@ -48,7 +48,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 
       {/* HERO */}
       <section ref={heroRef} onMouseMove={onMove} onMouseLeave={() => setTilt({ x:0, y:0, on:false })}
-        className="relative min-h-[60vh] lg:min-h-[85vh] flex items-center pt-8 pb-16 lg:py-20 overflow-hidden">
+        className="relative min-h-[60vh] lg:min-h-[85vh] flex items-center pt-8 pb-8 lg:py-20 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none"
           style={{ background:'radial-gradient(ellipse 65% 65% at 70% 50%,rgba(57,123,255,0.10) 0%,transparent 70%)' }} />
 
@@ -87,7 +87,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 
             {/* Right — Environmental Viewport framing the Living Mascot */}
             <div className="lg:col-span-6 xl:col-span-5 flex justify-center lg:justify-end items-center select-none reveal-fade">
-              <div className="relative w-full max-w-[480px] h-[360px] sm:h-[420px] lg:h-[460px] flex flex-col justify-end p-4 sm:p-6 pointer-events-auto">
+              <div className="relative w-full max-w-[480px] h-[220px] sm:h-[420px] lg:h-[460px] flex flex-col justify-end p-4 sm:p-6 pointer-events-auto">
                 {/* Ethereal HUD Viewfinder Corner Ticks */}
                 <div 
                   className="absolute inset-0 pointer-events-none transition-transform duration-700 ease-out"
