@@ -66,11 +66,11 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
 
           {/* Core Principle: IDEAS + INTELLIGENCE + ACTION */}
           <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 pt-4 text-xl sm:text-2xl md:text-3xl font-bold tracking-wider">
-            <span className="text-white">IDEAS</span>
-            <span className="text-cyan-500 font-normal">+</span>
-            <span className="text-white">INTELLIGENCE</span>
-            <span className="text-cyan-500 font-normal">+</span>
-            <span className="text-white">ACTION</span>
+            <span className="text-white hover:text-cyan-300 transition-colors">IDEAS</span>
+            <span className="text-cyan-400 font-normal animate-pulse drop-shadow-[0_0_8px_#22d3ee]">+</span>
+            <span className="text-white hover:text-cyan-300 transition-colors">INTELLIGENCE</span>
+            <span className="text-cyan-400 font-normal animate-pulse drop-shadow-[0_0_8px_#22d3ee]">+</span>
+            <span className="text-white hover:text-cyan-300 transition-colors">ACTION</span>
           </div>
 
           <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed pt-2">
@@ -81,20 +81,20 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
 
       {/* 2. DELIVERY LOOP JOURNEY STRIP */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="rounded-2xl bg-slate-900/40 border border-slate-800 py-6 px-6 sm:px-8 backdrop-blur-sm shadow-xl">
+        <div className="rounded-2xl bg-slate-900/60 border border-slate-800/80 py-6 px-6 sm:px-8 backdrop-blur-md shadow-xl hover:border-cyan-500/30 transition-all duration-300">
           <div className="flex flex-wrap items-center justify-between gap-4">
             {DELIVERY_STEPS.map((step, idx) => (
               <React.Fragment key={step}>
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
-                  <span className="text-xs sm:text-sm font-mono tracking-widest text-slate-300 uppercase font-semibold">
+                <div className="flex items-center gap-2 sm:gap-3 group/step cursor-default">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] group-hover/step:scale-125 transition-transform" />
+                  <span className="text-xs sm:text-sm font-mono tracking-widest text-slate-300 group-hover/step:text-cyan-300 uppercase font-semibold transition-colors">
                     {step}
                   </span>
                 </div>
                 {idx < DELIVERY_STEPS.length - 1 && (
                   <div className="hidden lg:flex items-center flex-1 mx-2">
-                    <div className="h-[1px] w-full bg-cyan-500/20" />
-                    <span className="text-cyan-500/40 text-xs font-mono ml-1">→</span>
+                    <div className="h-[1.5px] w-full bg-gradient-to-r from-cyan-500/30 via-cyan-400/60 to-cyan-500/30" />
+                    <span className="text-cyan-400 text-xs font-mono ml-1">→</span>
                   </div>
                 )}
               </React.Fragment>
@@ -126,26 +126,27 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
           {MANIFESTO_PRINCIPLES.map((principle) => (
             <div
               key={principle.num}
-              className="group py-10 sm:py-12 border-b border-slate-800/80 transition-all duration-200 hover:bg-slate-900/30 px-4 sm:px-6 -mx-4 sm:-mx-6 rounded-xl"
+              className="group py-10 sm:py-12 border-b border-slate-800/80 transition-all duration-300 hover:bg-gradient-to-r hover:from-cyan-950/20 hover:via-slate-900/40 hover:to-transparent px-4 sm:px-6 -mx-4 sm:-mx-6 rounded-2xl hover:translate-x-1"
             >
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 items-center">
                 {/* Large Monospace Number */}
                 <div className="md:col-span-2">
-                  <span className="font-mono text-5xl sm:text-6xl text-slate-800 group-hover:text-cyan-500 transition-colors duration-200 select-none">
+                  <span className="font-mono text-5xl sm:text-6xl text-slate-800 group-hover:text-cyan-400 group-hover:drop-shadow-[0_0_12px_rgba(34,211,238,0.5)] transition-all duration-300 select-none">
                     {principle.num}
                   </span>
                 </div>
 
                 {/* Principle Statement */}
                 <div className="md:col-span-4">
-                  <h3 className="text-2xl sm:text-3xl font-bold text-white group-hover:text-cyan-300 transition-colors duration-200 font-display">
-                    {principle.title}
+                  <h3 className="text-2xl sm:text-3xl font-bold text-white group-hover:text-cyan-300 transition-colors duration-300 font-display flex items-center gap-2">
+                    <span>{principle.title}</span>
+                    <ArrowRight className="w-5 h-5 text-cyan-400 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 hidden md:inline" />
                   </h3>
                 </div>
 
                 {/* Description */}
                 <div className="md:col-span-6">
-                  <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
+                  <p className="text-slate-400 text-sm sm:text-base leading-relaxed group-hover:text-slate-300 transition-colors duration-300">
                     {principle.desc}
                   </p>
                 </div>
@@ -156,8 +157,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
       </section>
 
       {/* 4. CLOSING CTA */}
-      <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center border-t border-slate-800/80">
-        <div className="max-w-2xl mx-auto space-y-6">
+      <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center border-t border-slate-800/80 relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="max-w-2xl mx-auto space-y-6 relative z-10">
           <span className="text-xs font-mono tracking-[0.3em] text-cyan-400 uppercase">
             COLLABORATE
           </span>
@@ -170,13 +172,13 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => onNavigate('ask')}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_25px_rgba(34,211,238,0.5)] transition-all duration-200"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_25px_rgba(34,211,238,0.5)] hover:shadow-[0_0_35px_rgba(34,211,238,0.7)] hover:scale-105 active:scale-95 transition-all duration-200"
             >
               Ask CoreIQ
             </button>
             <button
               onClick={() => onNavigate('ask')}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-semibold text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 hover:bg-cyan-500/10 transition-all duration-200"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-semibold text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 hover:bg-cyan-500/15 hover:scale-105 active:scale-95 transition-all duration-200"
             >
               Start a project
             </button>

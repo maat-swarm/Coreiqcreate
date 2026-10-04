@@ -256,33 +256,39 @@ Provide an executive summary, followed by a chronological execution table with m
 
 
           {/* Free download banner */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-cyan-950/50 to-violet-950/30 border border-cyan-500/30 mb-6">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">Free download — no signup</span>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-cyan-950/60 to-violet-950/40 border border-cyan-500/35 mb-6 shadow-[0_0_30px_rgba(6,182,212,0.1)] hover:shadow-[0_0_40px_rgba(6,182,212,0.2)] transition-shadow duration-300">
+            <div className="space-y-1">
+              <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                Free download — no signup
+              </span>
               <h3 className="text-sm font-bold text-white">CoreIQ AI Prompt Pack — 20 production-ready prompts</h3>
-              <p className="text-xs text-slate-400">The exact prompt templates CoreIQ uses internally.</p>
+              <p className="text-xs text-slate-300/80">The exact prompt templates CoreIQ uses internally.</p>
             </div>
             <a
               href="/downloads/coreiq-prompt-pack.pdf"
               download="coreiq-prompt-pack.pdf"
               onClick={(e) => e.stopPropagation()}
-              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs transition-colors"
+              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] hover:scale-105 active:scale-95 transition-all"
             >
               ↓ Download Free PDF
             </a>
           </div>
           {/* Automation checklist banner */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-violet-950/40 to-slate-950/60 border border-violet-500/20 mb-8">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-mono text-violet-400 uppercase tracking-wider">Free checklist</span>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-violet-950/50 to-slate-950/70 border border-violet-500/30 mb-8 shadow-[0_0_30px_rgba(168,85,247,0.1)] hover:shadow-[0_0_40px_rgba(168,85,247,0.2)] transition-shadow duration-300">
+            <div className="space-y-1">
+              <span className="text-[10px] font-mono text-violet-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                Free checklist
+              </span>
               <h3 className="text-sm font-bold text-white">Automation Starter Checklist — 10 steps before you build</h3>
-              <p className="text-xs text-slate-400">Used on every CoreIQ automation project.</p>
+              <p className="text-xs text-slate-300/80">Used on every CoreIQ automation project.</p>
             </div>
             <a
               href="/downloads/automation-starter-checklist.pdf"
               download="automation-starter-checklist.pdf"
               onClick={(e) => e.stopPropagation()}
-              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-violet-500/40 hover:border-violet-400 text-violet-300 hover:text-violet-200 font-bold text-xs transition-colors"
+              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-violet-500/40 hover:border-violet-400 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 hover:text-white font-bold text-xs shadow-[0_0_20px_rgba(168,85,247,0.2)] hover:scale-105 active:scale-95 transition-all"
             >
               ↓ Download Checklist
             </a>
@@ -295,18 +301,18 @@ Provide an executive summary, followed by a chronological execution table with m
               <div
                 key={tool.id}
                 onClick={() => onAsk(`Open and run the ${tool.title} tool. What does it do and how can I execute it?`)}
-                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-auto min-h-[200px] relative border border-slate-800 hover:border-cyan-500/30 transition-all duration-200"
+                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-auto min-h-[200px] relative border border-slate-800/80 hover:border-cyan-400/50 hover:-translate-y-2 hover:shadow-[0_16px_36px_rgba(0,0,0,0.8),0_0_28px_rgba(34,211,238,0.2)] transition-all duration-300"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400">
+                    <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 group-hover:text-cyan-300 transition-colors">
                       {tool.category}
                     </span>
                     <span
-                      className={`text-[10px] font-mono tracking-widest px-2 py-0.5 rounded-md ${
+                      className={`text-[10px] font-mono tracking-widest px-2 py-0.5 rounded-md transition-all ${
                         isPro
-                          ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
-                          : 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
+                          ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30 group-hover:border-purple-400/60 group-hover:shadow-[0_0_12px_rgba(168,85,247,0.3)]'
+                          : 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 group-hover:border-cyan-400/60 group-hover:shadow-[0_0_12px_rgba(34,211,238,0.3)]'
                       }`}
                     >
                       {isPro ? 'PRO' : 'FREE'}
@@ -325,7 +331,7 @@ Provide an executive summary, followed by a chronological execution table with m
                   <span className="text-cyan-400 font-medium group-hover:underline">
                     Open
                   </span>
-                  <ArrowRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-1.5 transition-transform duration-300" />
                 </div>
               </div>
             );

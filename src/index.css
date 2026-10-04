@@ -1295,6 +1295,110 @@ body {
 .stagger-children .reveal-up:nth-child(4) { animation-delay: 240ms; }
 .stagger-children .reveal-up:nth-child(5) { animation-delay: 320ms; }
 .stagger-children .reveal-up:nth-child(6) { animation-delay: 400ms; }
+
+/* ==========================================================================
+   PREMIUM ALIVE MOVEMENTS & MICRO-INTERACTIONS
+   ========================================================================== */
+
+/* Gentle organic hovering movement */
+@keyframes floatSubtle {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes floatSubtleDelayed {
+  0% { transform: translateY(-4px); }
+  50% { transform: translateY(2px); }
+  100% { transform: translateY(-4px); }
+}
+
+.animate-float-subtle {
+  animation: floatSubtle 5s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: floatSubtleDelayed 6s ease-in-out infinite;
+}
+
+/* Rhythmic pulse & aura breathing */
+@keyframes neonAuraPulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+    filter: drop-shadow(0 0 15px rgba(34, 211, 238, 0.3));
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.03);
+    filter: drop-shadow(0 0 30px rgba(34, 211, 238, 0.6));
+  }
+}
+
+.animate-neon-aura {
+  animation: neonAuraPulse 4s ease-in-out infinite;
+}
+
+/* Glowing cyber line sweep */
+@keyframes cyberBeam {
+  0% { transform: translateX(-100%); }
+  50%, 100% { transform: translateX(200%); }
+}
+
+.animate-cyber-beam {
+  animation: cyberBeam 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Pulsing radar ring */
+@keyframes radarPing {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.9;
+  }
+  80%, 100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.animate-radar-ping {
+  animation: radarPing 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Shimmer gleam */
+@keyframes lightShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer-sweep {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: lightShimmer 3s infinite;
+}
+
+/* Interactive Card Elevation & Micro-tilt */
+.coreiq-interactive-card {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+.coreiq-interactive-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.8),
+              0 0 35px rgba(34, 211, 238, 0.22);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal-up, .reveal-fade { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .animate-float-subtle, .animate-float-delayed, .animate-neon-aura, .animate-cyber-beam, .animate-radar-ping, .animate-shimmer-sweep {
+    animation: none !important;
+  }
 }

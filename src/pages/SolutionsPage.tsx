@@ -148,7 +148,7 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
                   {/* Orbit Node: AGENTS (Top) */}
                   <div 
                     onClick={() => onAsk("Tell me about Core IQ AI Agents")}
-                    className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-cyan-400/60 text-cyan-200 text-xs font-semibold shadow-[0_0_18px_rgba(34,211,238,0.4)] cursor-pointer hover:scale-110 hover:border-cyan-300 transition-all"
+                    className="animate-float-subtle absolute -top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-cyan-400/60 text-cyan-200 text-xs font-semibold shadow-[0_0_18px_rgba(34,211,238,0.4)] cursor-pointer hover:scale-110 hover:border-cyan-300 hover:shadow-[0_0_24px_rgba(34,211,238,0.7)] transition-all"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                     <span>AGENTS</span>
@@ -157,7 +157,7 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
                   {/* Orbit Node: AUTOMATION (Top Right) */}
                   <div 
                     onClick={() => onAsk("Tell me about Core IQ Automation")}
-                    className="absolute top-8 -right-2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-blue-400/60 text-blue-200 text-xs font-semibold shadow-[0_0_18px_rgba(59,130,246,0.4)] cursor-pointer hover:scale-110 hover:border-blue-300 transition-all"
+                    className="animate-float-delayed absolute top-8 -right-2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-blue-400/60 text-blue-200 text-xs font-semibold shadow-[0_0_18px_rgba(59,130,246,0.4)] cursor-pointer hover:scale-110 hover:border-blue-300 hover:shadow-[0_0_24px_rgba(59,130,246,0.7)] transition-all"
                   >
                     <Zap className="w-3.5 h-3.5 text-blue-400" />
                     <span>AUTOMATION</span>
@@ -166,7 +166,7 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
                   {/* Orbit Node: APPS (Right) */}
                   <div 
                     onClick={() => onNavigate('apps')}
-                    className="absolute top-1/2 -right-6 -translate-y-1/2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-purple-400/60 text-purple-200 text-xs font-semibold shadow-[0_0_18px_rgba(168,85,247,0.4)] cursor-pointer hover:scale-110 hover:border-purple-300 transition-all"
+                    className="animate-float-subtle absolute top-1/2 -right-6 -translate-y-1/2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-purple-400/60 text-purple-200 text-xs font-semibold shadow-[0_0_18px_rgba(168,85,247,0.4)] cursor-pointer hover:scale-110 hover:border-purple-300 hover:shadow-[0_0_24px_rgba(168,85,247,0.7)] transition-all"
                   >
                     <LayoutGrid className="w-3.5 h-3.5 text-purple-400" />
                     <span>APPS</span>
@@ -175,7 +175,7 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
                   {/* Orbit Node: WEB (Bottom Right) */}
                   <div 
                     onClick={() => onAsk("Tell me about Core IQ Web and Web Apps")}
-                    className="absolute bottom-8 -right-2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-emerald-400/60 text-emerald-200 text-xs font-semibold shadow-[0_0_18px_rgba(16,185,129,0.4)] cursor-pointer hover:scale-110 hover:border-emerald-300 transition-all"
+                    className="animate-float-delayed absolute bottom-8 -right-2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-emerald-400/60 text-emerald-200 text-xs font-semibold shadow-[0_0_18px_rgba(16,185,129,0.4)] cursor-pointer hover:scale-110 hover:border-emerald-300 hover:shadow-[0_0_24px_rgba(16,185,129,0.7)] transition-all"
                   >
                     <Monitor className="w-3.5 h-3.5 text-emerald-400" />
                     <span>WEB</span>
@@ -184,7 +184,7 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
                   {/* Orbit Node: VOICE (Bottom) */}
                   <div 
                     onClick={() => onAsk("Tell me about Core IQ Voice AI")}
-                    className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-pink-400/60 text-pink-200 text-xs font-semibold shadow-[0_0_18px_rgba(236,72,153,0.4)] cursor-pointer hover:scale-110 hover:border-pink-300 transition-all"
+                    className="animate-float-subtle absolute -bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-pink-400/60 text-pink-200 text-xs font-semibold shadow-[0_0_18px_rgba(236,72,153,0.4)] cursor-pointer hover:scale-110 hover:border-pink-300 hover:shadow-[0_0_24px_rgba(236,72,153,0.7)] transition-all"
                   >
                     <Mic className="w-3.5 h-3.5 text-pink-400" />
                     <span>VOICE</span>
@@ -193,7 +193,7 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
                   {/* Orbit Node: INTEGRATIONS (Bottom Left) */}
                   <div 
                     onClick={() => onAsk("Tell me about Core IQ Integrations")}
-                    className="absolute bottom-10 -left-4 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-indigo-400/60 text-indigo-200 text-xs font-semibold shadow-[0_0_18px_rgba(99,102,241,0.4)] cursor-pointer hover:scale-110 hover:border-indigo-300 transition-all"
+                    className="animate-float-delayed absolute bottom-10 -left-4 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-indigo-400/60 text-indigo-200 text-xs font-semibold shadow-[0_0_18px_rgba(99,102,241,0.4)] cursor-pointer hover:scale-110 hover:border-indigo-300 hover:shadow-[0_0_24px_rgba(99,102,241,0.7)] transition-all"
                   >
                     <LinkIcon className="w-3.5 h-3.5 text-indigo-400" />
                     <span>INTEGRATIONS</span>
@@ -209,19 +209,19 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
 
       {/* 2. HORIZONTAL JOURNEY STRIP */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 mb-12 relative z-20">
-        <div className="rounded-2xl bg-slate-900/40 border border-slate-800 py-6 px-6 sm:px-8 backdrop-blur-md">
+        <div className="rounded-2xl bg-slate-900/60 border border-slate-800/80 py-6 px-6 sm:px-8 backdrop-blur-md shadow-xl hover:border-cyan-500/30 transition-all duration-300">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-2">
             {journeySteps.map((step, idx) => (
               <React.Fragment key={step}>
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.7)] shrink-0" />
-                  <span className="text-xs font-mono tracking-widest text-slate-400 uppercase select-none whitespace-nowrap">
+                <div className="flex items-center gap-2.5 group/step cursor-default">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.7)] shrink-0 group-hover/step:scale-125 transition-transform" />
+                  <span className="text-xs font-mono tracking-widest text-slate-400 group-hover/step:text-cyan-300 uppercase select-none whitespace-nowrap transition-colors">
                     {step}
                   </span>
                 </div>
                 {idx < journeySteps.length - 1 && (
-                  <div className="hidden sm:flex flex-1 items-center mx-2 sm:mx-3">
-                    <div className="w-full h-[1px] bg-cyan-500/20" />
+                  <div className="hidden sm:flex flex-1 items-center mx-2 sm:mx-3 relative overflow-hidden">
+                    <div className="w-full h-[1.5px] bg-gradient-to-r from-cyan-500/30 via-cyan-400/60 to-cyan-500/30" />
                   </div>
                 )}
               </React.Fragment>
@@ -258,17 +258,18 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
               <div
                 key={row.num}
                 onClick={row.action}
-                className="group w-full flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-8 py-5 border-b border-slate-800/50 cursor-pointer transition-all duration-200 hover:bg-slate-900/30 px-3 sm:px-4 rounded-lg"
+                className="group w-full flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-8 py-5 border-b border-slate-800/50 cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-cyan-950/25 hover:via-slate-900/40 hover:to-transparent px-3 sm:px-5 rounded-xl hover:translate-x-1"
               >
                 <div className="flex items-center gap-6 sm:gap-8 min-w-0">
-                  <span className="w-20 shrink-0 text-5xl sm:text-6xl font-mono font-bold text-slate-800 transition-all duration-200 group-hover:text-cyan-500 select-none">
+                  <span className="w-20 shrink-0 text-5xl sm:text-6xl font-mono font-bold text-slate-800 transition-all duration-300 group-hover:text-cyan-400 group-hover:drop-shadow-[0_0_12px_rgba(34,211,238,0.5)] select-none">
                     {row.num}
                   </span>
-                  <h3 className="text-2xl sm:text-3xl font-bold text-white transition-all duration-200 group-hover:text-cyan-300">
-                    {row.name}
+                  <h3 className="text-2xl sm:text-3xl font-bold text-white transition-all duration-300 group-hover:text-cyan-300 flex items-center gap-3">
+                    <span>{row.name}</span>
+                    <ArrowRight className="w-5 h-5 text-cyan-400 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 hidden sm:inline" />
                   </h3>
                 </div>
-                <p className="text-slate-400 text-sm md:text-right max-w-md pl-26 md:pl-0 transition-colors duration-200 group-hover:text-slate-300">
+                <p className="text-slate-400 text-sm md:text-right max-w-md pl-26 md:pl-0 transition-colors duration-300 group-hover:text-slate-200">
                   {row.description}
                 </p>
               </div>

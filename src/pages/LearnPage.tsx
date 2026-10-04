@@ -226,7 +226,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
             <div
               key={topic.num}
               onClick={() => onAsk(topic.query)}
-              className="cursor-pointer rounded-xl border border-slate-800 hover:border-cyan-500/40 bg-slate-900/40 p-4 flex items-center justify-between transition-all duration-200 group"
+              className="cursor-pointer rounded-xl border border-slate-800 hover:border-cyan-400/50 bg-slate-900/40 hover:bg-slate-900/70 p-4 flex items-center justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)] group"
             >
               <div className="flex items-center gap-3">
                 <span className="font-mono text-xs text-slate-500 group-hover:text-cyan-400 transition-colors">
@@ -236,7 +236,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
                   {topic.label}
                 </span>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all duration-300" />
             </div>
           ))}
         </div>
@@ -257,10 +257,10 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
           {/* Path 01 */}
           <div 
             onClick={() => onAsk('Start Path 01: Begin with the fundamentals of AI and work toward my first automation')}
-            className="cursor-pointer rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-cyan-500/30 p-8 transition-all duration-200 group flex flex-col justify-between"
+            className="cursor-pointer rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-cyan-500/40 hover:-translate-y-2 hover:shadow-[0_16px_40px_rgba(0,0,0,0.8),0_0_30px_rgba(34,211,238,0.2)] p-8 transition-all duration-300 group flex flex-col justify-between"
           >
             <div>
-              <div className="text-5xl font-mono text-slate-800 group-hover:text-cyan-500/30 transition-colors mb-4">
+              <div className="text-5xl font-mono text-slate-800 group-hover:text-cyan-500/40 transition-colors mb-4">
                 01
               </div>
               <span className="text-xs font-mono tracking-wider text-cyan-400 uppercase">
@@ -275,17 +275,17 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
             </div>
             <div className="flex items-center gap-2 text-cyan-400 text-sm font-medium pt-4 border-t border-slate-800/80">
               <span>Begin pathway</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-300" />
             </div>
           </div>
 
           {/* Path 02 */}
           <div 
             onClick={() => onAsk('Start Path 02: Deep dive into agents, workflows and real AI systems')}
-            className="cursor-pointer rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-cyan-500/30 p-8 transition-all duration-200 group flex flex-col justify-between"
+            className="cursor-pointer rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-cyan-500/40 hover:-translate-y-2 hover:shadow-[0_16px_40px_rgba(0,0,0,0.8),0_0_30px_rgba(34,211,238,0.2)] p-8 transition-all duration-300 group flex flex-col justify-between"
           >
             <div>
-              <div className="text-5xl font-mono text-slate-800 group-hover:text-cyan-500/30 transition-colors mb-4">
+              <div className="text-5xl font-mono text-slate-800 group-hover:text-cyan-500/40 transition-colors mb-4">
                 02
               </div>
               <span className="text-xs font-mono tracking-wider text-cyan-400 uppercase">
@@ -300,7 +300,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
             </div>
             <div className="flex items-center gap-2 text-cyan-400 text-sm font-medium pt-4 border-t border-slate-800/80">
               <span>Begin pathway</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-300" />
             </div>
           </div>
         </div>
@@ -328,10 +328,10 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 ${
                     isSelected
-                      ? 'bg-cyan-400 text-slate-950 font-semibold shadow-[0_0_15px_rgba(34,211,238,0.4)]'
-                      : 'bg-slate-900/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800'
+                      ? 'bg-cyan-400 text-slate-950 font-semibold shadow-[0_0_20px_rgba(34,211,238,0.5)] scale-105'
+                      : 'bg-slate-900/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800/80 hover:border-cyan-500/30'
                   }`}
                 >
                   {cat}
@@ -364,15 +364,15 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
               <div
                 key={topic.content_key}
                 onClick={() => onNavigate(`learn/${targetSlug}` as NavRoute)}
-                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-72 relative border border-cyan-500/15"
+                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-72 relative border border-cyan-500/20 hover:border-cyan-400/60 hover:-translate-y-2 hover:shadow-[0_16px_36px_rgba(0,0,0,0.8),0_0_28px_rgba(34,211,238,0.2)] transition-all duration-300"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 group-hover:border-cyan-400/60 transition-colors">
                       {topic.category || 'Curated Guide'}
                     </span>
                     <div className="flex items-center gap-1.5 text-slate-400 text-xs">
-                      <Clock className="w-3.5 h-3.5" />
+                      <Clock className="w-3.5 h-3.5 text-cyan-400" />
                       <span>{topic.metadata?.readTime || '15 min read'}</span>
                     </div>
                   </div>
@@ -391,7 +391,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
                   </span>
                   <div className="flex items-center gap-1.5 text-cyan-400 font-semibold group-hover:text-cyan-300">
                     <span>Read guide</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1.5 duration-300" />
                   </div>
                 </div>
               </div>
@@ -425,12 +425,12 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
               return (
                 <div 
                   key={pillar.title}
-                  className="p-6 rounded-2xl coreiq-glass-card space-y-4 border border-cyan-500/15"
+                  className="group p-6 rounded-2xl coreiq-glass-card space-y-4 border border-cyan-500/20 hover:border-cyan-400/50 hover:-translate-y-2 hover:shadow-[0_16px_36px_rgba(0,0,0,0.8),0_0_28px_rgba(34,211,238,0.2)] transition-all duration-300"
                 >
-                  <div className="w-11 h-11 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-cyan-300" />
+                  <div className="w-11 h-11 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center group-hover:scale-110 group-hover:shadow-[0_0_16px_rgba(34,211,238,0.3)] transition-all duration-300">
+                    <Icon className="w-5 h-5 text-cyan-300 group-hover:rotate-6 transition-transform" />
                   </div>
-                  <h3 className="text-white font-bold text-lg">
+                  <h3 className="text-white font-bold text-lg group-hover:text-cyan-300 transition-colors">
                     {pillar.title}
                   </h3>
                   <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">

@@ -215,10 +215,10 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 ${
                     isSelected
-                      ? 'bg-cyan-400 text-slate-950 font-semibold shadow-[0_0_15px_rgba(34,211,238,0.4)]'
-                      : 'bg-slate-900/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800'
+                      ? 'bg-cyan-400 text-slate-950 font-semibold shadow-[0_0_20px_rgba(34,211,238,0.5)] scale-105'
+                      : 'bg-slate-900/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800/80 hover:border-cyan-500/30 hover:scale-[1.02]'
                   }`}
                 >
                   {cat}
@@ -236,20 +236,20 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
               <div
                 key={app.id}
                 onClick={() => onAsk(`Tell me about the ${app.title} application and how I can use it.`)}
-                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-auto min-h-[180px] relative border border-cyan-500/15 transition-all duration-200 hover:border-cyan-400/40 hover:-translate-y-1"
+                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-auto min-h-[190px] relative border border-cyan-500/20 transition-all duration-300 hover:border-cyan-400/60 hover:-translate-y-2 hover:shadow-[0_16px_36px_rgba(0,0,0,0.8),0_0_28px_rgba(34,211,238,0.22)]"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <div 
-                      className="w-11 h-11 rounded-xl flex items-center justify-center border transition-transform group-hover:scale-105"
+                      className="w-11 h-11 rounded-xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_16px_rgba(34,211,238,0.3)]"
                       style={{
                         backgroundColor: `${app.accentColor}18`,
                         borderColor: `${app.accentColor}40`,
                       }}
                     >
-                      <Icon className="w-5 h-5" style={{ color: app.accentColor }} />
+                      <Icon className="w-5 h-5 group-hover:rotate-6 transition-transform" style={{ color: app.accentColor }} />
                     </div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-400">
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-slate-900/90 border border-slate-800 text-slate-400 group-hover:border-cyan-500/30 group-hover:text-cyan-300 transition-colors">
                       {app.category}
                     </span>
                   </div>
@@ -266,7 +266,7 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
                   <span className="text-cyan-400 font-medium group-hover:underline">
                     Explore app
                   </span>
-                  <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-300 group-hover:translate-x-1 transition-all" />
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-300 group-hover:translate-x-1.5 transition-all duration-300" />
                 </div>
               </div>
             );

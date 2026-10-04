@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, Activity } from 'lucide-react';
 import { useMediaSlot } from '../../services/mediaSlots';
 import { NavRoute } from '../../types';
+import { ASSETS } from '../../assets/images';
 
 export interface CoreIQSentinelProps {
   page?: 'home' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about';
@@ -10,6 +11,131 @@ export interface CoreIQSentinelProps {
   className?: string;
   style?: React.CSSProperties;
 }
+
+// Fallback high-fidelity showcase items when database slot has no custom published uploads
+const DEFAULT_PAGE_SHOWCASES: Record<string, Array<{
+  id: string;
+  url: string;
+  alt: string;
+  title: string;
+  caption: string;
+  cta_label?: string;
+  cta_url?: string;
+  published: boolean;
+  sort_order: number;
+}>> = {
+  home: [
+    {
+      id: 'default-home-1',
+      url: ASSETS.energyCore,
+      alt: 'CoreIQ Autonomous Intelligence Matrix',
+      title: 'Autonomous Multi-Agent Synthesis',
+      caption: 'Self-orchestrating intelligence swarms coordinating tasks in real time across your ecosystem.',
+      cta_label: 'Explore Solutions',
+      cta_url: '/solutions',
+      published: true,
+      sort_order: 1,
+    },
+    {
+      id: 'default-home-2',
+      url: ASSETS.agentHead,
+      alt: 'Cognitive Swarm Orchestration',
+      title: 'Neural Action Engine',
+      caption: 'Seamless reasoning loops connecting tools, APIs, and business automation workflows.',
+      cta_label: 'View AI Agents',
+      cta_url: '/solutions',
+      published: true,
+      sort_order: 2,
+    },
+    {
+      id: 'default-home-3',
+      url: ASSETS.hypercubeCrystal,
+      alt: 'Quantum Interface Dynamics',
+      title: 'Adaptive Application Fabric',
+      caption: 'Full-stack dynamic software environments constructed on demand from natural language.',
+      cta_label: 'Explore Apps',
+      cta_url: '/apps',
+      published: true,
+      sort_order: 3,
+    },
+  ],
+  solutions: [
+    {
+      id: 'default-sol-1',
+      url: ASSETS.agentHead,
+      alt: 'Autonomous Operations',
+      title: 'Enterprise AI Workforce',
+      caption: 'Deploy specialized AI agents that autonomously monitor, reason, and act across business domains.',
+      cta_label: 'Configure Agents',
+      cta_url: '/solutions',
+      published: true,
+      sort_order: 1,
+    },
+    {
+      id: 'default-sol-2',
+      url: ASSETS.energyCore,
+      alt: 'Integration Core',
+      title: 'Universal API Pipeline',
+      caption: 'Bridge legacy infrastructure and modern LLMs with zero-latency streaming pipelines.',
+      cta_label: 'View Integrations',
+      cta_url: '/solutions',
+      published: true,
+      sort_order: 2,
+    },
+  ],
+  apps: [
+    {
+      id: 'default-apps-1',
+      url: ASSETS.appsShowcase,
+      alt: 'Applications Showcase',
+      title: 'Intelligent Web Applications',
+      caption: 'Production-ready React & Node software built at high velocity with built-in AI intelligence.',
+      cta_label: 'Browse Directory',
+      cta_url: '/apps',
+      published: true,
+      sort_order: 1,
+    },
+  ],
+  learn: [
+    {
+      id: 'default-learn-1',
+      url: ASSETS.learnBook,
+      alt: 'CoreIQ Knowledge Codex',
+      title: 'Master Modern AI Architecture',
+      caption: 'Comprehensive guides, code templates, and blueprints for building with modern AI agents.',
+      cta_label: 'Start Reading',
+      cta_url: '/learn',
+      published: true,
+      sort_order: 1,
+    },
+  ],
+  tools: [
+    {
+      id: 'default-tools-1',
+      url: ASSETS.toolsCube,
+      alt: 'CoreIQ Developer Tools',
+      title: 'High-Velocity Developer Suite',
+      caption: 'Interactive prompts, schema generators, and live sandbox diagnostics for rapid building.',
+      cta_label: 'Open Tools',
+      cta_url: '/tools',
+      published: true,
+      sort_order: 1,
+    },
+  ],
+  about: [
+    {
+      id: 'default-about-1',
+      url: ASSETS.cosmicHorizon,
+      alt: 'About CoreIQ',
+      title: 'Architecting the Future of Creation',
+      caption: 'We believe intelligence should amplify human creativity without friction or gatekeeping.',
+      cta_label: 'Our Story',
+      cta_url: '/about',
+      published: true,
+      sort_order: 1,
+    },
+  ],
+};
 
 // Helper to derive page matching the existing App.tsx routing mechanism
 function getDerivedPage(): 'home' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' {
@@ -35,14 +161,18 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
   const slotKey = `${activePage}.showcase`;
   const { items } = useMediaSlot(slotKey);
 
-  // Filter and sort published items only
-  const publishedItems = (items || [])
+  // Filter and sort published items from database, or fallback to default high-res showcase
+  const dbPublishedItems = (items || [])
     .filter((item) => item.published)
     .sort((a, b) => a.sort_order - b.sort_order);
+
+  const fallbackItems = DEFAULT_PAGE_SHOWCASES[activePage] || DEFAULT_PAGE_SHOWCASES.home;
+  const publishedItems = dbPublishedItems.length > 0 ? dbPublishedItems : fallbackItems;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchDelta, setTouchDelta] = useState<number>(0);
+  const [isPaused, setIsPaused] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
 
@@ -59,9 +189,7 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
           (mediaQuery as any).addListener(listener);
           return () => (mediaQuery as any).removeListener(listener);
         }
-      } catch {
-        // Fallback for older WebViews
-      }
+      } catch {}
     }
   }, []);
 
@@ -73,7 +201,6 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
   }, [publishedItems.length, currentIndex]);
 
   const count = publishedItems.length;
-  const hasItems = count > 0;
 
   const prevSlide = () => {
     setCurrentIndex((prev) => (prev - 1 + count) % count);
@@ -82,6 +209,15 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev + 1) % count);
   };
+
+  // Subtle auto-play cycle every 6.5 seconds when not hovered and user doesn't prefer reduced motion
+  useEffect(() => {
+    if (count <= 1 || isPaused || prefersReducedMotion) return;
+    const timer = setInterval(() => {
+      nextSlide();
+    }, 6500);
+    return () => clearInterval(timer);
+  }, [count, isPaused, prefersReducedMotion]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (count <= 1) return;
@@ -116,7 +252,7 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
     setTouchDelta(0);
   };
 
-  const currentItem = hasItems ? publishedItems[currentIndex] || publishedItems[0] : null;
+  const currentItem = publishedItems[currentIndex] || publishedItems[0];
 
   const handleCtaClick = (ctaUrl: string) => {
     if (ctaUrl.startsWith('/')) {
@@ -132,97 +268,116 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
 
   return (
     <div
-      className={`relative p-4 sm:p-5 rounded-xl border border-cyan-500/25 bg-[#030712]/70 backdrop-blur-xl shadow-[0_0_40px_rgba(25,217,255,0.06)] w-full text-left space-y-3 transition-all duration-500 hover:border-cyan-400/50 overflow-hidden ${className}`}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      className={`group/sentinel relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-cyan-500/25 hover:border-cyan-400/50 bg-gradient-to-b from-[#091533]/85 via-[#050d24]/90 to-[#020614]/95 backdrop-blur-2xl shadow-[0_12px_36px_rgba(0,0,0,0.65),0_0_28px_rgba(6,182,212,0.12)] hover:shadow-[0_16px_44px_rgba(0,0,0,0.75),0_0_36px_rgba(6,182,212,0.2)] w-full text-left space-y-3.5 transition-all duration-500 overflow-hidden ${className}`}
       style={style}
     >
-      {/* Label row: COREIQ SENTINEL / SYSTEM // ONLINE - kept exactly as original */}
-      <div className="flex items-center justify-between">
+      {/* Top subtle dynamic glowing laser beam */}
+      <div className="absolute top-0 inset-x-8 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent pointer-events-none opacity-80 group-hover/sentinel:opacity-100 transition-opacity" />
+      
+      {/* Subtle corner cyber accent glow */}
+      <div className="absolute -top-12 -right-12 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+
+      {/* Header row: COREIQ SENTINEL / SYSTEM STATUS */}
+      <div className="relative z-10 flex items-center justify-between pb-2 border-b border-cyan-500/15">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#19d9ff] animate-pulse" />
-          <span className="text-[11px] font-mono tracking-widest text-cyan-300 font-semibold uppercase">
-            COREIQ SENTINEL
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
           </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-mono tracking-widest text-cyan-300 font-semibold uppercase">
+              COREIQ SENTINEL
+            </span>
+            <span className="text-[10px] text-cyan-500/60 font-mono hidden sm:inline">// SHOWCASE</span>
+          </div>
         </div>
-        <span className="text-[10px] font-mono text-slate-400 tracking-wider">SYSTEM // ONLINE</span>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 text-emerald-300 text-[10px] font-mono tracking-wide">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] animate-pulse" />
+            <span>ONLINE</span>
+          </div>
+          {count > 1 && (
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-cyan-500/25 bg-cyan-950/50 text-cyan-300/90 tracking-wider">
+              {currentIndex + 1}/{count}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Panel Body: Carousel when 1+ published items, original body when 0 published items */}
-      {hasItems && currentItem ? (
-        <div
-          ref={carouselRef}
-          role="region"
-          aria-roledescription="carousel"
-          aria-label="CoreIQ Showcase Carousel"
-          tabIndex={0}
-          onKeyDown={handleKeyDown}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          className="space-y-3 focus:outline-none focus:ring-1 focus:ring-cyan-400/60 rounded-lg select-none"
-        >
-          {/* Slide Track & Image Viewport (Aspect Ratio 16/9, Inset Controls inside bounds) */}
-          <div className="relative w-full aspect-[16/9] rounded-lg overflow-hidden bg-slate-950/80 border border-slate-800">
-            <div
-              role="group"
-              aria-roledescription="slide"
-              aria-label={`${currentIndex + 1} of ${count}`}
-              className="w-full h-full relative flex items-center justify-center overflow-hidden"
-            >
+      {/* Carousel Container */}
+      <div
+        ref={carouselRef}
+        role="region"
+        aria-roledescription="carousel"
+        aria-label="CoreIQ Showcase Carousel"
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="space-y-3 focus:outline-none focus:ring-1 focus:ring-cyan-400/50 rounded-xl select-none"
+      >
+        {/* Slide Viewport: 16:9 aspect, crisp corners, subtle hover zoom */}
+        <div className="relative w-full aspect-[16/9] rounded-xl sm:rounded-2xl overflow-hidden bg-slate-950/90 border border-cyan-500/25 shadow-xl group/viewport">
+          <div
+            role="group"
+            aria-roledescription="slide"
+            aria-label={`${currentIndex + 1} of ${count}`}
+            className="w-full h-full relative flex items-center justify-center overflow-hidden"
+          >
+            {currentItem && (
               <img
                 src={currentItem.url || ''}
                 alt={currentItem.alt || 'CoreIQ Showcase slide'}
-                loading={currentIndex === 0 ? 'eager' : 'lazy'}
+                loading="eager"
                 width="800"
                 height="450"
-                className={`w-full h-full object-cover transition-opacity ${
-                  prefersReducedMotion ? 'duration-0' : 'duration-300'
-                }`}
+                className={`w-full h-full object-cover transition-all ${
+                  prefersReducedMotion ? 'duration-0' : 'duration-500'
+                } group-hover/viewport:scale-[1.02]`}
               />
+            )}
 
-              {/* Gradient depth edge */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent pointer-events-none" />
+            {/* Gradient edge and vignette depth */}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/40 via-transparent to-slate-950/40 pointer-events-none" />
 
-              {/* Slide Counter Badge */}
-              {count > 1 && (
-                <div className="absolute top-2 right-2 z-20 px-2 py-0.5 rounded-md bg-slate-950/80 backdrop-blur-md border border-slate-700/80 text-[10px] font-mono text-cyan-300 pointer-events-none">
-                  {currentIndex + 1} / {count}
-                </div>
-              )}
-
-              {/* In-bounds Carousel Navigation Arrows (8px inset from panel edges, z-20) */}
-              {count > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      prevSlide();
-                    }}
-                    aria-label="Previous slide"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 z-20 p-2 min-h-[44px] min-w-[44px] rounded-full bg-slate-950/80 hover:bg-cyan-950/90 text-slate-300 hover:text-cyan-200 border border-slate-700/80 hover:border-cyan-500/50 flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400 shadow-lg"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      nextSlide();
-                    }}
-                    aria-label="Next slide"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 z-20 p-2 min-h-[44px] min-w-[44px] rounded-full bg-slate-950/80 hover:bg-cyan-950/90 text-slate-300 hover:text-cyan-200 border border-slate-700/80 hover:border-cyan-500/50 flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400 shadow-lg"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* In-bounds Carousel Dots (8px bottom inset, z-20) */}
+            {/* In-bounds Carousel Navigation Arrows */}
             {count > 1 && (
-              <div className="absolute bottom-2 inset-x-0 z-20 flex items-center justify-center gap-1.5 pointer-events-none">
-                <div className="flex items-center gap-1 p-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-slate-800 pointer-events-auto">
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    prevSlide();
+                  }}
+                  aria-label="Previous slide"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 p-2 min-h-[38px] min-w-[38px] rounded-full bg-slate-950/80 hover:bg-cyan-950/90 text-slate-200 hover:text-cyan-200 border border-cyan-500/30 hover:border-cyan-400/60 backdrop-blur-md flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400 shadow-[0_4px_16px_rgba(0,0,0,0.7)] hover:scale-105 active:scale-95"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    nextSlide();
+                  }}
+                  aria-label="Next slide"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 p-2 min-h-[38px] min-w-[38px] rounded-full bg-slate-950/80 hover:bg-cyan-950/90 text-slate-200 hover:text-cyan-200 border border-cyan-500/30 hover:border-cyan-400/60 backdrop-blur-md flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400 shadow-[0_4px_16px_rgba(0,0,0,0.7)] hover:scale-105 active:scale-95"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
+            )}
+
+            {/* In-bounds Bottom Progress Indicators */}
+            {count > 1 && (
+              <div className="absolute bottom-2.5 inset-x-0 z-20 flex items-center justify-center gap-1.5 pointer-events-none">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-cyan-500/25 pointer-events-auto shadow-md">
                   {publishedItems.map((_, idx) => (
                     <button
                       key={idx}
@@ -233,12 +388,12 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
                       }}
                       aria-label={`Go to slide ${idx + 1}`}
                       aria-current={currentIndex === idx ? 'true' : undefined}
-                      className="p-1 min-h-[44px] min-w-[44px] flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-cyan-400 rounded-full"
+                      className="p-0.5 flex items-center justify-center focus:outline-none rounded-full"
                     >
                       <span
-                        className={`block rounded-full transition-all ${
+                        className={`block rounded-full transition-all duration-300 ${
                           currentIndex === idx
-                            ? 'w-4 h-1.5 bg-cyan-400 shadow-[0_0_6px_#22d3ee]'
+                            ? 'w-5 h-1.5 bg-gradient-to-r from-cyan-400 to-blue-400 shadow-[0_0_8px_#22d3ee]'
                             : 'w-1.5 h-1.5 bg-slate-600 hover:bg-slate-400'
                         }`}
                       />
@@ -248,91 +403,54 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
               </div>
             )}
           </div>
+        </div>
 
-          {/* Caption Block ALWAYS sits BELOW the image inside the panel (never over it) */}
-          {(currentItem.title || currentItem.caption || (currentItem.cta_label && currentItem.cta_url)) && (
-            <div className="space-y-2 pt-1 border-t border-slate-800/60">
-              {currentItem.title && (
-                <h4 className="text-xs sm:text-sm font-bold text-white font-display truncate">
-                  {currentItem.title}
-                </h4>
-              )}
-              {currentItem.caption && (
-                <p className="text-[11px] sm:text-xs text-slate-300 leading-relaxed line-clamp-2">
-                  {currentItem.caption}
-                </p>
-              )}
+        {/* Caption & Action Block: ALWAYS below the image inside the panel */}
+        {currentItem && (currentItem.title || currentItem.caption || (currentItem.cta_label && currentItem.cta_url)) && (
+          <div className="space-y-2 pt-1 border-t border-cyan-500/15">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="space-y-0.5 max-w-md">
+                {currentItem.title && (
+                  <h4 className="text-xs sm:text-sm font-bold text-white font-display flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span>{currentItem.title}</span>
+                  </h4>
+                )}
+                {currentItem.caption && (
+                  <p className="text-[11px] sm:text-xs text-slate-300/90 leading-relaxed line-clamp-2">
+                    {currentItem.caption}
+                  </p>
+                )}
+              </div>
+
               {currentItem.cta_label && currentItem.cta_url && (
-                <div className="pt-1">
+                <div className="shrink-0">
                   {currentItem.cta_url.startsWith('/') ? (
                     <button
                       type="button"
                       onClick={() => handleCtaClick(currentItem.cta_url!)}
-                      className="w-full sm:w-auto px-4 py-2 min-h-[44px] rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                      className="w-full sm:w-auto px-3.5 py-1.5 min-h-[36px] rounded-lg bg-gradient-to-r from-cyan-500/25 to-blue-500/25 hover:from-cyan-500/40 hover:to-blue-500/40 border border-cyan-400/40 hover:border-cyan-300 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-[0_0_15px_rgba(34,211,238,0.15)] hover:shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:scale-[1.02] active:scale-[0.98]"
                     >
                       <span>{currentItem.cta_label}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-cyan-400" />
+                      <ArrowRight className="w-3.5 h-3.5 text-cyan-300" />
                     </button>
                   ) : (
                     <a
                       href={currentItem.cta_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full sm:w-auto px-4 py-2 min-h-[44px] rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                      className="w-full sm:w-auto px-3.5 py-1.5 min-h-[36px] rounded-lg bg-gradient-to-r from-cyan-500/25 to-blue-500/25 hover:from-cyan-500/40 hover:to-blue-500/40 border border-cyan-400/40 hover:border-cyan-300 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-[0_0_15px_rgba(34,211,238,0.15)] hover:shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:scale-[1.02] active:scale-[0.98]"
                     >
                       <span>{currentItem.cta_label}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-cyan-400" />
+                      <ArrowRight className="w-3.5 h-3.5 text-cyan-300" />
                     </a>
                   )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-      ) : (
-        /* Original panel body - rendered unchanged when 0 published items */
-        <>
-          <p className="text-xs text-slate-300 leading-relaxed font-sans">
-            Intelligent environmental presence active. Connect your intent to synthesize agents, workflows, and tools.
-          </p>
-
-          {/* Micro Quick Actions connected to Ask CoreIQ */}
-          <div className="grid grid-cols-2 gap-2 pt-0.5">
-            <button
-              type="button"
-              onClick={() => {
-                if (onAsk) {
-                  onAsk('I want to build an AI agent');
-                } else {
-                  window.dispatchEvent(
-                    new CustomEvent('coreiq:ask', { detail: 'I want to build an AI agent' })
-                  );
-                }
-              }}
-              className="text-left px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-cyan-950/60 border border-slate-800 hover:border-cyan-500/50 text-[11px] text-slate-300 hover:text-cyan-200 transition-colors truncate flex items-center gap-1.5 min-h-[44px]"
-            >
-              <span className="text-cyan-400 font-mono text-[10px]">01</span>
-              <span>AI Agent</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (onAsk) {
-                  onAsk('I want to build a custom web app');
-                } else {
-                  window.dispatchEvent(
-                    new CustomEvent('coreiq:ask', { detail: 'I want to build a custom web app' })
-                  );
-                }
-              }}
-              className="text-left px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-purple-950/60 border border-slate-800 hover:border-purple-500/50 text-[11px] text-slate-300 hover:text-purple-200 transition-colors truncate flex items-center gap-1.5 min-h-[44px]"
-            >
-              <span className="text-purple-400 font-mono text-[10px]">02</span>
-              <span>Web App</span>
-            </button>
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 };

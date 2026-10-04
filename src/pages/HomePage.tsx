@@ -48,15 +48,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 
       {/* HERO */}
       <section ref={heroRef} onMouseMove={onMove} onMouseLeave={() => setTilt({ x:0, y:0, on:false })}
-        className="relative min-h-[60vh] lg:min-h-[85vh] flex items-center pt-8 pb-0 lg:pt-20 lg:pb-0 overflow-hidden">
+        className="relative pt-6 pb-12 lg:pt-14 lg:pb-16 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none"
           style={{ background:'radial-gradient(ellipse 65% 65% at 70% 50%,rgba(57,123,255,0.10) 0%,transparent 70%)' }} />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-start">
 
             {/* Left */}
-            <div className="lg:col-span-6 xl:col-span-7 space-y-8 z-10">
+            <div className="lg:col-span-6 xl:col-span-7 space-y-6 z-10">
               <div className="reveal-up inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/[0.08] backdrop-blur-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee] animate-beacon" />
                 <span className="text-xs font-semibold tracking-widest text-cyan-300/80 uppercase">
@@ -80,25 +80,26 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
               <div className="reveal-up pt-1">
                 <AskCoreIQBar placeholder="Tell us what you're trying to accomplish..." pills={pills} onAsk={onAsk} size="large" />
               </div>
+
+              {/* Sentinel moved to be directly below AskCoreIQ */}
+              <div className="reveal-up pt-2">
+                <CoreIQSentinel page="home" onAsk={onAsk} onNavigate={onNavigate} />
+              </div>
             </div>
 
-            {/* Right — Environmental Viewport framing the Living Mascot */}
-            <div className="lg:col-span-6 xl:col-span-5 flex justify-center lg:justify-end items-center select-none reveal-fade">
-              <div className="relative w-full max-w-[480px] h-[220px] sm:h-[420px] lg:h-[460px] flex flex-col justify-end p-4 sm:p-6 pointer-events-auto">
+            {/* Right — Environmental Viewport framing the Living Mascot (desktop view) */}
+            <div className="hidden lg:flex lg:col-span-6 xl:col-span-5 justify-end items-center select-none reveal-fade">
+              <div className="relative w-full max-w-[480px] h-[340px] lg:h-[420px] flex flex-col justify-end p-4 sm:p-6 pointer-events-auto">
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SHOWCASE (full width) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 mb-12 relative z-10">
-        <CoreIQSentinel page="home" onAsk={onAsk} onNavigate={onNavigate} />
-      </section>
-
       {/* CAPABILITY STRIP */}
-      <section className="border-y border-slate-800/50 bg-[#04091a]/70 backdrop-blur-md py-14">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="border-y border-slate-800/60 bg-[#04091a]/80 backdrop-blur-md py-14 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/[0.02] via-transparent to-purple-500/[0.02] pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 stagger-children">
             {[
               { Icon:Sparkles, c:'cyan',   label:'AI Agents',      desc:'Autonomous systems that reason, act and deliver — without you lifting a finger.', r:'solutions' },
@@ -108,9 +109,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
               { Icon:GraduationCap,c:'pink',label:'Learn & Grow',  desc:'Practical AI education for people who want to build real things.',         r:'learn'     },
             ].map(({ Icon, c, label, desc, r }) => (
               <div key={label} onClick={() => onNavigate(r as NavRoute)}
-                className={`reveal-up group cursor-pointer p-4 rounded-2xl hover:bg-slate-900/40 border border-transparent hover:border-${c}-500/20 transition-all duration-300`}>
-                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br from-${c}-500/20 to-${c}-600/20 border border-${c}-400/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform`}>
-                  <Icon className={`w-5 h-5 text-${c}-400`} />
+                className={`reveal-up group cursor-pointer p-5 rounded-2xl bg-slate-900/35 hover:bg-slate-900/70 border border-slate-800/80 hover:border-${c}-400/40 shadow-lg hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] hover:-translate-y-1.5 transition-all duration-300`}>
+                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br from-${c}-500/20 to-${c}-600/30 border border-${c}-400/30 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-[0_0_18px_rgba(34,211,238,0.25)] transition-all duration-300`}>
+                  <Icon className={`w-5 h-5 text-${c}-400 group-hover:rotate-6 transition-transform`} />
                 </div>
                 <h3 className={`text-white font-semibold text-base mb-1.5 group-hover:text-${c}-300 transition-colors`}>{label}</h3>
                 <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">{desc}</p>
@@ -129,7 +130,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
             </div>
 
             <div className="lg:col-span-7 reveal-up">
-              <div className="relative p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900/90 via-[#060c22] to-slate-950 border border-cyan-500/20 shadow-[0_0_55px_rgba(6,182,212,0.14)] overflow-hidden">
+              <div className="relative p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900/90 via-[#060c22] to-slate-950 border border-cyan-500/20 shadow-[0_0_55px_rgba(6,182,212,0.14)] hover:shadow-[0_0_70px_rgba(6,182,212,0.22)] transition-shadow duration-500 overflow-hidden">
                 <div className="absolute inset-0 opacity-40 pointer-events-none">
                   <svg className="w-full h-full" viewBox="0 0 500 350" fill="none">
                     <path d="M 50 180 C 150 100, 300 260, 450 160" stroke="#06b6d4" strokeWidth="3" className="animate-flow-dash" />
@@ -137,7 +138,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                   </svg>
                 </div>
                 <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                  <div className="p-6 rounded-2xl bg-slate-950/90 border border-cyan-500/35 shadow-xl space-y-3.5">
+                  <div className="p-6 rounded-2xl bg-slate-950/90 border border-cyan-500/35 shadow-xl space-y-3.5 hover:border-cyan-400/60 transition-colors">
                     <div className="flex items-center justify-between text-xs text-slate-400">
                       <span className="font-semibold text-cyan-300 flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee] animate-pulse" />CoreIQ Intent
@@ -157,7 +158,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                       { Icon:LinkIcon,    c:'indigo', t:'Connecting your tools...',      ping:false, spin:false, hi:false },
                       { Icon:CheckCircle2,c:'cyan',   t:'Building your system...',       ping:false, spin:false, hi:true  },
                     ].map(({ Icon, c, t, ping, spin, hi }, i) => (
-                      <div key={i} className={`flex items-center justify-between p-3.5 rounded-xl border ${hi ? 'bg-cyan-950/60 border-cyan-400/60 shadow-[0_0_20px_rgba(34,211,238,0.25)]' : `bg-slate-900/70 border-${c}-500/25`}`}>
+                      <div key={i} className={`flex items-center justify-between p-3.5 rounded-xl border transition-all duration-300 hover:scale-[1.02] ${hi ? 'bg-cyan-950/60 border-cyan-400/60 shadow-[0_0_20px_rgba(34,211,238,0.25)]' : `bg-slate-900/70 border-${c}-500/25 hover:border-${c}-500/50`}`}>
                         <div className="flex items-center gap-3">
                           <Icon className={`w-4 h-4 text-${c}-400 ${spin ? 'animate-spin' : ''}`} />
                           <span className={`text-xs sm:text-sm ${hi ? 'text-cyan-200 font-semibold' : 'text-slate-200'}`}>{t}</span>
@@ -175,9 +176,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 
       {/* BANNER */}
       <section className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="reveal-up relative rounded-3xl overflow-hidden border border-cyan-500/20 p-8 sm:p-12 lg:p-16 bg-gradient-to-r from-[#071330] via-[#0b102b] to-[#040817]">
-          <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-25 pointer-events-none">
-          </div>
+        <div className="reveal-up relative rounded-3xl overflow-hidden border border-cyan-500/25 p-8 sm:p-12 lg:p-16 bg-gradient-to-r from-[#071330] via-[#0b102b] to-[#040817] shadow-[0_0_40px_rgba(6,182,212,0.12)] hover:shadow-[0_0_60px_rgba(6,182,212,0.2)] transition-shadow duration-500">
+          <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-25 pointer-events-none" />
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-3">
               <span className="text-[11px] font-semibold tracking-[0.2em] text-cyan-400 uppercase">More than a website</span>
@@ -187,7 +187,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
             <div className="lg:col-span-5 space-y-5">
               <p className="text-slate-300 text-sm sm:text-base leading-relaxed">CoreIQ isn't just a website — it's a living, evolving platform where ideas become solutions, powered by AI, the swarm and a universe of integrations.</p>
               <button onClick={() => onNavigate('solutions')} className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm font-semibold group transition-colors">
-                <span>Explore Core IQ</span><ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                <span>Explore Core IQ</span><ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1.5" />
               </button>
             </div>
           </div>
@@ -201,8 +201,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
             <span className="reveal-up text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase block mb-2">Explore Core IQ</span>
             <h2 className="reveal-up text-3xl sm:text-4xl font-bold text-white font-display">What would you like to create?</h2>
           </div>
-          <button onClick={() => onNavigate('solutions')} className="reveal-up inline-flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-cyan-300 transition-colors">
-            <span>View all solutions</span><ArrowRight className="w-3.5 h-3.5" />
+          <button onClick={() => onNavigate('solutions')} className="reveal-up inline-flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-cyan-300 transition-colors group">
+            <span>View all solutions</span><ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 stagger-children">
@@ -214,12 +214,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
             { Icon:Layers,    c:'indigo', label:'Integrations', desc:'Connect everything in your ecosystem.',       r:'solutions' },
           ].map(({ Icon, c, label, desc, r }) => (
             <div key={label} onClick={() => onNavigate(r as NavRoute)}
-              className="reveal-up group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-56">
+              className="reveal-up group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-56 hover:-translate-y-2 hover:shadow-[0_16px_40px_rgba(0,0,0,0.8),0_0_30px_rgba(34,211,238,0.2)] transition-all duration-300">
               <div className="flex items-center justify-between">
-                <div className={`w-10 h-10 rounded-xl bg-${c}-500/15 border border-${c}-500/30 flex items-center justify-center`}>
-                  <Icon className={`w-5 h-5 text-${c}-400`} />
+                <div className={`w-11 h-11 rounded-xl bg-${c}-500/15 border border-${c}-500/30 flex items-center justify-center group-hover:scale-110 group-hover:shadow-[0_0_16px_rgba(34,211,238,0.3)] transition-all duration-300`}>
+                  <Icon className={`w-5 h-5 text-${c}-400 group-hover:rotate-6 transition-transform`} />
                 </div>
-                <ArrowRight className={`w-4 h-4 text-slate-500 group-hover:text-${c}-300 group-hover:translate-x-1 transition-all`} />
+                <ArrowRight className={`w-4 h-4 text-slate-500 group-hover:text-${c}-300 group-hover:translate-x-1.5 transition-all duration-300`} />
               </div>
               <div>
                 <h3 className={`text-white font-bold text-lg mb-1 group-hover:text-${c}-300 transition-colors`}>{label}</h3>
