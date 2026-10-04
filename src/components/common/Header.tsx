@@ -16,6 +16,7 @@ const NAV_ITEMS: { id: NavRoute; label: string }[] = [
   { id: 'learn', label: 'Learn' },
   { id: 'tools', label: 'Tools' },
   { id: 'about', label: 'About' },
+  { id: 'command', label: 'Command' },
 ];
 
 export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
@@ -71,6 +72,23 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
             const isActive = currentRoute === item.id;
             const isHovered = hoveredNav === item.id;
             const isUnderlined = targetUnderlineId === item.id;
+
+            if (item.id === 'command') {
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  className={`group relative text-sm font-medium px-3 py-1 rounded-md border border-cyan-400/60 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 hover:text-white transition-all duration-200 cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+                    isActive ? 'bg-cyan-500/20 text-white border-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]' : ''
+                  }`}
+                >
+                  <span className="relative z-10 flex items-center gap-1.5 font-mono text-xs font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                    <span>Command</span>
+                  </span>
+                </button>
+              );
+            }
 
             return (
               <button

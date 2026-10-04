@@ -138,7 +138,7 @@ export interface CommandClient {
 }
 
 export interface AgentConfig {
-  id: string;
+  id?: string;
   provider: string; // 'groq' | 'openai' | 'google' | 'anthropic' | 'openrouter' | etc.
   model_name: string;
   base_url: string;
@@ -198,6 +198,7 @@ export type ContentStatus =
 export interface CommandContentItem {
   id: string;
   created_at: string;
+  updated_at?: string;
   title?: string;
   body?: string;
   category?: ContentCategory | string;

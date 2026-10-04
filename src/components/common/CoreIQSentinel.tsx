@@ -48,11 +48,20 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-      setPrefersReducedMotion(mediaQuery.matches);
-      const listener = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-      mediaQuery.addEventListener('change', listener);
-      return () => mediaQuery.removeEventListener('change', listener);
+      try {
+        const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        setPrefersReducedMotion(mediaQuery.matches);
+        const listener = (e: any) => setPrefersReducedMotion(e.matches);
+        if (typeof mediaQuery.addEventListener === 'function') {
+          mediaQuery.addEventListener('change', listener);
+          return () => mediaQuery.removeEventListener('change', listener);
+        } else if (typeof (mediaQuery as any).addListener === 'function') {
+          (mediaQuery as any).addListener(listener);
+          return () => (mediaQuery as any).removeListener(listener);
+        }
+      } catch {
+        // Fallback for older WebViews
+      }
     }
   }, []);
 

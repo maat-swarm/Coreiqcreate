@@ -298,7 +298,7 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
 
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-[10px] font-mono text-slate-500">
-                      Last modified {new Date(item.updated_at).toLocaleString()}
+                      Last modified {new Date(item.updated_at || item.created_at || Date.now()).toLocaleString()}
                     </span>
 
                     <button

@@ -145,7 +145,7 @@ export const AskCoreIQBar: React.FC<AskCoreIQBarProps> = ({
                 key={idx}
                 type="button"
                 onClick={() => handlePillClick(pill.query || pill.label)}
-                className="group inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-300 bg-[#091129]/80 hover:bg-cyan-950/60 border border-[rgba(150,185,255,0.16)] hover:border-cyan-400/50 hover:text-cyan-300 transition-all duration-200 hover:-translate-y-0.5 shadow-sm"
+                className="group inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-300 bg-[#091129]/80 hover:bg-cyan-500/10 border border-[rgba(150,185,255,0.16)] hover:border-cyan-400/60 hover:text-cyan-300 transition-all duration-200 hover:-translate-y-0.5 shadow-sm"
               >
                 <span>{pill.label}</span>
                 <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-cyan-400" />

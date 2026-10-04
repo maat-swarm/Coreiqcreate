@@ -27,13 +27,43 @@ export interface SupabaseConfigState {
   error: string | null;
 }
 
+// Safe Storage Helpers (prevent DOMException / SecurityError in sandboxed iframes)
+function safeGetStorage(key: string): string {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem(key) || '';
+    }
+  } catch {}
+  return '';
+}
+
+function safeSetStorage(key: string, value: string): void {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(key, value);
+    }
+  } catch {}
+}
+
+function safeRemoveStorage(key: string): void {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem(key);
+    }
+  } catch {}
+}
+
 // Initial configuration detection
 function getInitialCredentials() {
-  const envUrl = (import.meta.env.VITE_SUPABASE_URL as string) || '';
-  const envKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
+  let envUrl = '';
+  let envKey = '';
+  try {
+    envUrl = ((import.meta as any).env?.VITE_SUPABASE_URL as string) || '';
+    envKey = ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string) || '';
+  } catch {}
 
-  const storedUrl = typeof window !== 'undefined' ? localStorage.getItem(LS_URL_KEY) || '' : '';
-  const storedKey = typeof window !== 'undefined' ? localStorage.getItem(LS_KEY_KEY) || '' : '';
+  const storedUrl = safeGetStorage(LS_URL_KEY);
+  const storedKey = safeGetStorage(LS_KEY_KEY);
 
   const url = storedUrl.trim() || envUrl.trim();
   const anonKey = storedKey.trim() || envKey.trim();
@@ -74,13 +104,11 @@ export function saveSupabaseCredentials(url: string, anonKey: string) {
   const cleanUrl = url.trim();
   const cleanKey = anonKey.trim();
 
-  if (typeof window !== 'undefined') {
-    if (cleanUrl) localStorage.setItem(LS_URL_KEY, cleanUrl);
-    else localStorage.removeItem(LS_URL_KEY);
+  if (cleanUrl) safeSetStorage(LS_URL_KEY, cleanUrl);
+  else safeRemoveStorage(LS_URL_KEY);
 
-    if (cleanKey) localStorage.setItem(LS_KEY_KEY, cleanKey);
-    else localStorage.removeItem(LS_KEY_KEY);
-  }
+  if (cleanKey) safeSetStorage(LS_KEY_KEY, cleanKey);
+  else safeRemoveStorage(LS_KEY_KEY);
 
   currentCredentials = { url: cleanUrl, anonKey: cleanKey };
   activeClient = null; // force recreation
@@ -229,9 +257,8 @@ export const DEFAULT_AGENT_CONFIG: AgentConfig = {
 const LOCAL_STORE_PREFIX = 'coreiq_db_';
 
 function getLocalTable<T>(table: string): T[] {
-  if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(`${LOCAL_STORE_PREFIX}${table}`);
+    const raw = safeGetStorage(`${LOCAL_STORE_PREFIX}${table}`);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -239,10 +266,11 @@ function getLocalTable<T>(table: string): T[] {
 }
 
 function setLocalTable<T>(table: string, data: T[]) {
-  if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(`${LOCAL_STORE_PREFIX}${table}`, JSON.stringify(data));
-    window.dispatchEvent(new CustomEvent(`coreiq_table_${table}`, { detail: data }));
+    safeSetStorage(`${LOCAL_STORE_PREFIX}${table}`, JSON.stringify(data));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(`coreiq_table_${table}`, { detail: data }));
+    }
   } catch (e) {
     console.error(`Error saving table ${table}:`, e);
   }
@@ -1054,14 +1082,12 @@ export const CoreIQAuth = {
       }
     }
     // Check local operator dev session fallback
-    if (typeof window !== 'undefined') {
-      try {
-        const devSession = localStorage.getItem(LS_DEV_AUTH_KEY);
-        if (devSession) {
-          return JSON.parse(devSession) as Session;
-        }
-      } catch {}
-    }
+    try {
+      const devSession = safeGetStorage(LS_DEV_AUTH_KEY);
+      if (devSession) {
+        return JSON.parse(devSession) as Session;
+      }
+    } catch {}
     return null;
   },
 
@@ -1078,9 +1104,13 @@ export const CoreIQAuth = {
     const handler = (e: any) => {
       callback(e.detail?.session ?? null);
     };
-    window.addEventListener('coreiq_auth_state_change', handler);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('coreiq_auth_state_change', handler);
+    }
     return () => {
-      window.removeEventListener('coreiq_auth_state_change', handler);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('coreiq_auth_state_change', handler);
+      }
     };
   },
 
@@ -1094,7 +1124,9 @@ export const CoreIQAuth = {
       if (res.error) {
         throw res.error;
       }
-      window.dispatchEvent(new CustomEvent('coreiq_auth_state_change', { detail: { session: res.data.session } }));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('coreiq_auth_state_change', { detail: { session: res.data.session } }));
+      }
       return res.data;
     }
 
@@ -1113,17 +1145,15 @@ export const CoreIQAuth = {
         user_metadata: { name: 'CoreIQ Operator' },
       },
     };
+    safeSetStorage(LS_DEV_AUTH_KEY, JSON.stringify(localSession));
     if (typeof window !== 'undefined') {
-      localStorage.setItem(LS_DEV_AUTH_KEY, JSON.stringify(localSession));
+      window.dispatchEvent(new CustomEvent('coreiq_auth_state_change', { detail: { session: localSession } }));
     }
-    window.dispatchEvent(new CustomEvent('coreiq_auth_state_change', { detail: { session: localSession } }));
     return { session: localSession as Session, user: localSession.user };
   },
 
   async signOut() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(LS_DEV_AUTH_KEY);
-    }
+    safeRemoveStorage(LS_DEV_AUTH_KEY);
     const client = getSupabase();
     if (client) {
       try {
@@ -1132,7 +1162,9 @@ export const CoreIQAuth = {
         console.warn('Sign out warning:', e);
       }
     }
-    window.dispatchEvent(new CustomEvent('coreiq_auth_state_change', { detail: { session: null } }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('coreiq_auth_state_change', { detail: { session: null } }));
+    }
   },
 };
 

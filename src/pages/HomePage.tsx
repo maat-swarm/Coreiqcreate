@@ -59,7 +59,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
             <div className="lg:col-span-6 xl:col-span-7 space-y-8 z-10">
               <div className="reveal-up inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/[0.08] backdrop-blur-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee] animate-beacon" />
-                <span className="text-xs font-semibold tracking-[0.2em] text-cyan-300/80 uppercase">Ideas · Intelligence · Action</span>
+                <span className="text-xs font-semibold tracking-widest text-cyan-300/80 uppercase">
+                  Ideas <span className="text-cyan-400 shadow-[0_0_6px_#22d3ee]">·</span> Intelligence <span className="text-cyan-400 shadow-[0_0_6px_#22d3ee]">·</span> Action
+                </span>
               </div>
 
               <div className="space-y-1">
@@ -71,45 +73,18 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                 </h1>
               </div>
 
-              <p className="reveal-up text-slate-300 text-base sm:text-lg lg:text-xl max-w-lg leading-relaxed">
+              <p className="reveal-up text-white/80 text-base sm:text-lg lg:text-xl max-w-lg leading-relaxed">
                 CoreIQ is your AI partner for building, automating and scaling what's next. Describe your vision and let's create it — together.
               </p>
 
               <div className="reveal-up pt-1">
                 <AskCoreIQBar placeholder="Tell us what you're trying to accomplish..." pills={pills} onAsk={onAsk} size="large" />
               </div>
-
-              <div className="reveal-up pt-6 flex items-center gap-3 text-xs tracking-widest text-slate-600 uppercase font-medium">
-                <span className="w-8 h-[1px] bg-slate-800" />
-                <span>Scroll to explore</span>
-              </div>
             </div>
 
             {/* Right — Environmental Viewport framing the Living Mascot */}
             <div className="lg:col-span-6 xl:col-span-5 flex justify-center lg:justify-end items-center select-none reveal-fade">
               <div className="relative w-full max-w-[480px] h-[220px] sm:h-[420px] lg:h-[460px] flex flex-col justify-end p-4 sm:p-6 pointer-events-auto">
-                {/* Ethereal HUD Viewfinder Corner Ticks */}
-                <div 
-                  className="absolute inset-0 pointer-events-none transition-transform duration-700 ease-out"
-                  style={{
-                    transform: tilt.on ? `translate3d(${tilt.x * 12}px, ${tilt.y * 12}px, 0)` : 'none',
-                  }}
-                >
-                  {/* Top-left corner tick */}
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-cyan-400/40 rounded-tl-lg" />
-                  {/* Top-right corner tick */}
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-cyan-400/40 rounded-tr-lg" />
-                  {/* Bottom-left corner tick */}
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-cyan-400/40 rounded-bl-lg" />
-                  {/* Bottom-right corner tick */}
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-cyan-400/40 rounded-br-lg" />
-
-                  {/* Subtle Central Target Reticle */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full border border-cyan-500/10" />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-purple-500/10 animate-spin-slow" />
-                </div>
-
-                {/* Docked Agent Sentinel Telemetry HUD (Anchored to lower edge to keep mascot face & chest visible) */}
               </div>
             </div>
           </div>
@@ -263,7 +238,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 // -----------------------------------------------------------------------------
 // COREIQ RUNTIME CARD COMPONENT (1B SPEC)
 // -----------------------------------------------------------------------------
-const CoreIQRuntimeCard: React.FC = () => {
+function CoreIQRuntimeCard() {
   const { items: videoItems } = useMediaSlot('home.intro_video');
   const { items: posterItems } = useMediaSlot('home.intro_poster');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -373,3 +348,6 @@ const CoreIQRuntimeCard: React.FC = () => {
     </div>
   );
 };
+
+export default HomePage;
+

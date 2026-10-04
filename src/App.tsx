@@ -7,6 +7,7 @@ import { SiteVisualEnvironment } from './components/environment/SiteVisualEnviro
 import { useScrollReveal } from './hooks/useScrollReveal';
 import { NavRoute } from './types';
 import { seedManifestPlaceholders } from './services/contentResolver';
+import { HomePage } from './pages/HomePage';
 
 export type AppRoute =
   | NavRoute
@@ -26,8 +27,7 @@ const VALID_NAV_ROUTES: readonly NavRoute[] = [
   'command',
 ];
 
-// Lazy loaded page components for performance
-const HomePage = React.lazy(() => import('./pages/HomePage').then((m) => ({ default: m.HomePage })));
+// Lazy loaded secondary page components for performance
 const SolutionsPage = React.lazy(() => import('./pages/SolutionsPage').then((m) => ({ default: m.SolutionsPage })));
 const AppsPage = React.lazy(() => import('./pages/AppsPage').then((m) => ({ default: m.AppsPage })));
 const LearnPage = React.lazy(() => import('./pages/LearnPage').then((m) => ({ default: m.LearnPage })));
@@ -70,7 +70,11 @@ export default function App() {
   useScrollReveal();
 
   useEffect(() => {
-    seedManifestPlaceholders();
+    try {
+      seedManifestPlaceholders().catch((err) => {
+        console.warn('[CoreIQ] Manifest seeding warning:', err);
+      });
+    } catch {}
     const onPop = () => {
       setCurrentRoute(getRoute());
     };

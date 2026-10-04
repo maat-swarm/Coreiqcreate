@@ -23,13 +23,23 @@ export function useMotionPruning(): MotionPruningState {
       };
     }
 
-    const reducedMotionMatch = window.matchMedia(REDUCED_MOTION_QUERY).matches;
-    const mobilePruningMatch = window.matchMedia(MOBILE_PRUNING_QUERY).matches;
+    try {
+      if (typeof window.matchMedia === 'function') {
+        const reducedMotionMatch = window.matchMedia(REDUCED_MOTION_QUERY).matches;
+        const mobilePruningMatch = window.matchMedia(MOBILE_PRUNING_QUERY).matches;
+
+        return {
+          isReducedMotion: Boolean(reducedMotionMatch),
+          isMobileDevice: Boolean(mobilePruningMatch && !reducedMotionMatch),
+          shouldPruneRAF: Boolean(mobilePruningMatch),
+        };
+      }
+    } catch {}
 
     return {
-      isReducedMotion: reducedMotionMatch,
-      isMobileDevice: mobilePruningMatch && !reducedMotionMatch,
-      shouldPruneRAF: mobilePruningMatch,
+      isReducedMotion: false,
+      isMobileDevice: false,
+      shouldPruneRAF: false,
     };
   });
 

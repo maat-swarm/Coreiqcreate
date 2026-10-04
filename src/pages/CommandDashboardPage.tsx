@@ -74,6 +74,7 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
   const [tasks, setTasks] = useState<CommandTask[]>([]);
   const [clients, setClients] = useState<CommandClient[]>([]);
   const [agentConfig, setAgentConfig] = useState<AgentConfig>({
+    id: 'default',
     provider: 'groq',
     model_name: 'llama-3.3-70b-versatile',
     base_url: 'https://api.groq.com/openai/v1',

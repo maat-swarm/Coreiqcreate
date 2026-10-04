@@ -83,7 +83,9 @@ export const CommandTasksTab: React.FC<CommandTasksTabProps> = ({
             }
           : t
       );
-      localStorage.setItem('coreiq_db_tasks', JSON.stringify(updated));
+      try {
+        localStorage.setItem('coreiq_db_tasks', JSON.stringify(updated));
+      } catch {}
       window.dispatchEvent(new CustomEvent('coreiq_table_tasks', { detail: updated }));
     } else {
       await CoreIQData.insertTask({

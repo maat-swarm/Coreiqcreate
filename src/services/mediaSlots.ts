@@ -153,7 +153,13 @@ function getAuthHeaders(isJson = true): Record<string, string> {
   }
   // If operator session token exists in localStorage or sessionStorage
   if (typeof window !== 'undefined') {
-    const rawDevKey = localStorage.getItem('coreiq_api_key_master');
+    let rawDevKey = '';
+    try {
+      if (window.localStorage) {
+        rawDevKey = localStorage.getItem('coreiq_api_key_master') || '';
+      }
+    } catch {}
+
     if (rawDevKey) {
       headers['Authorization'] = `Bearer ${rawDevKey}`;
     } else {

@@ -5,10 +5,15 @@ interface Props { onComplete: () => void; }
 export function SplashScreen({ onComplete }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
   const [exiting, setExiting] = useState(false);
+  const finishedRef = useRef(false);
 
   const finish = () => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
     setExiting(true);
-    setTimeout(onComplete, 400);
+    setTimeout(() => {
+      onComplete();
+    }, 400);
   };
 
   useEffect(() => {

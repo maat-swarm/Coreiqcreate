@@ -10,7 +10,9 @@ export function useMagneticHover<T extends HTMLElement = HTMLElement>(
     if (!el) return;
 
     // Check if touch device / mobile — skip magnetic hover on touch
-    if (window.matchMedia('(hover: none)').matches) return;
+    try {
+      if (typeof window.matchMedia === 'function' && window.matchMedia('(hover: none)').matches) return;
+    } catch {}
 
     const handleMouseMove = (e: MouseEvent) => {
       const rect = el.getBoundingClientRect();
