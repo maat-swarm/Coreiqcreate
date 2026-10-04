@@ -48,7 +48,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
 
       {/* HERO */}
       <section ref={heroRef} onMouseMove={onMove} onMouseLeave={() => setTilt({ x:0, y:0, on:false })}
-        className="relative min-h-[60vh] lg:min-h-[85vh] flex items-center pt-8 pb-8 lg:py-20 overflow-hidden">
+        className="relative min-h-[60vh] lg:min-h-[85vh] flex items-center pt-8 pb-0 lg:pt-20 lg:pb-0 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none"
           style={{ background:'radial-gradient(ellipse 65% 65% at 70% 50%,rgba(57,123,255,0.10) 0%,transparent 70%)' }} />
 
