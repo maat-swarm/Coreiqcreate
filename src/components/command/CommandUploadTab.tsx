@@ -46,6 +46,25 @@ const AVAILABLE_PAGES = [
   { id: 'site', label: 'Site (Global Background)' },
 ];
 
+const getEffectiveAllowedTypes = (slot?: MediaSlot | null): MediaSlotType[] => {
+  if (!slot) return ['image'];
+  if (slot.slot_key === 'home.showcase') {
+    return ['image', 'video'];
+  }
+  return slot.allowed_types || ['image'];
+};
+
+const getSlotMaxBytes = (slot: MediaSlot, type: MediaSlotType): number => {
+  if (slot.slot_key === 'home.showcase') {
+    if (type === 'image') {
+      return 20480 * 1024; // 20480 KB (20 MB) for home.showcase specifically
+    }
+    // video matches home.intro_video pattern (52428800 bytes / 50 MB)
+    return 52428800;
+  }
+  return slot.max_bytes;
+};
+
 export const CommandUploadTab: React.FC = () => {
   const [selectedPage, setSelectedPage] = useState<string>('home');
   const [slots, setSlots] = useState<MediaSlot[]>([]);
@@ -109,8 +128,9 @@ export const CommandUploadTab: React.FC = () => {
       setSelectedSlotDetail(detail);
 
       // Default upload type to first allowed type
-      if (detail.slot?.allowed_types?.length) {
-        setUploadType(detail.slot.allowed_types[0]);
+      const allowed = getEffectiveAllowedTypes(detail.slot);
+      if (allowed.length) {
+        setUploadType(allowed[0]);
       }
     } catch (err: any) {
       setErrorMessage(err.message || `Failed to load details for slot ${slotKey}`);
@@ -151,11 +171,12 @@ export const CommandUploadTab: React.FC = () => {
     const currentSlot = selectedSlotDetail?.slot;
     if (!currentSlot) return;
 
-    // Check size limit
-    if (file.size > currentSlot.max_bytes) {
+    // Check size limit: 20480 KB (20 MB) for home.showcase image, slot limit otherwise
+    const maxBytes = getSlotMaxBytes(currentSlot, uploadType);
+    if (file.size > maxBytes) {
       setFormError(
-        `File too large: ${(file.size / 1024).toFixed(1)} KB exceeds slot limit of ${Math.round(
-          currentSlot.max_bytes / 1024
+        `File too large: ${(file.size / 1024).toFixed(1)} KB exceeds limit of ${Math.round(
+          maxBytes / 1024
         )} KB`
       );
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -190,9 +211,10 @@ export const CommandUploadTab: React.FC = () => {
     const slot = selectedSlotDetail?.slot;
     if (!slot) return;
 
-    // Validation
-    if (uploadType === 'image' && (!altInput || !altInput.trim())) {
-      setFormError('Alt text is required for image items (accessibility).');
+    // Validation: alt text required for image items and all home.showcase items
+    const isAltRequired = uploadType === 'image' || slot.slot_key === 'home.showcase';
+    if (isAltRequired && (!altInput || !altInput.trim())) {
+      setFormError(`Alt text is required for ${slot.slot_key === 'home.showcase' ? 'showcase' : 'image'} items (accessibility).`);
       return;
     }
 
@@ -283,8 +305,9 @@ export const CommandUploadTab: React.FC = () => {
     const changes = editingItemMap[item.id];
     if (!changes) return;
 
-    if (item.type === 'image' && changes.alt !== undefined && !changes.alt.trim()) {
-      alert('Alt text cannot be empty for an image item.');
+    const isAltRequired = item.type === 'image' || item.slot_key === 'home.showcase';
+    if (isAltRequired && changes.alt !== undefined && !changes.alt.trim()) {
+      alert(`Alt text cannot be empty for ${item.slot_key === 'home.showcase' ? 'a showcase' : 'an image'} item.`);
       return;
     }
 
@@ -522,7 +545,7 @@ export const CommandUploadTab: React.FC = () => {
                         </strong>
                       </span>
                       <span className="text-slate-500 capitalize">
-                        {slot.allowed_types.join(' · ')}
+                        {getEffectiveAllowedTypes(slot).join(' · ')}
                       </span>
                     </div>
 
@@ -626,13 +649,15 @@ export const CommandUploadTab: React.FC = () => {
                   <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/60">
                     <span className="text-[10px] text-slate-500 block uppercase font-mono">Max Size</span>
                     <span className="font-semibold text-slate-200">
-                      {(currentSlot.max_bytes / 1024).toFixed(0)} KB ({Math.round(currentSlot.max_bytes / 1048576)} MB)
+                      {currentSlot.slot_key === 'home.showcase'
+                        ? '20 MB (Img) / 50 MB (Vid)'
+                        : `${(currentSlot.max_bytes / 1024).toFixed(0)} KB (${Math.round(currentSlot.max_bytes / 1048576)} MB)`}
                     </span>
                   </div>
                   <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/60">
                     <span className="text-[10px] text-slate-500 block uppercase font-mono">Allowed</span>
                     <span className="font-semibold text-cyan-300 uppercase font-mono text-[11px]">
-                      {currentSlot.allowed_types.join(', ')}
+                      {getEffectiveAllowedTypes(currentSlot).join(', ')}
                     </span>
                   </div>
                   <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/60">
@@ -666,10 +691,10 @@ export const CommandUploadTab: React.FC = () => {
                   </div>
                 ) : (
                   <form onSubmit={handleCreateItem} className="space-y-4">
-                    {/* Media Type Tabs (if multiple allowed) */}
-                    {currentSlot.allowed_types.length > 1 && (
+                    {/* Media Type Tabs (if multiple allowed or home.showcase) */}
+                    {getEffectiveAllowedTypes(currentSlot).length > 1 && (
                       <div className="flex items-center gap-2">
-                        {currentSlot.allowed_types.map((type) => (
+                        {getEffectiveAllowedTypes(currentSlot).map((type) => (
                           <button
                             key={type}
                             type="button"
@@ -679,7 +704,7 @@ export const CommandUploadTab: React.FC = () => {
                             }}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase font-mono transition-colors min-h-[44px] ${
                               uploadType === type
-                                ? 'bg-cyan-500 text-slate-950'
+                                ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
                                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                             }`}
                           >
@@ -711,7 +736,7 @@ export const CommandUploadTab: React.FC = () => {
                       <div>
                         <label className="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">
                           Choose {uploadType === 'video' ? 'Video' : 'Image'} File (Max{' '}
-                          {(currentSlot.max_bytes / 1024).toFixed(0)} KB) *
+                          {(getSlotMaxBytes(currentSlot, uploadType) / 1024).toFixed(0)} KB) *
                         </label>
                         <input
                           ref={fileInputRef}
@@ -728,8 +753,8 @@ export const CommandUploadTab: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Alt Text (Required for image) */}
-                    {uploadType === 'image' && (
+                    {/* Alt Text (Required for image, and required for home.showcase) */}
+                    {(uploadType === 'image' || currentSlot.slot_key === 'home.showcase') && (
                       <div>
                         <label className="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">
                           Alt Text (Required for screen-readers & SEO) *
@@ -1021,7 +1046,7 @@ export const CommandUploadTab: React.FC = () => {
                               <div className="space-y-2 text-xs">
                                 <div>
                                   <label className="block text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-0.5">
-                                    Alt Text {item.type === 'image' && '*'}
+                                    Alt Text {(item.type === 'image' || item.slot_key === 'home.showcase') && '*'}
                                   </label>
                                   <input
                                     type="text"

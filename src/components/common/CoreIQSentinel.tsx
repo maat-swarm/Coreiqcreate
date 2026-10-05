@@ -329,16 +329,36 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
             className="w-full h-full relative flex items-center justify-center overflow-hidden"
           >
             {currentItem && (
-              <img
-                src={currentItem.url || ''}
-                alt={currentItem.alt || 'CoreIQ Showcase slide'}
-                loading="eager"
-                width="800"
-                height="450"
-                className={`w-full h-full object-cover transition-all ${
-                  prefersReducedMotion ? 'duration-0' : 'duration-500'
-                } group-hover/viewport:scale-[1.02]`}
-              />
+              (currentItem as any).type === 'video' ||
+              (typeof currentItem.url === 'string' && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(currentItem.url)) ? (
+                <video
+                  key={currentItem.id || currentItem.url}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className={`w-full h-full object-cover transition-all ${
+                    prefersReducedMotion ? 'duration-0' : 'duration-500'
+                  }`}
+                  aria-label={currentItem.alt || 'CoreIQ Showcase video slide'}
+                >
+                  <source src={currentItem.url || ''} type="video/mp4" />
+                  <source src={currentItem.url || ''} type="video/webm" />
+                  Your browser does not support HTML video playback.
+                </video>
+              ) : (
+                <img
+                  src={currentItem.url || ''}
+                  alt={currentItem.alt || 'CoreIQ Showcase slide'}
+                  loading="eager"
+                  width="800"
+                  height="450"
+                  className={`w-full h-full object-cover transition-all ${
+                    prefersReducedMotion ? 'duration-0' : 'duration-500'
+                  } group-hover/viewport:scale-[1.02]`}
+                />
+              )
             )}
 
             {/* Gradient edge and vignette depth */}

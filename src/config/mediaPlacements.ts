@@ -5,6 +5,7 @@ export type SlotPlacement = {
   component: string;
   position: string;
   wired: boolean;
+  allowedTypes?: ('image' | 'video' | 'url')[];
 };
 
 export const HERO_ANCHOR =
@@ -18,6 +19,7 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     component: 'CoreIQSentinel',
     position: HERO_ANCHOR,
     wired: true,
+    allowedTypes: ['image', 'video'],
   },
   'home.intro_video': {
     slotKey: 'home.intro_video',
@@ -26,6 +28,7 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     component: 'CoreIQRuntimeCard',
     position: 'Inside the existing "COREIQ RUNTIME" card (replaces its static image)',
     wired: true,
+    allowedTypes: ['video', 'url'],
   },
   'home.intro_poster': {
     slotKey: 'home.intro_poster',
@@ -34,6 +37,7 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     component: 'CoreIQRuntimeCard',
     position: 'Poster of the RUNTIME card video',
     wired: true,
+    allowedTypes: ['image'],
   },
   'solutions.showcase': {
     slotKey: 'solutions.showcase',
