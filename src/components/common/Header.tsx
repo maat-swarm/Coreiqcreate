@@ -16,6 +16,7 @@ const NAV_ITEMS: { id: NavRoute; label: string }[] = [
   { id: 'learn', label: 'Learn' },
   { id: 'tools', label: 'Tools' },
   { id: 'about', label: 'About' },
+  { id: 'news', label: 'News' },
   { id: 'command', label: 'Command' },
 ];
 

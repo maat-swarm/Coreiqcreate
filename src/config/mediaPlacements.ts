@@ -1,11 +1,16 @@
 export type SlotPlacement = {
   slotKey: string;
-  page: 'home' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' | 'site';
+  page: 'home' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' | 'news' | 'site';
   route: string;
   component: string;
   position: string;
   wired: boolean;
-  allowedTypes?: ('image' | 'video' | 'url')[];
+  label?: string;
+  type?: string;
+  capacity?: number;
+  maxSize?: number;
+  aspectRatio?: string;
+  placement?: string;
 };
 
 export const HERO_ANCHOR =
@@ -19,7 +24,6 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     component: 'CoreIQSentinel',
     position: HERO_ANCHOR,
     wired: true,
-    allowedTypes: ['image', 'video'],
   },
   'home.intro_video': {
     slotKey: 'home.intro_video',
@@ -28,7 +32,6 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     component: 'CoreIQRuntimeCard',
     position: 'Inside the existing "COREIQ RUNTIME" card (replaces its static image)',
     wired: true,
-    allowedTypes: ['video', 'url'],
   },
   'home.intro_poster': {
     slotKey: 'home.intro_poster',
@@ -37,7 +40,6 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     component: 'CoreIQRuntimeCard',
     position: 'Poster of the RUNTIME card video',
     wired: true,
-    allowedTypes: ['image'],
   },
   'solutions.showcase': {
     slotKey: 'solutions.showcase',
@@ -45,7 +47,13 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     route: '/solutions',
     component: 'CoreIQSentinel',
     position: HERO_ANCHOR,
-    wired: false,
+    wired: true,
+    label: 'Solutions showcase carousel',
+    type: 'IMAGE',
+    capacity: 6,
+    maxSize: 300,
+    aspectRatio: '16/9',
+    placement: HERO_ANCHOR,
   },
   'apps.showcase': {
     slotKey: 'apps.showcase',
@@ -53,7 +61,13 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     route: '/apps',
     component: 'CoreIQSentinel',
     position: HERO_ANCHOR,
-    wired: false,
+    wired: true,
+    label: 'Apps showcase carousel',
+    type: 'IMAGE',
+    capacity: 6,
+    maxSize: 300,
+    aspectRatio: '16/9',
+    placement: HERO_ANCHOR,
   },
   'learn.showcase': {
     slotKey: 'learn.showcase',
@@ -62,6 +76,12 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     component: 'CoreIQSentinel',
     position: HERO_ANCHOR,
     wired: true,
+    label: 'Learn showcase carousel',
+    type: 'IMAGE',
+    capacity: 6,
+    maxSize: 300,
+    aspectRatio: '16/9',
+    placement: HERO_ANCHOR,
   },
   'tools.showcase': {
     slotKey: 'tools.showcase',
@@ -69,7 +89,27 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     route: '/tools',
     component: 'CoreIQSentinel',
     position: HERO_ANCHOR,
-    wired: false,
+    wired: true,
+    label: 'Tools showcase carousel',
+    type: 'IMAGE',
+    capacity: 6,
+    maxSize: 300,
+    aspectRatio: '16/9',
+    placement: HERO_ANCHOR,
+  },
+  'tools': {
+    slotKey: 'tools.showcase',
+    page: 'tools',
+    route: '/tools',
+    component: 'CoreIQSentinel',
+    position: HERO_ANCHOR,
+    wired: true,
+    label: 'Tools showcase carousel',
+    type: 'IMAGE',
+    capacity: 6,
+    maxSize: 300,
+    aspectRatio: '16/9',
+    placement: HERO_ANCHOR,
   },
   'about.showcase': {
     slotKey: 'about.showcase',
@@ -77,7 +117,55 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     route: '/about',
     component: 'CoreIQSentinel',
     position: HERO_ANCHOR,
-    wired: false,
+    wired: true,
+    label: 'About showcase carousel',
+    type: 'IMAGE',
+    capacity: 6,
+    maxSize: 300,
+    aspectRatio: '16/9',
+    placement: HERO_ANCHOR,
+  },
+  'about': {
+    slotKey: 'about.showcase',
+    page: 'about',
+    route: '/about',
+    component: 'CoreIQSentinel',
+    position: HERO_ANCHOR,
+    wired: true,
+    label: 'About showcase carousel',
+    type: 'IMAGE',
+    capacity: 6,
+    maxSize: 300,
+    aspectRatio: '16/9',
+    placement: HERO_ANCHOR,
+  },
+  'news.showcase': {
+    slotKey: 'news.showcase',
+    page: 'news',
+    route: '/news',
+    component: 'CoreIQSentinel',
+    position: HERO_ANCHOR,
+    wired: true,
+    label: 'News showcase carousel',
+    type: 'IMAGE',
+    capacity: 6,
+    maxSize: 300,
+    aspectRatio: '16/9',
+    placement: HERO_ANCHOR,
+  },
+  'news': {
+    slotKey: 'news.showcase',
+    page: 'news',
+    route: '/news',
+    component: 'CoreIQSentinel',
+    position: HERO_ANCHOR,
+    wired: true,
+    label: 'News showcase carousel',
+    type: 'IMAGE',
+    capacity: 6,
+    maxSize: 300,
+    aspectRatio: '16/9',
+    placement: HERO_ANCHOR,
   },
   'site.background': {
     slotKey: 'site.background',

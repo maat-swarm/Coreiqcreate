@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
+import { CoreIQSentinel } from '../components/common/CoreIQSentinel';
 import { PageHeroVisual } from '../components/common/PageHeroVisual';
 import { ScrollReveal } from '../components/common/ScrollReveal';
 import { NavRoute } from '../types';
@@ -82,9 +83,9 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
   return (
     <div className="w-full relative">
       {/* 1. HERO SECTION */}
-      <section className="relative min-h-[75vh] flex items-center pt-8 pb-14 lg:py-20 overflow-hidden">
+      <section className="relative pt-8 pb-8 lg:pt-14 lg:pb-10 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-start">
             
             {/* Left Content */}
             <div className="lg:col-span-7 space-y-7 z-10">
@@ -119,6 +120,15 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
                   <span>Explore directory</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
+              </div>
+
+              {/* Sentinel moved to be directly below AskCoreIQ */}
+              <div className="pt-2">
+                <CoreIQSentinel
+                  page="solutions"
+                  onAsk={onAsk}
+                  onNavigate={onNavigate}
+                />
               </div>
             </div>
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { NavRoute } from '../types';
 import { ScrollReveal } from '../components/common/ScrollReveal';
+import { CoreIQSentinel } from '../components/common/CoreIQSentinel';
 
 interface AboutPageProps {
   onNavigate: (route: NavRoute) => void;
@@ -49,7 +50,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
   return (
     <div className="w-full relative">
       {/* 1. HERO SECTION: Full-viewport opening manifesto */}
-      <section className="relative min-h-[85vh] sm:min-h-screen flex items-center justify-center pt-16 pb-20 overflow-hidden">
+      <section className="relative pt-12 pb-10 lg:pt-16 lg:pb-12 overflow-hidden flex items-center justify-center">
         {/* Subtle luminous core ambient glow behind text */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
@@ -76,6 +77,15 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
           <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed pt-2">
             The bridge between vision and working systems. We engineer focused artificial intelligence that powers real-world automation, tools, and platforms.
           </p>
+
+          {/* Sentinel moved to be inside hero */}
+          <div className="pt-6 max-w-4xl mx-auto">
+            <CoreIQSentinel
+              page="about"
+              onAsk={onAsk}
+              onNavigate={onNavigate}
+            />
+          </div>
         </div>
       </section>
 

@@ -57,6 +57,12 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   Learn & Intelligence
                 </button>
               </li>
+              <li>
+                <button onClick={() => onNavigate('news')} className="hover:text-cyan-300 transition-colors flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                  <span>AI News & Signals</span>
+                </button>
+              </li>
             </ul>
           </div>
 

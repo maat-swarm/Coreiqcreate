@@ -54,6 +54,11 @@ export const AtmosphericLayer: React.FC<AtmosphericLayerProps> = ({
       secondary: 'rgba(57, 123, 255, 0.18)', // Electric Blue
       glow: 'rgba(134, 88, 255, 0.12)',
     },
+    news: {
+      primary: 'rgba(25, 217, 255, 0.20)', // Electric Cyan news
+      secondary: 'rgba(134, 88, 255, 0.16)', // Deep violet
+      glow: 'rgba(244, 63, 94, 0.10)', // Breaking pulse
+    },
   };
 
   const accent = routeAccents[currentRoute] || routeAccents.home;

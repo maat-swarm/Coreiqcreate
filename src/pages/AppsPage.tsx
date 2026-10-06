@@ -18,8 +18,8 @@ import {
 } from 'lucide-react';
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
+import { CoreIQSentinel } from '../components/common/CoreIQSentinel';
 import { CosmicCTABanner } from '../components/common/CosmicCTABanner';
-import { PageHeroVisual } from '../components/common/PageHeroVisual';
 import { ScrollReveal } from '../components/common/ScrollReveal';
 import { NavRoute } from '../types';
 import { APPS_LIST, APP_CATEGORIES, PRO_TIERS } from '../data/appsData';
@@ -62,9 +62,9 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
   return (
     <div className="w-full relative">
       {/* 1. HERO SECTION */}
-      <section className="relative min-h-[85vh] flex items-center pt-8 pb-16 lg:py-20 overflow-hidden">
+      <section className="relative pt-8 pb-8 lg:pt-14 lg:pb-10 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-start">
             
             {/* Left Content */}
             <div className="lg:col-span-7 space-y-7 z-10">
@@ -90,23 +90,15 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
                   size="large"
                 />
               </div>
-            </div>
 
-            {/* Right Visual: Floating Multi-Screen Showcase */}
-            <div className="lg:col-span-5 relative flex justify-center items-center">
-              <PageHeroVisual>
-                <div className="relative w-full max-w-[480px] aspect-square flex items-center justify-center">
-                  <div className="relative w-full h-full rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_0_60px_rgba(6,182,212,0.3)]">
-                    <img
-                      src={ASSETS.appsShowcase}
-                      alt="Core IQ Apps Showcase"
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover object-center"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-40" />
-                  </div>
-                </div>
-              </PageHeroVisual>
+              {/* Sentinel moved to be directly below AskCoreIQ */}
+              <div className="pt-2">
+                <CoreIQSentinel
+                  page="apps"
+                  onAsk={onAsk}
+                  onNavigate={onNavigate}
+                />
+              </div>
             </div>
 
           </div>

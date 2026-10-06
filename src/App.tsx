@@ -23,6 +23,7 @@ const VALID_NAV_ROUTES: readonly NavRoute[] = [
   'learn',
   'tools',
   'about',
+  'news',
   'ask',
   'command',
 ];
@@ -33,6 +34,7 @@ const AppsPage = React.lazy(() => import('./pages/AppsPage').then((m) => ({ defa
 const LearnPage = React.lazy(() => import('./pages/LearnPage').then((m) => ({ default: m.LearnPage })));
 const ToolsPage = React.lazy(() => import('./pages/ToolsPage').then((m) => ({ default: m.ToolsPage })));
 const AboutPage = React.lazy(() => import('./pages/AboutPage').then((m) => ({ default: m.AboutPage })));
+const NewsPage = React.lazy(() => import('./pages/NewsPage').then((m) => ({ default: m.NewsPage })));
 const AskPage = React.lazy(() => import('./pages/AskPage').then((m) => ({ default: m.AskPage })));
 const CommandDashboardPage = React.lazy(() => import('./pages/CommandDashboardPage').then((m) => ({ default: m.CommandDashboardPage })));
 const LearnArticlePage = React.lazy(() => import('./pages/LearnArticlePage').then((m) => ({ default: m.LearnArticlePage })));
@@ -55,6 +57,7 @@ export default function App() {
     if (p === 'learn') return 'learn';
     if (p === 'tools') return 'tools';
     if (p === 'about') return 'about';
+    if (p === 'news') return 'news';
     if (p === 'ask') return 'ask';
     if (p === 'writing-assistant') return 'writing-assistant';
     if (p === 'imageforge') return 'imageforge';
@@ -157,6 +160,7 @@ export default function App() {
             )}
             {currentRoute === 'tools' && <ToolsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'about' && <AboutPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute === 'news' && <NewsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'ask' && <AskPage initialPrompt={activePrompt} onNavigate={navigateTo} />}
             {currentRoute === 'writing-assistant' && (
               <ComingSoon

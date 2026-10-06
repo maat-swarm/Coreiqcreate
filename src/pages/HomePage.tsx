@@ -14,8 +14,7 @@ import {
   Link as LinkIcon,
   ChevronLeft,
   ChevronRight,
-  Play,
-  X
+  Play
 } from 'lucide-react';
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
@@ -267,19 +266,20 @@ function CoreIQRuntimeCard() {
         return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=1&rel=0`;
       }
       const vmMatch = rawUrl.match(
-        /(?:vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/[^\/]*\/videos\/|album\/\d+\/video\/|video\/)?|player\.vimeo\.com\/video\/)(\d+)/
+        /vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+)/
       );
-      if (vmMatch && vmMatch[1]) {
-        return `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1`;
+      if (vmMatch && vmMatch[3]) {
+        return `https://player.vimeo.com/video/${vmMatch[3]}?autoplay=1`;
       }
+      if (rawUrl.includes('autoplay=1')) return rawUrl;
+      return `${rawUrl}${rawUrl.includes('?') ? '&' : '?'}autoplay=1`;
     } catch {}
     return rawUrl;
   };
 
   return (
     <div
-      className="relative w-full rounded-3xl overflow-hidden border border-cyan-500/20 shadow-[0_0_60px_rgba(25,217,255,0.15)]"
-      style={{ aspectRatio: '16/9' }}
+      className="relative w-full rounded-3xl overflow-hidden border border-cyan-500/20 shadow-[0_0_60px_rgba(25,217,255,0.15)] aspect-[16/9]"
     >
       {!hasPublishedVideo || !videoItem ? (
         // With 0 published items: render the card exactly as today
@@ -293,73 +293,55 @@ function CoreIQRuntimeCard() {
           className="w-full h-full object-cover"
         >
           <source src="/hero-bg.mp4" type="video/mp4" />
-          <source src="/hero-bg-clean.mp4" type="video/mp4" />
         </video>
       ) : !isPlaying ? (
-        // 1B VIDEO SPEC: No autoplay. Poster plus Play button (accessible name "Play intro video"). On click load video.
-        <div className="relative w-full h-full flex items-center justify-center group">
+        // Poster first — no autoplay on load. Poster fills 16/9 with object-cover.
+        <div className="relative w-full h-full flex items-center justify-center group overflow-hidden">
           <img
             src={posterUrl}
             alt={posterAlt}
             loading="lazy"
-            width="800"
-            height="450"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-slate-950/40 group-hover:bg-slate-950/25 transition-colors pointer-events-none" />
+          {/* Overlay gradient: bottom gradient from-slate-950/60 to transparent for label readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent pointer-events-none" />
+          {/* Centred play button */}
           <button
             type="button"
             onClick={() => setIsPlaying(true)}
-            aria-label="Play intro video"
-            className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 flex items-center justify-center shadow-[0_0_30px_rgba(25,217,255,0.6)] group-hover:scale-105 transition-all focus:outline-none focus:ring-4 focus:ring-cyan-300 min-h-[44px] min-w-[44px]"
+            aria-label="Play video"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:scale-110 hover:brightness-110 hover:shadow-[0_0_40px_rgba(6,182,212,0.6)] shadow-[0_0_30px_rgba(6,182,212,0.4)] text-slate-950 flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-cyan-300 min-h-[44px] min-w-[44px] cursor-pointer"
           >
-            <Play className="w-6 h-6 sm:w-8 sm:h-8 fill-slate-950 ml-1" />
+            <Play className="w-6 h-6 sm:w-8 sm:h-8 fill-current text-slate-950 ml-1" />
           </button>
         </div>
+      ) : videoItem.type === 'url' && videoItem.url ? (
+        // Click-to-load facade: iframe injected only after click with autoplay=1
+        <iframe
+          src={getEmbedUrl(videoItem.url)}
+          title={videoItem.title || 'CoreIQ Runtime video'}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          className="w-full h-full border-0"
+        />
       ) : (
-        <div className="relative w-full h-full">
-          <button
-            type="button"
-            onClick={() => setIsPlaying(false)}
-            aria-label="Close video player"
-            className="absolute top-3 right-3 z-30 p-2 rounded-full bg-slate-950/80 hover:bg-cyan-950/90 text-slate-300 hover:text-white border border-cyan-500/30 backdrop-blur-md transition-all cursor-pointer shadow-lg"
-          >
-            <X className="w-4 h-4" />
-          </button>
-          {videoItem.type === 'url' && videoItem.url ? (
-            // Click-to-load facade: iframe injected only after click
-            <iframe
-              src={getEmbedUrl(videoItem.url)}
-              title={videoItem.title || 'CoreIQ Runtime video'}
-              allow="autoplay; fullscreen; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full border-0"
-            />
-          ) : (
-            <video
-              controls
-              autoPlay
-              playsInline
-              preload="none"
-              poster={posterUrl}
-              className="w-full h-full object-cover"
-            >
-              {videoItem.url && (
-                <>
-                  <source src={videoItem.url} type={videoItem.url.endsWith('.webm') ? 'video/webm' : 'video/mp4'} />
-                  <source src={videoItem.url} />
-                </>
-              )}
-              <p className="p-4 text-center text-slate-400 text-sm">
-                Your browser does not support HTML video playback.
-              </p>
-            </video>
-          )}
-        </div>
+        <video
+          controls
+          autoPlay
+          playsInline
+          preload="none"
+          poster={posterUrl}
+          className="w-full h-full object-cover"
+        >
+          {videoItem.url && <source src={videoItem.url} type="video/mp4" />}
+          <p className="p-4 text-center text-slate-400 text-sm">
+            Your browser does not support HTML video playback.
+          </p>
+        </video>
       )}
 
-      {/* Frame label row: kept exactly as today */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#050814]/60 via-transparent to-transparent pointer-events-none" />
+      {/* Frame label row: kept exactly as is */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent pointer-events-none" />
       <div className="absolute bottom-4 left-4 flex items-center gap-2 pointer-events-none z-10">
         <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
         <span className="text-[10px] font-mono text-cyan-400 tracking-widest">COREIQ RUNTIME</span>

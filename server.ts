@@ -109,9 +109,9 @@ const localStore: Record<string, any[]> = {
       slot_key: 'home.showcase',
       page: 'home',
       label: 'Home showcase carousel',
-      allowed_types: ['image', 'video'],
+      allowed_types: ['image'],
       max_items: 6,
-      max_bytes: 52428800,
+      max_bytes: 5242880,
       aspect: '16:9',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -1162,7 +1162,7 @@ async function deleteStorageFile(storagePath: string | null | undefined) {
 const mediaUploadMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const contentType = req.headers['content-type'] || '';
   if (contentType.includes('multipart/form-data')) {
-    upload.single('file')(req, res, (err: any) => {
+    upload.single('file')(req as any, res as any, (err: any) => {
       if (err) {
         if (err.code === 'LIMIT_FILE_SIZE') {
           return res.status(413).json({ error: 'Payload Too Large', message: 'Uploaded file exceeds server limit.' });
@@ -1209,10 +1209,7 @@ app.get('/api/v1/media/slots', authenticateApiKey, requireScope('READ_MEDIA'), a
     items = localStore.media_slot_items || [];
   }
 
-  const result = slots.map((s) => {
-    const slot = s.slot_key === 'home.showcase'
-      ? { ...s, allowed_types: ['image', 'video'], max_bytes: 52428800 }
-      : s;
+  const result = slots.map((slot) => {
     const slotItems = items.filter((i) => i.slot_key === slot.slot_key);
     const count = slotItems.length;
     let status: 'empty' | 'filled' | 'error' = 'empty';
@@ -1250,13 +1247,7 @@ app.get('/api/v1/media/slots/:slot_key', async (req, res) => {
         .select('*')
         .eq('slot_key', slot_key)
         .maybeSingle();
-      if (slotData) {
-        if (slotData.slot_key === 'home.showcase') {
-          slotData.allowed_types = ['image', 'video'];
-          slotData.max_bytes = 52428800;
-        }
-        slot = slotData;
-      }
+      if (slotData) slot = slotData;
 
       let itemQuery = supabase
         .from('media_slot_items')
@@ -1314,14 +1305,6 @@ app.post(
       slot = (localStore.media_slots || []).find((s: any) => s.slot_key === slot_key);
     }
 
-    if (slot && slot.slot_key === 'home.showcase') {
-      slot = {
-        ...slot,
-        allowed_types: ['image', 'video'],
-        max_bytes: 52428800,
-      };
-    }
-
     if (!slot) {
       return res.status(404).json({ error: 'Not Found', message: `Slot '${slot_key}' not found.` });
     }
@@ -1368,15 +1351,11 @@ app.post(
         return res.status(400).json({ error: 'Missing File', message: `A file upload is required for media type '${type}'.` });
       }
 
-      // Check file size: home.showcase image raised to 20480 KB (20 MB), all other slots/types stay at slot.max_bytes
-      const maxAllowedBytes = (slot_key === 'home.showcase' && type === 'image')
-        ? 20480 * 1024
-        : slot.max_bytes;
-
-      if (req.file.size > maxAllowedBytes) {
+      // Check file size
+      if (req.file.size > slot.max_bytes) {
         return res.status(413).json({
           error: 'Payload Too Large',
-          message: `File size (${req.file.size} bytes) exceeds slot limit of ${maxAllowedBytes} bytes (${Math.round(maxAllowedBytes / 1024)} KB).`,
+          message: `File size (${req.file.size} bytes) exceeds slot limit of ${slot.max_bytes} bytes (${Math.round(slot.max_bytes / 1024)} KB).`,
         });
       }
 
@@ -1399,12 +1378,9 @@ app.post(
         return res.status(415).json({ error: 'Unsupported Media Type', message: 'Video slot requires a video file.' });
       }
 
-      // Alt text required for image items and all home.showcase items
-      if ((type === 'image' || slot_key === 'home.showcase') && !alt) {
-        return res.status(400).json({
-          error: 'Missing Alt Text',
-          message: `Alt text is required for ${slot_key === 'home.showcase' ? 'showcase' : 'image'} items (accessibility).`,
-        });
+      // Alt text required for image items
+      if (type === 'image' && !alt) {
+        return res.status(400).json({ error: 'Missing Alt Text', message: 'Alt text is required for image items.' });
       }
     }
 
