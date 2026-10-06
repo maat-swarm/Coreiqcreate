@@ -47,6 +47,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
     const tryPlay = () => {
       if (!video) return;
       video.muted = true;
+      video.preload = 'auto';
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise
@@ -58,6 +59,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
             const onUserGesture = () => {
               if (videoRef.current) {
                 videoRef.current.muted = true;
+                videoRef.current.preload = 'auto';
                 videoRef.current
                   .play()
                   .then(() => setVideoLoaded(true))
@@ -139,7 +141,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
           loop
           muted
           playsInline
-          preload="auto"
+          preload="none"
           poster={effectivePoster}
           onPlaying={() => setVideoLoaded(true)}
           onLoadedData={() => setVideoLoaded(true)}

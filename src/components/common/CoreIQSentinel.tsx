@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, Activity } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, Activity, Play, Pause, Volume2, VolumeX, Video as VideoIcon } from 'lucide-react';
 import { useMediaSlot } from '../../services/mediaSlots';
 import { NavRoute } from '../../types';
 import { ASSETS } from '../../assets/images';
@@ -198,8 +198,12 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchDelta, setTouchDelta] = useState<number>(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [videoLoadError, setVideoLoadError] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const activeVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -235,14 +239,76 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
     setCurrentIndex((prev) => (prev + 1) % count);
   };
 
-  // Subtle auto-play cycle every 6.5 seconds when not hovered and user doesn't prefer reduced motion
+  // Check if current item is a video
+  const currentItem = publishedItems[currentIndex] || publishedItems[0];
+  const isCurrentVideo = Boolean(
+    currentItem && (
+      (currentItem as any).type === 'video' ||
+      (currentItem.url && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(currentItem.url))
+    )
+  );
+
+  // When active slide changes, pause video and reset error state
   useEffect(() => {
-    if (count <= 1 || isPaused || prefersReducedMotion) return;
+    setVideoLoadError(false);
+    setIsVideoPlaying(false);
+    if (activeVideoRef.current) {
+      try {
+        activeVideoRef.current.pause();
+        activeVideoRef.current.currentTime = 0;
+      } catch {}
+    }
+  }, [currentIndex]);
+
+  // Autoplay video only when this slide is active and within viewport
+  useEffect(() => {
+    if (!isCurrentVideo || prefersReducedMotion) return;
+    const video = activeVideoRef.current;
+    if (!video) return;
+
+    video.preload = 'auto';
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          setIsVideoPlaying(true);
+        })
+        .catch(() => {
+          setIsVideoPlaying(false);
+        });
+    }
+  }, [currentIndex, isCurrentVideo, prefersReducedMotion]);
+
+  // Subtle auto-play cycle every 6.5s when not hovered, not playing video, and not reduced motion
+  useEffect(() => {
+    if (count <= 1 || isPaused || prefersReducedMotion || isVideoPlaying) return;
     const timer = setInterval(() => {
       nextSlide();
     }, 6500);
     return () => clearInterval(timer);
-  }, [count, isPaused, prefersReducedMotion]);
+  }, [count, isPaused, prefersReducedMotion, isVideoPlaying]);
+
+  const toggleVideoPlayback = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = activeVideoRef.current;
+    if (!video) return;
+
+    if (video.paused) {
+      video.play().then(() => setIsVideoPlaying(true)).catch(() => setIsVideoPlaying(false));
+    } else {
+      video.pause();
+      setIsVideoPlaying(false);
+    }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = activeVideoRef.current;
+    if (!video) return;
+    const nextMuted = !video.muted;
+    video.muted = nextMuted;
+    setIsMuted(nextMuted);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (count <= 1) return;
@@ -276,8 +342,6 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
     setTouchStart(null);
     setTouchDelta(0);
   };
-
-  const currentItem = publishedItems[currentIndex] || publishedItems[0];
 
   const handleCtaClick = (ctaUrl: string) => {
     if (ctaUrl.startsWith('/')) {
@@ -354,16 +418,60 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
             className="w-full h-full relative flex items-center justify-center overflow-hidden"
           >
             {currentItem && (
-              <img
-                src={currentItem.url || ''}
-                alt={currentItem.alt || 'CoreIQ Showcase slide'}
-                loading="eager"
-                width="800"
-                height="450"
-                className={`w-full h-full object-cover transition-all ${
-                  prefersReducedMotion ? 'duration-0' : 'duration-500'
-                } group-hover/viewport:scale-[1.02]`}
-              />
+              isCurrentVideo && !videoLoadError ? (
+                <div className="relative w-full h-full flex items-center justify-center bg-slate-950">
+                  <video
+                    ref={activeVideoRef}
+                    key={currentItem.url || currentItem.id}
+                    src={currentItem.url || undefined}
+                    poster={
+                      (currentItem as any).poster_url ||
+                      'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='
+                    }
+                    muted={isMuted}
+                    loop
+                    playsInline
+                    preload="none"
+                    onError={() => setVideoLoadError(true)}
+                    onEnded={() => setIsVideoPlaying(false)}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Floating Video Overlay Controls: Play/Pause and Mute/Unmute */}
+                  <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={toggleVideoPlayback}
+                      aria-label={isVideoPlaying ? 'Pause video' : 'Play video'}
+                      className="p-2 min-h-[36px] min-w-[36px] rounded-full bg-slate-950/80 hover:bg-cyan-950/90 text-cyan-300 border border-cyan-500/40 backdrop-blur-md flex items-center justify-center transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                    >
+                      {isVideoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5 fill-current" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={toggleMute}
+                      aria-label={isMuted ? 'Unmute video audio' : 'Mute video audio'}
+                      className="p-2 min-h-[36px] min-w-[36px] rounded-full bg-slate-950/80 hover:bg-cyan-950/90 text-cyan-300 border border-cyan-500/40 backdrop-blur-md flex items-center justify-center transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                    >
+                      {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <img
+                  src={
+                    videoLoadError && (currentItem as any).poster_url
+                      ? (currentItem as any).poster_url
+                      : currentItem.url || ''
+                  }
+                  alt={currentItem.alt || (currentItem as any).alt_text || 'CoreIQ Showcase slide'}
+                  loading="eager"
+                  width="800"
+                  height="450"
+                  className={`w-full h-full object-cover transition-all ${
+                    prefersReducedMotion ? 'duration-0' : 'duration-500'
+                  } group-hover/viewport:scale-[1.02]`}
+                />
+              )
             )}
 
             {/* Gradient edge and vignette depth */}
@@ -430,20 +538,24 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
           </div>
         </div>
 
-        {/* Caption & Action Block: ALWAYS below the image inside the panel */}
-        {currentItem && (currentItem.title || currentItem.caption || (currentItem.cta_label && currentItem.cta_url)) && (
+        {/* Caption & Action Block: ALWAYS below the media inside the panel */}
+        {currentItem && (currentItem.title || currentItem.caption || (currentItem as any).alt_text || currentItem.alt || (currentItem.cta_label && currentItem.cta_url)) && (
           <div className="space-y-2 pt-1 border-t border-cyan-500/15">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div className="space-y-0.5 max-w-md">
                 {currentItem.title && (
                   <h4 className="text-xs sm:text-sm font-bold text-white font-display flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    {isCurrentVideo ? (
+                      <VideoIcon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    )}
                     <span>{currentItem.title}</span>
                   </h4>
                 )}
-                {currentItem.caption && (
+                {(currentItem.caption || (currentItem as any).alt_text || currentItem.alt) && (
                   <p className="text-[11px] sm:text-xs text-slate-300/90 leading-relaxed line-clamp-2">
-                    {currentItem.caption}
+                    {currentItem.caption || (currentItem as any).alt_text || currentItem.alt}
                   </p>
                 )}
               </div>

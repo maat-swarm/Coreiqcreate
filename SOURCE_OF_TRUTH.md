@@ -19366,3 +19366,41 @@ None. All routes and carousels build cleanly with zero TypeScript or Vite errors
 ### Build Status
 PASS
 ---
+
+---
+## Session: 2026-10-06 Universal Carousel Video Restoration & Video Playback Optimization
+
+### Files Changed
+src/components/common/CoreIQSentinel.tsx
+src/components/command/CommandUploadTab.tsx
+src/components/environment/VideoBackground.tsx
+SOURCE_OF_TRUTH.md
+
+### What Was Done
+1. Restored full Video item playback support across CoreIQSentinel carousel on all pages:
+   - Evaluates item type ('video') and media URL file extension (.mp4, .webm, .ogg, .mov).
+   - Renders HTML5 `<video>` element with `src`, `poster` fallback (`item.poster_url` or dark 1x1 data URI), `playsInline`, `muted`, and `preload="none"`.
+   - Autoplays only when slide index becomes active, wrapping `.play()` in try/catch to prevent unhandled promise rejections.
+   - Automatically pauses video playback and resets `currentTime = 0` whenever the slide becomes inactive or navigates away.
+   - Pauses the carousel auto-advance timer while a video slide is actively playing; resumes standard auto-advance when ended or manually navigated.
+   - Added accessible overlaid Play/Pause toggle and Mute/Unmute buttons with `aria-label`.
+   - Renders captions (`caption` or `alt_text`/`alt`) beneath media for both image and video slides.
+   - Provides graceful fallback to poster image if a video fails to load.
+2. Polished Command Upload tab (`CommandUploadTab.tsx`):
+   - Added interactive video file selection up to 50MB with instant preview thumbnail via `URL.createObjectURL` and proper object URL cleanup.
+3. Optimized global atmospheric background video (`VideoBackground.tsx`):
+   - Enforced default `preload="none"`, applying `preload="auto"` right before `.play()`.
+   - Preserved mobile-safe `playsInline` and `muted` attributes.
+
+### New Slots Registered
+None (all existing carousel slots across all pages now support video items).
+
+### New Components Added
+None.
+
+### Known Limitations or Follow-up Needed
+None. Build and TypeScript linting compile cleanly with zero errors.
+
+### Build Status
+PASS
+---

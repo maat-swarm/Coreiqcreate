@@ -66,6 +66,7 @@ export const CommandUploadTab: React.FC = () => {
   const [captionInput, setCaptionInput] = useState('');
   const [ctaLabelInput, setCtaLabelInput] = useState('');
   const [ctaUrlInput, setCtaUrlInput] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -131,6 +132,10 @@ export const CommandUploadTab: React.FC = () => {
   }, [selectedSlotKey, loadSlotDetail]);
 
   const resetForm = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
     setUploadFile(null);
     setUrlInput('');
     setAltInput('');
@@ -151,12 +156,11 @@ export const CommandUploadTab: React.FC = () => {
     const currentSlot = selectedSlotDetail?.slot;
     if (!currentSlot) return;
 
-    // Check size limit
-    if (file.size > currentSlot.max_bytes) {
+    // Check size limit: 50MB for video or slot.max_bytes
+    const maxBytes = uploadType === 'video' ? Math.max(currentSlot.max_bytes, 52428800) : currentSlot.max_bytes;
+    if (file.size > maxBytes) {
       setFormError(
-        `File too large: ${(file.size / 1024).toFixed(1)} KB exceeds slot limit of ${Math.round(
-          currentSlot.max_bytes / 1024
-        )} KB`
+        `File too large: ${(file.size / 1024 / 1024).toFixed(1)} MB exceeds limit of ${(maxBytes / 1024 / 1024).toFixed(0)} MB`
       );
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
@@ -164,7 +168,7 @@ export const CommandUploadTab: React.FC = () => {
 
     // Check file type
     const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
+    const isVideo = file.type === 'video/mp4' || file.type === 'video/webm' || file.type.startsWith('video/');
 
     if (uploadType === 'image' && !isImage) {
       setFormError('Selected file is not an image. Please choose a JPEG, PNG, or WebP file.');
@@ -173,11 +177,15 @@ export const CommandUploadTab: React.FC = () => {
     }
 
     if (uploadType === 'video' && !isVideo) {
-      setFormError('Selected file is not a video. Please choose an MP4 or WebM video file.');
+      setFormError('Selected file is not a supported video. Please choose an MP4 or WebM video file.');
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(URL.createObjectURL(file));
     setUploadFile(file);
   };
 
@@ -711,7 +719,7 @@ export const CommandUploadTab: React.FC = () => {
                       <div>
                         <label className="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">
                           Choose {uploadType === 'video' ? 'Video' : 'Image'} File (Max{' '}
-                          {(currentSlot.max_bytes / 1024).toFixed(0)} KB) *
+                          {uploadType === 'video' ? '50 MB' : `${(currentSlot.max_bytes / 1024).toFixed(0)} KB`}) *
                         </label>
                         <input
                           ref={fileInputRef}
@@ -725,6 +733,40 @@ export const CommandUploadTab: React.FC = () => {
                           className="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-700 text-slate-300 text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-500 file:text-slate-950 hover:file:bg-cyan-400 cursor-pointer min-h-[44px]"
                           required
                         />
+
+                        {/* Video / Image selected preview thumbnail */}
+                        {previewUrl && (
+                          <div className="mt-3 p-3 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex flex-col sm:flex-row items-center gap-3">
+                            <div className="relative w-full sm:w-44 aspect-video rounded-lg overflow-hidden bg-black shrink-0 border border-slate-700">
+                              {uploadType === 'video' ? (
+                                <video
+                                  src={previewUrl}
+                                  controls
+                                  muted
+                                  playsInline
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <img
+                                  src={previewUrl}
+                                  alt="Upload preview"
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-1 text-xs">
+                              <p className="font-semibold text-white truncate">
+                                {uploadFile?.name}
+                              </p>
+                              <p className="text-slate-400 font-mono text-[11px]">
+                                {uploadFile ? `${(uploadFile.size / 1024 / 1024).toFixed(2)} MB · ${uploadFile.type}` : ''}
+                              </p>
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                                {uploadType === 'video' ? 'Video Ready for Upload' : 'Image Ready'}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
