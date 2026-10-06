@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, Activity } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, Activity, Volume2, VolumeX, Film } from 'lucide-react';
 import { useMediaSlot } from '../../services/mediaSlots';
 import { NavRoute } from '../../types';
 import { ASSETS } from '../../assets/images';
@@ -174,6 +174,7 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
   const [touchDelta, setTouchDelta] = useState<number>(0);
   const [isPaused, setIsPaused] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(true);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -328,26 +329,58 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
             aria-label={`${currentIndex + 1} of ${count}`}
             className="w-full h-full relative flex items-center justify-center overflow-hidden"
           >
-            {currentItem && (
-              (currentItem as any).type === 'video' ||
-              (typeof currentItem.url === 'string' && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(currentItem.url)) ? (
-                <video
-                  key={currentItem.id || currentItem.url}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className={`w-full h-full object-cover transition-all ${
-                    prefersReducedMotion ? 'duration-0' : 'duration-500'
-                  }`}
-                  aria-label={currentItem.alt || 'CoreIQ Showcase video slide'}
-                >
-                  <source src={currentItem.url || ''} type="video/mp4" />
-                  <source src={currentItem.url || ''} type="video/webm" />
-                  Your browser does not support HTML video playback.
-                </video>
-              ) : (
+            {currentItem && (() => {
+              const isVideo = (currentItem as any).type === 'video' ||
+                (typeof currentItem.url === 'string' && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(currentItem.url));
+              
+              if (isVideo) {
+                return (
+                  <div className="relative w-full h-full">
+                    <video
+                      key={currentItem.id || currentItem.url}
+                      autoPlay={!prefersReducedMotion}
+                      loop
+                      muted={isVideoMuted}
+                      playsInline
+                      preload="metadata"
+                      className={`w-full h-full object-cover transition-all ${
+                        prefersReducedMotion ? 'duration-0' : 'duration-500'
+                      }`}
+                      aria-label={currentItem.alt || 'CoreIQ Showcase video slide'}
+                    >
+                      <source src={currentItem.url || ''} type="video/mp4" />
+                      <source src={currentItem.url || ''} type="video/webm" />
+                      Your browser does not support HTML video playback.
+                    </video>
+
+                    {/* Live Video Indicator Badge */}
+                    <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-950/80 backdrop-blur-md border border-cyan-500/40 text-cyan-300 text-[10px] font-mono shadow-md pointer-events-none">
+                      <Film className="w-3 h-3 text-cyan-400" />
+                      <span>VIDEO</span>
+                    </div>
+
+                    {/* Audio Mute/Unmute Toggle */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsVideoMuted(!isVideoMuted);
+                      }}
+                      aria-label={isVideoMuted ? 'Unmute carousel video' : 'Mute carousel video'}
+                      className="absolute bottom-3 right-3 z-20 p-2 rounded-full bg-slate-950/80 hover:bg-cyan-950/90 text-slate-300 hover:text-white border border-cyan-500/40 backdrop-blur-md transition-all cursor-pointer shadow-lg hover:scale-105"
+                      title={isVideoMuted ? 'Unmute' : 'Mute'}
+                    >
+                      {isVideoMuted ? (
+                        <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                      ) : (
+                        <Volume2 className="w-3.5 h-3.5 text-cyan-300" />
+                      )}
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
                 <img
                   src={currentItem.url || ''}
                   alt={currentItem.alt || 'CoreIQ Showcase slide'}
@@ -358,8 +391,8 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
                     prefersReducedMotion ? 'duration-0' : 'duration-500'
                   } group-hover/viewport:scale-[1.02]`}
                 />
-              )
-            )}
+              );
+            })()}
 
             {/* Gradient edge and vignette depth */}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent pointer-events-none" />

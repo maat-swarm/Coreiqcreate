@@ -143,13 +143,17 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
           poster={effectivePoster}
           onPlaying={() => setVideoLoaded(true)}
           onLoadedData={() => setVideoLoaded(true)}
+          onError={() => setVideoLoaded(false)}
           className="w-full h-full object-cover object-[75%_45%] sm:object-[70%_48%] lg:object-[68%_50%]"
           style={{
             filter: 'brightness(0.96) contrast(1.06) saturate(1.12)',
           }}
         >
           {customVideoUrl ? (
-            <source src={customVideoUrl} type="video/mp4" />
+            <>
+              <source src={customVideoUrl} type={customVideoUrl.endsWith('.webm') ? 'video/webm' : 'video/mp4'} />
+              <source src={customVideoUrl} />
+            </>
           ) : (
             <>
               <source src="/assets/backgrounds/coreiq-world.mp4" type="video/mp4" />

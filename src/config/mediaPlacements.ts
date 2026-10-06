@@ -61,7 +61,7 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     route: '/learn',
     component: 'CoreIQSentinel',
     position: HERO_ANCHOR,
-    wired: false,
+    wired: true,
   },
   'tools.showcase': {
     slotKey: 'tools.showcase',

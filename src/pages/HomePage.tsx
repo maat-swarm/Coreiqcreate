@@ -14,7 +14,8 @@ import {
   Link as LinkIcon,
   ChevronLeft,
   ChevronRight,
-  Play
+  Play,
+  X
 } from 'lucide-react';
 import { ASSETS } from '../assets/images';
 import { AskCoreIQBar } from '../components/common/AskCoreIQBar';
@@ -266,10 +267,10 @@ function CoreIQRuntimeCard() {
         return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=1&rel=0`;
       }
       const vmMatch = rawUrl.match(
-        /vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+)/
+        /(?:vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/[^\/]*\/videos\/|album\/\d+\/video\/|video\/)?|player\.vimeo\.com\/video\/)(\d+)/
       );
-      if (vmMatch && vmMatch[3]) {
-        return `https://player.vimeo.com/video/${vmMatch[3]}?autoplay=1`;
+      if (vmMatch && vmMatch[1]) {
+        return `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1`;
       }
     } catch {}
     return rawUrl;
@@ -292,6 +293,7 @@ function CoreIQRuntimeCard() {
           className="w-full h-full object-cover"
         >
           <source src="/hero-bg.mp4" type="video/mp4" />
+          <source src="/hero-bg-clean.mp4" type="video/mp4" />
         </video>
       ) : !isPlaying ? (
         // 1B VIDEO SPEC: No autoplay. Poster plus Play button (accessible name "Play intro video"). On click load video.
@@ -314,29 +316,46 @@ function CoreIQRuntimeCard() {
             <Play className="w-6 h-6 sm:w-8 sm:h-8 fill-slate-950 ml-1" />
           </button>
         </div>
-      ) : videoItem.type === 'url' && videoItem.url ? (
-        // Click-to-load facade: iframe injected only after click
-        <iframe
-          src={getEmbedUrl(videoItem.url)}
-          title={videoItem.title || 'CoreIQ Runtime video'}
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowFullScreen
-          className="w-full h-full border-0"
-        />
       ) : (
-        <video
-          controls
-          autoPlay
-          playsInline
-          preload="none"
-          poster={posterUrl}
-          className="w-full h-full object-cover"
-        >
-          {videoItem.url && <source src={videoItem.url} type="video/mp4" />}
-          <p className="p-4 text-center text-slate-400 text-sm">
-            Your browser does not support HTML video playback.
-          </p>
-        </video>
+        <div className="relative w-full h-full">
+          <button
+            type="button"
+            onClick={() => setIsPlaying(false)}
+            aria-label="Close video player"
+            className="absolute top-3 right-3 z-30 p-2 rounded-full bg-slate-950/80 hover:bg-cyan-950/90 text-slate-300 hover:text-white border border-cyan-500/30 backdrop-blur-md transition-all cursor-pointer shadow-lg"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          {videoItem.type === 'url' && videoItem.url ? (
+            // Click-to-load facade: iframe injected only after click
+            <iframe
+              src={getEmbedUrl(videoItem.url)}
+              title={videoItem.title || 'CoreIQ Runtime video'}
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full border-0"
+            />
+          ) : (
+            <video
+              controls
+              autoPlay
+              playsInline
+              preload="none"
+              poster={posterUrl}
+              className="w-full h-full object-cover"
+            >
+              {videoItem.url && (
+                <>
+                  <source src={videoItem.url} type={videoItem.url.endsWith('.webm') ? 'video/webm' : 'video/mp4'} />
+                  <source src={videoItem.url} />
+                </>
+              )}
+              <p className="p-4 text-center text-slate-400 text-sm">
+                Your browser does not support HTML video playback.
+              </p>
+            </video>
+          )}
+        </div>
       )}
 
       {/* Frame label row: kept exactly as today */}

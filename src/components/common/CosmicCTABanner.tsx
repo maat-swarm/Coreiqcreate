@@ -10,6 +10,7 @@ interface CosmicCTABannerProps {
   inputPlaceholder?: string;
   onAsk: (query: string) => void;
   className?: string;
+  secondaryAction?: React.ReactNode;
 }
 
 export const CosmicCTABanner: React.FC<CosmicCTABannerProps> = ({
@@ -20,6 +21,7 @@ export const CosmicCTABanner: React.FC<CosmicCTABannerProps> = ({
   inputPlaceholder = "Ask Core IQ anything...",
   onAsk,
   className = '',
+  secondaryAction,
 }) => {
   return (
     <section className={`relative w-full overflow-hidden py-24 sm:py-28 lg:py-32 ${className}`}>
@@ -61,13 +63,18 @@ export const CosmicCTABanner: React.FC<CosmicCTABannerProps> = ({
             </p>
           </div>
 
-          {/* Right Input Bar */}
-          <div className="w-full lg:w-auto lg:min-w-[440px] shrink-0">
+          {/* Right Input Bar & Action */}
+          <div className="w-full lg:w-auto lg:min-w-[440px] shrink-0 space-y-3">
             <AskCoreIQBar
               placeholder={inputPlaceholder}
               onAsk={onAsk}
               size="large"
             />
+            {secondaryAction && (
+              <div className="flex items-center justify-start lg:justify-end pt-1">
+                {secondaryAction}
+              </div>
+            )}
           </div>
         </div>
       </div>

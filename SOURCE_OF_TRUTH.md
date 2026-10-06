@@ -94,25 +94,71 @@ The application implements a structured content layer:
 The application features a production-grade **Media Slots** management system allowing operators to upload, swap, configure, and reorder public media assets on demand without code deployments:
 - **Single Source of Truth Placement Map (`src/config/mediaPlacements.ts`):**
   - Declares all operational slots (`home.showcase`, `home.intro_video`, `home.intro_poster`, `site.background`, `site.background_poster`, `solutions.showcase`, `apps.showcase`, `learn.showcase`, `tools.showcase`, `about.showcase`).
-  - Exports typed `SlotPlacement` records defining the exact page route, target component (`CoreIQSentinel`, `CoreIQRuntimeCard`, `VideoBackground`), placement anchor, and live wiring state.
+  - Exports typed `SlotPlacement` records defining the exact page route, target component (`CoreIQSentinel`, `CoreIQRuntimeCard`, `VideoBackground`), placement anchor, allowed types, and live wiring state.
+- **Home Showcase Carousel (`home.showcase`):**
+  - Mixed media slot in the Hero Zone accepting both **IMAGE** and **VIDEO** uploads.
+  - Image file size limit is specifically elevated to **20,480 KB (20 MB)** to allow high-resolution upscaled 16:9 imagery, while keeping the 5 MB limit on standard image slots intact.
+  - Video uploads accept `video/mp4` and `video/webm` up to 50 MB, matching the upload and validation pattern established for `home.intro_video`.
+  - Enforces a fixed capacity of **6 mixed items** (images or videos within the same 6 slots, not 6 of each).
+  - Preserves required **ALT TEXT** for both image and video items for accessibility, along with Title, Caption, CTA Label, and CTA Destination metadata.
+  - Configured in `mediaPlacements.ts`, Supabase migration (`20261002_media_slots.sql`), and server validation (`server.ts`).
 - **Hero Zone & `CoreIQSentinel` Carousel (`src/components/common/CoreIQSentinel.tsx`):**
-  - Renders directly in the Hero Zone below the Ask CoreIQ bar and above the capability strip.
+  - Renders directly in the Hero Zone below the Ask CoreIQ bar and above the capability strip across `/`, `/solutions`, `/apps`, `/learn`, `/tools`, and `/about`.
   - Zero-drift guarantee: When a page showcase slot has 0 published items, it renders the original HUD panel frame, label row (`COREIQ SENTINEL // SYSTEM ONLINE`), and quick-action chips (`01 AI Agent`, `02 Web App`) completely unchanged.
   - When 1+ items are published, it smoothly replaces the panel body with a compliant 16:9 carousel supporting touch swipe gestures, keyboard arrow navigation, min-44px touch targets, below-image caption blocks, and `prefers-reduced-motion`.
+  - Supports both images and videos: video slides render with muted loop autoplay, a live `VIDEO` indicator badge, and an interactive audio mute/unmute toggle.
+- **Learn Page Showcase Slot (`learn.showcase`):**
+  - Formally mapped to the Hero right-side zone of `/learn`.
+  - Graceful degradation: When empty (0 published items), seamlessly displays the holographic book asset (`ASSETS.learnBook`). When 1+ items are published, mounts the `CoreIQSentinel` interactive carousel.
 - **Runtime Video Preview & Click-to-Load Facade (`CoreIQRuntimeCard` in `HomePage.tsx`):**
   - Positioned inside the Process section directly above the CoreIQ Intent card.
-  - With 0 published items, renders the looping background video.
-  - With a published item, renders a zero-network-overhead click-to-load facade with custom poster and accessible Play button (`aria-label="Play intro video"`). Supports both uploaded MP4/WebM videos and YouTube/Vimeo embed players.
+  - With 0 published items, renders the looping background video with dual source fallback (`/hero-bg.mp4` and `/hero-bg-clean.mp4`).
+  - With a published item, renders a zero-network-overhead click-to-load facade with custom poster and accessible Play button (`aria-label="Play intro video"`). Supports both uploaded MP4/WebM videos and YouTube/Vimeo embed players with an overlay close button to exit playback.
 - **Switchable Global Site Background (`src/components/environment/VideoBackground.tsx` & `ImageBackground.tsx`):**
   - Binds `site.background` (video) and `site.background_poster` (image) dynamically behind all public surfaces.
-  - Falls back to default celestial world assets seamlessly when empty.
+  - Dual-source WebM and MP4 playback with touch-gesture autoplay recovery for Android/iOS, error boundary fallbacks, and zero layout shift.
 - **Media Slots API (`server.ts`):**
   - `GET /api/v1/media/slots?page=`: Operator slot inventory with item counts and status chips.
   - `GET /api/v1/media/slots/:slot_key`: Slot definition and items (anonymous access receives published items only).
-  - `POST /api/v1/media/slots/:slot_key/items`: Multipart file upload or JSON URL item creation with MIME validation, file size enforcement, and accessibility alt-text checking (requires `WRITE_MEDIA` or operator session).
+  - `POST /api/v1/media/slots/:slot_key/items`: Multipart file upload or JSON URL item creation with MIME validation, magic bytes inspection, slot-specific size limits (20MB for `home.showcase` images, 50MB for videos), and accessibility alt-text checking (requires `WRITE_MEDIA` or operator session).
   - `PATCH /api/v1/media/slots/:slot_key/items/:id`: Item metadata and published state toggles.
   - `PUT /api/v1/media/slots/:slot_key/order`: Drag-and-drop sort order synchronization.
   - `DELETE /api/v1/media/slots/:slot_key/items/:id`: Asset deletion with automatic storage cleanup.
+
+### 1.6 Video Systems & Educational Streaming Architecture
+The platform integrates video media throughout the public surfaces and operational tools:
+1. **Curated Video Tutorials Suite (`src/pages/LearnPage.tsx`):**
+   - Featured section ("Start watching — fundamentals first", feat. Professor Glitch) positioned directly following the Featured Guide block.
+   - Comprehensive 5-part curriculum spanning foundational and sovereign architecture:
+     - `vid-1`: *Zero to Production AI: The 15-Minute Blueprint* (Beginner · Free)
+     - `vid-2`: *Prompt Architecture for Reliable Automation* (Beginner · Free)
+     - `vid-3`: *Autonomous Swarm Orchestration in TypeScript* (Intermediate · Pro)
+     - `vid-4`: *Vector Embeddings, RAG & Hybrid Search Pipelines* (Intermediate · Pro)
+     - `vid-5`: *Self-Healing Agents & Automated Error Remediation* (Advanced · Pro)
+   - Interactive stream filter chips allowing instantaneous filtering by `All Streams`, `Free Beginner`, `Intermediate`, and `Advanced`.
+   - Polymorphic Video Player Modal:
+     - Automatically detects direct video files (`.mp4`, `.webm`) and mounts a high-performance native HTML5 `<video>` element with custom controls, playsInline, autoPlay, and poster art.
+     - Parses YouTube and Vimeo URLs into secure responsive embeds (`youtube-nocookie.com/embed` and `player.vimeo.com/video`) with web-share and picture-in-picture capabilities.
+     - Features lesson descriptions, presenter attributions, external link options, and an integrated "Ask CoreIQ about this" inquiry action.
+     - Complete keyboard accessibility with `Escape` key listeners and backdrop click dismissing.
+   - Soft-gated Pro Architect Membership Modal for intermediate and advanced masterclasses detailing repository access, swarm templates, and consultation channels.
+2. **Downloadable Resources Library (`src/pages/LearnPage.tsx`):**
+   - Dedicated tactical tool library ("Free tools to keep") featuring:
+     - *The AI Builder’s Pocket Cheat Sheet (2026 Edition)* (`/downloads/coreiq-prompt-pack.pdf`)
+     - *Production Readiness & Safety Audit Checklist* (`/downloads/automation-starter-checklist.pdf`)
+     - *Autonomous Agent State Machine Boilerplate*
+     - *Production API Gateway & Middleware Blueprint*
+   - Verified local file downloads, dynamic text blueprint generators for unmapped assets, format tags (PDF, MD, TS), and file size indicators.
+3. **Learn Page Structured Hierarchy:**
+   - 1. Hero (AskCoreIQBar, 3 pills, 3 level chips: "Beginner · Free", "Intermediate", "Advanced", and `learn.showcase` right visual).
+   - 2. Featured Guide Block ("How to turn an AI idea into a useful workflow" with 4-stage pipeline).
+   - 3. Video Tutorials Section with Professor Glitch attribution, filter chips, and video modal.
+   - 4. Knowledge Streams / 10 Topics Grid with click-to-Ask query binding.
+   - 5. Structured Pathways (Path 01 Free Foundations & Path 02 Pro Masterclass).
+   - 6. Downloadable Resources Section ("Free tools to keep").
+   - 7. Curated Guides Catalogue with category filters, level badges, and styled placeholder states.
+   - 8. Four Pillars Methodology (Foundation, Reasoning, Orchestration, Production).
+   - 9. Closing CosmicCTABanner with "Get the free Beginner pack" secondary CTA.
 
 
 ## 2. REPOSITORY & DEPLOYMENT
@@ -19255,6 +19301,9 @@ An unvarnished assessment of the current state of the system:
 6. **Universal Content Manifest:** 94 content keys across 6 routes mapped in `src/data/contentManifest.ts` and seeded idempotently into local storage / Supabase. Live per-page counts verified: `/home` (12), `/learn` (20), `/solutions` (20), `/apps` (15), `/tools` (13), `/about` (14).
 7. **Model Context Protocol (MCP) & Tools Registry (25 Tools):** Server mounted at `/mcp` with Bearer auth, streamable JSON-RPC 2.0 protocol, `/api/v1/tools` discovery, and `/api/v1/tools/execute` REST gateway. Preserves all 5 original tools (`coreiq_list_leads`, `coreiq_create_lead`, `coreiq_list_tasks`, `coreiq_create_task`, `coreiq_get_config`) alongside the complete content management suite (`coreiq_content_health`, `coreiq_get_content`, `coreiq_list_content`, `coreiq_patch_content`, `coreiq_publish_content`, `coreiq_verify_content`, `coreiq_resolve_content`, `coreiq_page_placeholders`, `coreiq_emit_swarm_event`, `coreiq_ping`).
 8. **OpenAPI 3.0 Specification:** Mounted at `/openapi.json` and `/api/v1/openapi.json` declaring complete schemas, request/response models, BearerAuth security schemes, and 15 operation paths for autonomous agent tooling (ORC-GROK, Grok, GPTs, Claude Desktop).
+9. **Home Showcase Media Slot Video & 20MB Image Expansion (`home.showcase`):** Verified live support for both image and video uploads within the same 6-slot capacity. File size limit for images in this slot is elevated to 20,480 KB (20 MB), while videos up to 50 MB (video/mp4, video/webm) are accepted and validated using magic bytes inspection. Required alt-text accessibility validation is strictly enforced on all showcase items.
+10. **Educational Video Streaming & Learn Page Architecture (`LearnPage.tsx`):** Complete 9-tier layout hierarchy deployed featuring Hero with level chips, `learn.showcase` dynamic slot binding, Featured Guide block, Video Tutorials section with Professor Glitch attribution and interactive filter tabs (All, Free Beginner, Intermediate, Advanced), full-featured video modal with native HTML5 playback and embed support, soft-gated Pro Architect masterclasses, and verified downloadable PDF toolkits (`coreiq-prompt-pack.pdf`, `automation-starter-checklist.pdf`).
+11. **Comprehensive Video Systems Polish & Defect Remediation:** Corrected regex capture logic for Vimeo embed URLs across `HomePage.tsx` (`CoreIQRuntimeCard`), integrated sound toggle (mute/unmute) and live `VIDEO` indicator badges in `CoreIQSentinel.tsx`, added WebM and MP4 dual-source resolution with touch-gesture autoplay recovery in `VideoBackground.tsx`, and introduced keyboard `Escape` dismiss listeners for all video and membership dialogs.
 
 ### 10.2 Known Issues & Required Operator Actions
 1. **External Connector Schema Refresh (Action Required for ORC-GROK / External Agents):**
