@@ -186,7 +186,7 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
       </section>
 
       {/* 3. EXPLORE APPS CATALOGUE */}
-      <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 content-visibility-auto">
         <div className="space-y-6 mb-12">
           <ScrollReveal>
             <div className="space-y-2">
@@ -222,13 +222,14 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
 
         {/* 10 App Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-          {filteredApps.map((app) => {
+          {filteredApps.map((app, index) => {
             const Icon = getAppIcon(app.iconName);
             return (
               <div
                 key={app.id}
                 onClick={() => onAsk(`Tell me about the ${app.title} application and how I can use it.`)}
-                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-auto min-h-[190px] relative border border-cyan-500/20 transition-all duration-300 hover:border-cyan-400/60 hover:-translate-y-2 hover:shadow-[0_16px_36px_rgba(0,0,0,0.8),0_0_28px_rgba(34,211,238,0.22)]"
+                style={{ '--i': index } as React.CSSProperties}
+                className="reveal group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-auto min-h-[190px] relative border border-cyan-500/20 transition-all duration-300 hover:border-cyan-400/60 hover:-translate-y-2 hover:shadow-[0_16px_36px_rgba(0,0,0,0.8),0_0_28px_rgba(34,211,238,0.22)]"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -316,6 +317,9 @@ export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
                     src={ASSETS.hypercubeCrystal}
                     alt="Core IQ Crystalline Hypercube"
                     referrerPolicy="no-referrer"
+                    loading="lazy"
+                    width={420}
+                    height={420}
                     className="w-full h-full object-cover scale-105"
                   />
                 </div>

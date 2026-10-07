@@ -19404,3 +19404,80 @@ None. Build and TypeScript linting compile cleanly with zero errors.
 ### Build Status
 PASS
 ---
+
+---
+## Session: 2026-10-07 Universal Carousel Slot Standardization & Command Upload Unification
+
+### Files Changed
+src/config/mediaPlacements.ts
+src/components/command/CommandUploadTab.tsx
+
+### What Was Done
+1. Created a single, authoritative shared carousel definition (`SHARED_CAROUSEL_CONFIG` & `CAROUSEL_LIMITS` in `src/config/mediaPlacements.ts`):
+   - Allowed types: `['image', 'video']`
+   - Image maximum: 5 MB (5,242,880 bytes) supporting WebP, PNG, JPEG
+   - Video maximum: 50 MB (52,428,800 bytes) supporting MP4, WebM
+   - Aspect ratio: 16:9
+   - Capacity: 6 items
+2. Unified all showcase carousel slots across every page to use this exact definition (`home.showcase`, `solutions.showcase`, `apps.showcase`, `learn.showcase`, `tools.showcase`, `about.showcase`, `news.showcase`). Non-carousel intro video/poster and background slots remain untouched.
+3. Enhanced Command Upload Tab (`CommandUploadTab.tsx`):
+   - Added an Image / Video toggle for slots allowing both types, with labels showing exact limits ("Image (Max 5 MB)", "Video (Max 50 MB)").
+   - Set file picker labels dynamically ("CHOOSE IMAGE FILE (Max 5 MB — WebP, PNG, JPEG) *" / "CHOOSE VIDEO FILE (Max 50 MB — MP4, WebM) *").
+   - Added an optional poster frame image field for video uploads (supports image file upload with preview and removal, or direct poster URL input).
+   - Fixed file size validation messages to format in KB when under 1 MB and MB when 1 MB or higher (never outputs "0 MB").
+   - Updated slot cards and slot detail config banners on all pages to display "ALLOWED: IMAGE + VIDEO" and the correct unified limits ("Img: 5 MB · Vid: 50 MB").
+   - Added News page to the page filter list in Command Upload tab.
+
+### New Slots Registered
+None (all existing carousel slots unified to shared configuration).
+
+### New Components Added
+None.
+
+### Known Limitations or Follow-up Needed
+None. Verified with clean `tsc --noEmit` and production `npm run build`.
+
+### Build Status
+PASS
+---
+
+---
+## Session: 2026-10-07 Comprehensive Polish Pass — Visual Quality, Performance & Accessibility
+
+### Files Changed
+index.html
+src/App.tsx
+src/index.css
+src/components/common/Header.tsx
+src/components/common/CosmicCTABanner.tsx
+src/components/environment/ImageBackground.tsx
+src/components/command/CommandContentTab.tsx
+src/components/command/CommandUploadTab.tsx
+src/components/command/CommandPlatformsTab.tsx
+src/components/command/CommandToolsTab.tsx
+src/pages/HomePage.tsx
+src/pages/SolutionsPage.tsx
+src/pages/AppsPage.tsx
+src/pages/ToolsPage.tsx
+src/pages/LearnPage.tsx
+src/pages/AboutPage.tsx
+src/pages/NewsPage.tsx
+
+### What Was Done
+1. Performance & Rendering: Verified `font-display: swap` in Google Fonts URL; applied `content-visibility: auto` with `contain-intrinsic-size: 1px 700px` to page sections below hero across public routes; audited all `<img>` tags for explicit rendered `width` and `height` dimensions and `loading="lazy"`; added `<link rel="preconnect">` for Supabase storage and Unsplash CDN to `<head>`.
+2. Motion & Micro-animations: Added fluid scroll fade-in `.reveal` and `.reveal.visible` with IntersectionObserver (threshold: 0.15); added staggered card grid `--i` CSS custom properties capped at 6 cards; added primary CTA button hover scale and soft shadow elevation; configured global smooth scrolling and sticky nav scroll offset padding; wrapped all motion inside `@media (prefers-reduced-motion: no-preference)` with instant-reveal fallback on reduced motion.
+3. Typography & Depth: Configured fluid clamp() typography for h1, h2, h3 headings with `text-wrap: balance` and `text-rendering: optimizeLegibility`; enforced body font smoothing, hero letter-spacing, and tabular-nums on stats/metrics; upgraded card shadows to two-layer elevation stacks on hover; styled frosted glass sticky nav with 60px scroll state, saturate(1.4), and subtle bottom border; styled section dividers with diagonal cut clip-paths.
+4. Accessibility & UX: Added skip link targeting `#main-content` at the top of `<body>`; audited and added accessible `aria-label` and `aria-hidden="true"` to icon buttons and icons; decorated non-content graphics with `alt=""` and `role="presentation"`; added `:focus-visible` ring; mounted `BackToTop` button with smooth scrolling and 400px threshold; lightened muted text to satisfy WCAG AA 4.5:1 contrast.
+
+### New Slots Registered
+None (all existing slots preserved).
+
+### New Components Added
+Mounted BackToTop floating action in App.tsx.
+
+### Known Limitations or Follow-up Needed
+None. Verified with clean `npm run lint` (`tsc --noEmit`), `npm run build`, and `compile_applet`.
+
+### Build Status
+PASS
+---

@@ -271,8 +271,8 @@ export const CommandToolsTab: React.FC<CommandToolsTabProps> = ({
           <div className="w-full max-w-md bg-[#060b1c] border border-cyan-500/30 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-base font-bold text-white">Register External Tool</h3>
-              <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-white">
-                <X className="w-4 h-4" />
+              <button onClick={() => setShowAddModal(false)} aria-label="Close modal" className="p-1 text-slate-400 hover:text-white cursor-pointer">
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 

@@ -352,6 +352,9 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
                         src={media.value}
                         alt={media.key}
                         referrerPolicy="no-referrer"
+                        loading="lazy"
+                        width={400}
+                        height={225}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                       <a
@@ -411,8 +414,8 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
               <h3 className="text-base font-bold text-white">
                 Add {newItemType === 'text' ? 'Website Copy' : 'Media Asset'}
               </h3>
-              <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-white">
-                <X className="w-4 h-4" />
+              <button onClick={() => setShowAddModal(false)} aria-label="Close modal" className="p-1 text-slate-400 hover:text-white cursor-pointer">
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 

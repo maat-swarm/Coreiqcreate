@@ -22,12 +22,16 @@ export const CosmicCTABanner: React.FC<CosmicCTABannerProps> = ({
   className = '',
 }) => {
   return (
-    <section className={`relative w-full overflow-hidden py-24 sm:py-28 lg:py-32 ${className}`}>
+    <section className={`relative w-full overflow-hidden py-24 sm:py-28 lg:py-32 content-visibility-auto ${className}`}>
       {/* Background Cosmic Horizon Graphic */}
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
         <img
           src={ASSETS.cosmicHorizon}
-          alt="Cosmic Horizon"
+          alt=""
+          role="presentation"
+          loading="lazy"
+          width={1920}
+          height={600}
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center opacity-40 mix-blend-screen scale-105 animate-pulse-glow"
         />

@@ -146,6 +146,9 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
                       src={ASSETS.energyCore}
                       alt="Core IQ Intelligence"
                       referrerPolicy="no-referrer"
+                      loading="lazy"
+                      width={272}
+                      height={272}
                       className="w-full h-full object-cover scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/50 via-transparent to-cyan-500/10 pointer-events-none" />
@@ -218,10 +221,10 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
       </section>
 
       {/* 2. HORIZONTAL JOURNEY STRIP */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 mb-12 relative z-20">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 mb-12 relative z-20 content-visibility-auto">
         <div className="rounded-2xl bg-slate-900/60 border border-slate-800/80 py-6 px-6 sm:px-8 backdrop-blur-md shadow-xl hover:border-cyan-500/30 transition-all duration-300">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-2">
-            {journeySteps.map((step, idx) => (
+            {journeySteps.map((step) => (
               <React.Fragment key={step}>
                 <div className="flex items-center gap-2.5 group/step cursor-default">
                   <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.7)] shrink-0 group-hover/step:scale-125 transition-transform" />
@@ -229,11 +232,6 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
                     {step}
                   </span>
                 </div>
-                {idx < journeySteps.length - 1 && (
-                  <div className="hidden sm:flex flex-1 items-center mx-2 sm:mx-3 relative overflow-hidden">
-                    <div className="w-full h-[1.5px] bg-gradient-to-r from-cyan-500/30 via-cyan-400/60 to-cyan-500/30" />
-                  </div>
-                )}
               </React.Fragment>
             ))}
           </div>
@@ -241,7 +239,7 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
       </section>
 
       {/* 3. NUMBERED EDITORIAL CAPABILITY STREAM */}
-      <section id="capability-stream" className="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="capability-stream" className="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 content-visibility-auto">
         <ScrollReveal>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
             <div>
@@ -264,11 +262,12 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
           <div className="absolute left-[88px] sm:left-[96px] top-4 bottom-4 w-[1px] bg-cyan-500/20 animate-line-grow pointer-events-none hidden sm:block" />
 
           <div className="divide-y divide-transparent">
-            {capabilities.map((row) => (
+            {capabilities.map((row, index) => (
               <div
                 key={row.num}
                 onClick={row.action}
-                className="group w-full flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-8 py-5 border-b border-slate-800/50 cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-cyan-950/25 hover:via-slate-900/40 hover:to-transparent px-3 sm:px-5 rounded-xl hover:translate-x-1"
+                style={{ '--i': index } as React.CSSProperties}
+                className="reveal group w-full flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-8 py-5 border-b border-slate-800/50 cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-cyan-950/25 hover:via-slate-900/40 hover:to-transparent px-3 sm:px-5 rounded-xl hover:translate-x-1"
               >
                 <div className="flex items-center gap-6 sm:gap-8 min-w-0">
                   <span className="w-20 shrink-0 text-5xl sm:text-6xl font-mono font-bold text-slate-800 transition-all duration-300 group-hover:text-cyan-400 group-hover:drop-shadow-[0_0_12px_rgba(34,211,238,0.5)] select-none">
@@ -289,7 +288,7 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
       </section>
 
       {/* 4. FOOTER: "Tell us what you need." */}
-      <section className="py-24 bg-gradient-to-r from-slate-950 via-[#06102a] to-slate-950 border-t border-slate-800 text-center relative overflow-hidden">
+      <section className="py-24 bg-gradient-to-r from-slate-950 via-[#06102a] to-slate-950 border-t border-slate-800 text-center relative overflow-hidden content-visibility-auto">
         {/* Subtle ambient glow behind footer */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
         

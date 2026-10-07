@@ -33,6 +33,7 @@ import {
 import {
   MEDIA_PLACEMENTS,
   getPlacementForSlot,
+  CAROUSEL_LIMITS,
   SlotPlacement,
 } from '../../config/mediaPlacements';
 
@@ -43,8 +44,66 @@ const AVAILABLE_PAGES = [
   { id: 'learn', label: 'Learn & Education' },
   { id: 'tools', label: 'Tools' },
   { id: 'about', label: 'About' },
+  { id: 'news', label: 'News' },
   { id: 'site', label: 'Site (Global Background)' },
 ];
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) {
+    return `${Math.round(bytes / 1024)} KB`;
+  }
+  const mb = bytes / (1024 * 1024);
+  return `${Number.isInteger(mb) ? mb : mb.toFixed(1)} MB`;
+}
+
+export function getSlotEffectiveConfig(slot: MediaSlot) {
+  const placement = getPlacementForSlot(slot.slot_key);
+  const allowedTypes = (placement?.allowedTypes as MediaSlotType[]) || slot.allowed_types;
+  const isCarousel = slot.slot_key.endsWith('.showcase') || placement?.component === 'CoreIQSentinel';
+  const maxItems = placement?.capacity ?? (isCarousel ? 6 : slot.max_items);
+
+  const hasImage = allowedTypes.includes('image');
+  const hasVideo = allowedTypes.includes('video');
+  const hasUrl = allowedTypes.includes('url');
+
+  let allowedLabel = '';
+  if (hasImage && hasVideo) {
+    allowedLabel = 'IMAGE + VIDEO';
+  } else if (hasVideo && hasUrl) {
+    allowedLabel = 'VIDEO + URL';
+  } else if (hasVideo) {
+    allowedLabel = 'VIDEO';
+  } else if (hasImage) {
+    allowedLabel = 'IMAGE';
+  } else {
+    allowedLabel = allowedTypes.join(' + ').toUpperCase();
+  }
+
+  const imageMaxBytes = placement?.imageMaxBytes ?? (isCarousel ? CAROUSEL_LIMITS.imageMaxBytes : slot.max_bytes);
+  const videoMaxBytes = placement?.videoMaxBytes ?? (isCarousel ? CAROUSEL_LIMITS.videoMaxBytes : 52428800);
+
+  let limitsLabel = '';
+  if (isCarousel || (hasImage && hasVideo)) {
+    limitsLabel = `Img: ${formatFileSize(imageMaxBytes)} · Vid: ${formatFileSize(videoMaxBytes)}`;
+  } else if (hasVideo) {
+    limitsLabel = `Max: ${formatFileSize(videoMaxBytes)}`;
+  } else {
+    limitsLabel = `Max: ${formatFileSize(imageMaxBytes)}`;
+  }
+
+  return {
+    placement,
+    allowedTypes,
+    allowedLabel,
+    limitsLabel,
+    maxItems,
+    aspect: placement?.aspectRatio || slot.aspect || '16:9',
+    imageMaxBytes,
+    videoMaxBytes,
+    isCarousel,
+    allowsBoth: hasImage && hasVideo,
+  };
+}
 
 export const CommandUploadTab: React.FC = () => {
   const [selectedPage, setSelectedPage] = useState<string>('home');
@@ -67,6 +126,13 @@ export const CommandUploadTab: React.FC = () => {
   const [ctaLabelInput, setCtaLabelInput] = useState('');
   const [ctaUrlInput, setCtaUrlInput] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Optional poster image for video uploads
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [posterPreviewUrl, setPosterPreviewUrl] = useState<string | null>(null);
+  const [posterUrlInput, setPosterUrlInput] = useState('');
+  const posterFileInputRef = useRef<HTMLInputElement>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -84,11 +150,47 @@ export const CommandUploadTab: React.FC = () => {
       setIsLoadingSlots(true);
       setErrorMessage(null);
       const fetchedSlots = await fetchCommandMediaSlots(selectedPage);
-      setSlots(fetchedSlots);
-      if (fetchedSlots.length > 0) {
+
+      // Merge and enforce shared placement config from MEDIA_PLACEMENTS
+      const mergedSlots = fetchedSlots.map((slot) => {
+        const placement = getPlacementForSlot(slot.slot_key);
+        if (!placement) return slot;
+        return {
+          ...slot,
+          label: placement.label || slot.label,
+          allowed_types: (placement.allowedTypes as MediaSlotType[]) || slot.allowed_types,
+          max_items: placement.capacity ?? slot.max_items,
+          max_bytes: placement.maxSize ?? slot.max_bytes,
+          aspect: placement.aspectRatio ?? slot.aspect,
+        };
+      });
+
+      // Ensure all slots defined in MEDIA_PLACEMENTS for selectedPage are included
+      Object.values(MEDIA_PLACEMENTS)
+        .filter((p, idx, arr) => p.page === selectedPage && arr.findIndex((x) => x.slotKey === p.slotKey) === idx)
+        .forEach((placement) => {
+          if (!mergedSlots.some((s) => s.slot_key === placement.slotKey)) {
+            mergedSlots.push({
+              slot_key: placement.slotKey,
+              page: placement.page,
+              label: placement.label || placement.slotKey,
+              allowed_types: (placement.allowedTypes as MediaSlotType[]) || ['image', 'video'],
+              max_items: placement.capacity ?? 6,
+              max_bytes: placement.maxSize ?? 52428800,
+              aspect: placement.aspectRatio ?? '16:9',
+              item_count: 0,
+              status: 'empty',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+          }
+        });
+
+      setSlots(mergedSlots);
+      if (mergedSlots.length > 0) {
         // Keep current selected slot if exists on page, else default to first
-        if (!fetchedSlots.some((s) => s.slot_key === selectedSlotKey)) {
-          setSelectedSlotKey(fetchedSlots[0].slot_key);
+        if (!mergedSlots.some((s) => s.slot_key === selectedSlotKey)) {
+          setSelectedSlotKey(mergedSlots[0].slot_key);
         }
       } else {
         setSelectedSlotDetail(null);
@@ -107,6 +209,18 @@ export const CommandUploadTab: React.FC = () => {
       setIsLoadingDetail(true);
       setErrorMessage(null);
       const detail = await fetchCommandMediaSlotDetail(slotKey);
+
+      const placement = getPlacementForSlot(slotKey);
+      if (placement && detail?.slot) {
+        detail.slot = {
+          ...detail.slot,
+          label: placement.label || detail.slot.label,
+          allowed_types: (placement.allowedTypes as MediaSlotType[]) || detail.slot.allowed_types,
+          max_items: placement.capacity ?? detail.slot.max_items,
+          max_bytes: placement.maxSize ?? detail.slot.max_bytes,
+          aspect: placement.aspectRatio ?? detail.slot.aspect,
+        };
+      }
       setSelectedSlotDetail(detail);
 
       // Default upload type to first allowed type
@@ -114,8 +228,26 @@ export const CommandUploadTab: React.FC = () => {
         setUploadType(detail.slot.allowed_types[0]);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || `Failed to load details for slot ${slotKey}`);
-      setSelectedSlotDetail(null);
+      const placement = getPlacementForSlot(slotKey);
+      if (placement) {
+        const fallbackSlot: MediaSlot = {
+          slot_key: placement.slotKey,
+          page: placement.page,
+          label: placement.label || placement.slotKey,
+          allowed_types: (placement.allowedTypes as MediaSlotType[]) || ['image', 'video'],
+          max_items: placement.capacity ?? 6,
+          max_bytes: placement.maxSize ?? 52428800,
+          aspect: placement.aspectRatio ?? '16:9',
+          item_count: 0,
+          status: 'empty',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setSelectedSlotDetail({ slot: fallbackSlot, items: [] });
+      } else {
+        setErrorMessage(err.message || `Failed to load details for slot ${slotKey}`);
+        setSelectedSlotDetail(null);
+      }
     } finally {
       setIsLoadingDetail(false);
     }
@@ -135,8 +267,14 @@ export const CommandUploadTab: React.FC = () => {
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
+    if (posterPreviewUrl) {
+      URL.revokeObjectURL(posterPreviewUrl);
+    }
     setPreviewUrl(null);
     setUploadFile(null);
+    setPosterPreviewUrl(null);
+    setPosterFile(null);
+    setPosterUrlInput('');
     setUrlInput('');
     setAltInput('');
     setTitleInput('');
@@ -145,6 +283,41 @@ export const CommandUploadTab: React.FC = () => {
     setCtaUrlInput('');
     setFormError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (posterFileInputRef.current) posterFileInputRef.current.value = '';
+  };
+
+  const handlePosterFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5242880) {
+      setFormError(`Poster file too large: ${formatFileSize(file.size)} exceeds limit of 5 MB`);
+      if (posterFileInputRef.current) posterFileInputRef.current.value = '';
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setFormError('Poster file must be an image (JPEG, PNG, WebP).');
+      if (posterFileInputRef.current) posterFileInputRef.current.value = '';
+      return;
+    }
+
+    if (posterPreviewUrl) {
+      URL.revokeObjectURL(posterPreviewUrl);
+    }
+    setPosterPreviewUrl(URL.createObjectURL(file));
+    setPosterFile(file);
+  };
+
+  const clearPoster = () => {
+    if (posterPreviewUrl) {
+      URL.revokeObjectURL(posterPreviewUrl);
+    }
+    setPosterPreviewUrl(null);
+    setPosterFile(null);
+    setPosterUrlInput('');
+    if (posterFileInputRef.current) posterFileInputRef.current.value = '';
   };
 
   // Client-side file selection with validation
@@ -156,11 +329,12 @@ export const CommandUploadTab: React.FC = () => {
     const currentSlot = selectedSlotDetail?.slot;
     if (!currentSlot) return;
 
-    // Check size limit: 50MB for video or slot.max_bytes
-    const maxBytes = uploadType === 'video' ? Math.max(currentSlot.max_bytes, 52428800) : currentSlot.max_bytes;
+    const effective = getSlotEffectiveConfig(currentSlot);
+    const maxBytes = uploadType === 'video' ? effective.videoMaxBytes : effective.imageMaxBytes;
+
     if (file.size > maxBytes) {
       setFormError(
-        `File too large: ${(file.size / 1024 / 1024).toFixed(1)} MB exceeds limit of ${(maxBytes / 1024 / 1024).toFixed(0)} MB`
+        `File too large: ${formatFileSize(file.size)} exceeds limit of ${formatFileSize(maxBytes)}`
       );
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
@@ -253,11 +427,25 @@ export const CommandUploadTab: React.FC = () => {
         const formData = new FormData();
         formData.append('type', uploadType);
         formData.append('file', uploadFile as File);
-        formData.append('alt', altInput.trim());
+        formData.append('alt', altInput.trim() || titleInput.trim() || 'Media asset');
         if (titleInput.trim()) formData.append('title', titleInput.trim());
         if (captionInput.trim()) formData.append('caption', captionInput.trim());
         if (ctaLabelInput.trim()) formData.append('cta_label', ctaLabelInput.trim());
         if (ctaUrlInput.trim()) formData.append('cta_url', ctaUrlInput.trim());
+
+        if (uploadType === 'video') {
+          if (posterUrlInput.trim()) {
+            formData.append('poster_url', posterUrlInput.trim());
+          } else if (posterFile) {
+            const reader = new FileReader();
+            const dataUrlPromise = new Promise<string>((resolve) => {
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(posterFile);
+            });
+            const posterDataUrl = await dataUrlPromise;
+            formData.append('poster_url', posterDataUrl);
+          }
+        }
 
         await uploadMediaItem(slot.slot_key, formData);
       }
@@ -373,8 +561,9 @@ export const CommandUploadTab: React.FC = () => {
 
   const currentSlot = selectedSlotDetail?.slot;
   const currentItems = selectedSlotDetail?.items || [];
-  const isSlotFull = currentSlot ? currentItems.length >= currentSlot.max_items : false;
-  const isSingleItemSlot = currentSlot ? currentSlot.max_items === 1 : false;
+  const currentEffective = currentSlot ? getSlotEffectiveConfig(currentSlot) : null;
+  const isSlotFull = currentEffective ? currentItems.length >= currentEffective.maxItems : false;
+  const isSingleItemSlot = currentEffective ? currentEffective.maxItems === 1 : false;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6">
@@ -417,8 +606,8 @@ export const CommandUploadTab: React.FC = () => {
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{actionSuccess}</span>
           </div>
-          <button onClick={() => setActionSuccess(null)} className="text-emerald-400 hover:text-white p-1">
-            <X className="w-4 h-4" />
+          <button onClick={() => setActionSuccess(null)} aria-label="Dismiss success message" className="text-emerald-400 hover:text-white p-1 cursor-pointer">
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -429,8 +618,8 @@ export const CommandUploadTab: React.FC = () => {
             <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
             <span>{errorMessage}</span>
           </div>
-          <button onClick={() => setErrorMessage(null)} className="text-rose-400 hover:text-white p-1">
-            <X className="w-4 h-4" />
+          <button onClick={() => setErrorMessage(null)} aria-label="Dismiss error message" className="text-rose-400 hover:text-white p-1 cursor-pointer">
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -453,7 +642,6 @@ export const CommandUploadTab: React.FC = () => {
               }`}
             >
               {page.label}
-              {page.id !== 'home' && <span className="ml-1.5 text-[10px] opacity-60">(0)</span>}
             </button>
           );
         })}
@@ -487,8 +675,9 @@ export const CommandUploadTab: React.FC = () => {
             <div className="space-y-2.5">
               {slots.map((slot) => {
                 const isSelected = slot.slot_key === selectedSlotKey;
+                const effective = getSlotEffectiveConfig(slot);
                 const count = slot.item_count ?? 0;
-                const isFull = count >= slot.max_items;
+                const isFull = count >= effective.maxItems;
 
                 return (
                   <div
@@ -526,12 +715,16 @@ export const CommandUploadTab: React.FC = () => {
                       <span>
                         Items:{' '}
                         <strong className="text-white font-mono">
-                          {count} / {slot.max_items}
+                          {count} / {effective.maxItems}
                         </strong>
                       </span>
-                      <span className="text-slate-500 capitalize">
-                        {slot.allowed_types.join(' · ')}
+                      <span className="text-cyan-300 font-mono text-[10px] font-bold tracking-wide">
+                        ALLOWED: {effective.allowedLabel}
                       </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 mt-1">
+                      <span>{effective.limitsLabel}</span>
+                      <span>{effective.aspect}</span>
                     </div>
 
                     {/* Placement mapping info */}
@@ -628,25 +821,25 @@ export const CommandUploadTab: React.FC = () => {
                   <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/60">
                     <span className="text-[10px] text-slate-500 block uppercase font-mono">Capacity</span>
                     <span className="font-semibold text-slate-200">
-                      {currentItems.length} / {currentSlot.max_items} item(s)
+                      {currentItems.length} / {currentEffective?.maxItems ?? currentSlot.max_items} item(s)
                     </span>
                   </div>
                   <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/60">
-                    <span className="text-[10px] text-slate-500 block uppercase font-mono">Max Size</span>
+                    <span className="text-[10px] text-slate-500 block uppercase font-mono">Limits</span>
                     <span className="font-semibold text-slate-200">
-                      {(currentSlot.max_bytes / 1024).toFixed(0)} KB ({Math.round(currentSlot.max_bytes / 1048576)} MB)
+                      {currentEffective?.limitsLabel ?? `${(currentSlot.max_bytes / 1024).toFixed(0)} KB`}
                     </span>
                   </div>
                   <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/60">
                     <span className="text-[10px] text-slate-500 block uppercase font-mono">Allowed</span>
                     <span className="font-semibold text-cyan-300 uppercase font-mono text-[11px]">
-                      {currentSlot.allowed_types.join(', ')}
+                      ALLOWED: {currentEffective?.allowedLabel ?? currentSlot.allowed_types.join(', ')}
                     </span>
                   </div>
                   <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/60">
                     <span className="text-[10px] text-slate-500 block uppercase font-mono">Aspect Ratio</span>
                     <span className="font-semibold text-purple-300 font-mono text-[11px]">
-                      {currentSlot.aspect || 'Flexible'}
+                      {currentEffective?.aspect ?? currentSlot.aspect ?? '16:9'}
                     </span>
                   </div>
                 </div>
@@ -670,31 +863,88 @@ export const CommandUploadTab: React.FC = () => {
 
                 {isSlotFull && !isSingleItemSlot ? (
                   <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
-                    Slot is at maximum capacity ({currentSlot.max_items} items). Delete or unpublish an item to add new ones.
+                    Slot is at maximum capacity ({currentEffective?.maxItems ?? currentSlot.max_items} items). Delete or unpublish an item to add new ones.
                   </div>
                 ) : (
                   <form onSubmit={handleCreateItem} className="space-y-4">
-                    {/* Media Type Tabs (if multiple allowed) */}
-                    {currentSlot.allowed_types.length > 1 && (
-                      <div className="flex items-center gap-2">
-                        {currentSlot.allowed_types.map((type) => (
+                    {/* Media Type Tabs / Toggle */}
+                    {currentEffective?.allowsBoth ? (
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-mono text-slate-400 uppercase tracking-wider">
+                          Media Type *
+                        </label>
+                        <div className="inline-flex p-1 rounded-xl bg-slate-950 border border-slate-800 gap-1">
                           <button
-                            key={type}
                             type="button"
                             onClick={() => {
-                              setUploadType(type);
+                              setUploadType('image');
                               resetForm();
                             }}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase font-mono transition-colors min-h-[44px] ${
-                              uploadType === type
-                                ? 'bg-cyan-500 text-slate-950'
-                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase transition-all min-h-[44px] ${
+                              uploadType === 'image'
+                                ? 'bg-cyan-500 text-slate-950 shadow-md'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-900'
                             }`}
                           >
-                            {type}
+                            <ImageIcon className="w-4 h-4" />
+                            Image (Max 5 MB)
                           </button>
-                        ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUploadType('video');
+                              resetForm();
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase transition-all min-h-[44px] ${
+                              uploadType === 'video'
+                                ? 'bg-cyan-500 text-slate-950 shadow-md'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                            }`}
+                          >
+                            <Film className="w-4 h-4" />
+                            Video (Max 50 MB)
+                          </button>
+                          {currentEffective.allowedTypes.includes('url') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUploadType('url');
+                                resetForm();
+                              }}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase transition-all min-h-[44px] ${
+                                uploadType === 'url'
+                                  ? 'bg-cyan-500 text-slate-950 shadow-md'
+                                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                              }`}
+                            >
+                              <LinkIcon className="w-4 h-4" />
+                              External URL
+                            </button>
+                          )}
+                        </div>
                       </div>
+                    ) : (
+                      currentSlot.allowed_types.length > 1 && (
+                        <div className="flex items-center gap-2">
+                          {currentSlot.allowed_types.map((type) => (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => {
+                                setUploadType(type);
+                                resetForm();
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase font-mono transition-colors min-h-[44px] ${
+                                uploadType === type
+                                  ? 'bg-cyan-500 text-slate-950'
+                                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                              }`}
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
+                      )
                     )}
 
                     {/* File Picker or URL Input */}
@@ -716,54 +966,123 @@ export const CommandUploadTab: React.FC = () => {
                         </span>
                       </div>
                     ) : (
-                      <div>
-                        <label className="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">
-                          Choose {uploadType === 'video' ? 'Video' : 'Image'} File (Max{' '}
-                          {uploadType === 'video' ? '50 MB' : `${(currentSlot.max_bytes / 1024).toFixed(0)} KB`}) *
-                        </label>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept={
-                            uploadType === 'video'
-                              ? 'video/mp4,video/webm'
-                              : 'image/jpeg,image/png,image/webp'
-                          }
-                          onChange={handleFileChange}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-700 text-slate-300 text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-500 file:text-slate-950 hover:file:bg-cyan-400 cursor-pointer min-h-[44px]"
-                          required
-                        />
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5 font-semibold">
+                            {uploadType === 'video'
+                              ? `CHOOSE VIDEO FILE (Max ${formatFileSize(currentEffective?.videoMaxBytes ?? 52428800)} — MP4, WebM) *`
+                              : `CHOOSE IMAGE FILE (Max ${formatFileSize(currentEffective?.imageMaxBytes ?? 5242880)} — WebP, PNG, JPEG) *`}
+                          </label>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept={
+                              uploadType === 'video'
+                                ? 'video/mp4,video/webm'
+                                : 'image/jpeg,image/png,image/webp'
+                            }
+                            onChange={handleFileChange}
+                            className="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-700 text-slate-300 text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-500 file:text-slate-950 hover:file:bg-cyan-400 cursor-pointer min-h-[44px]"
+                            required
+                          />
 
-                        {/* Video / Image selected preview thumbnail */}
-                        {previewUrl && (
-                          <div className="mt-3 p-3 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex flex-col sm:flex-row items-center gap-3">
-                            <div className="relative w-full sm:w-44 aspect-video rounded-lg overflow-hidden bg-black shrink-0 border border-slate-700">
-                              {uploadType === 'video' ? (
-                                <video
-                                  src={previewUrl}
-                                  controls
-                                  muted
-                                  playsInline
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <img
-                                  src={previewUrl}
-                                  alt="Upload preview"
-                                  className="w-full h-full object-cover"
-                                />
-                              )}
+                          {/* Video / Image selected preview thumbnail */}
+                          {previewUrl && (
+                            <div className="mt-3 p-3 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex flex-col sm:flex-row items-center gap-3">
+                              <div className="relative w-full sm:w-44 aspect-video rounded-lg overflow-hidden bg-black shrink-0 border border-slate-700">
+                                {uploadType === 'video' ? (
+                                  <video
+                                    src={previewUrl}
+                                    controls
+                                    muted
+                                    playsInline
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <img
+                                    src={previewUrl}
+                                    alt="Upload preview"
+                                    width={80}
+                                    height={45}
+                                    className="w-full h-full object-cover"
+                                  />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0 space-y-1 text-xs">
+                                <p className="font-semibold text-white truncate">
+                                  {uploadFile?.name}
+                                </p>
+                                <p className="text-slate-400 font-mono text-[11px]">
+                                  {uploadFile ? `${formatFileSize(uploadFile.size)} · ${uploadFile.type}` : ''}
+                                </p>
+                                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                                  {uploadType === 'video' ? 'Video Ready for Upload' : 'Image Ready'}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0 space-y-1 text-xs">
-                              <p className="font-semibold text-white truncate">
-                                {uploadFile?.name}
-                              </p>
-                              <p className="text-slate-400 font-mono text-[11px]">
-                                {uploadFile ? `${(uploadFile.size / 1024 / 1024).toFixed(2)} MB · ${uploadFile.type}` : ''}
-                              </p>
-                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                                {uploadType === 'video' ? 'Video Ready for Upload' : 'Image Ready'}
-                              </span>
+                          )}
+                        </div>
+
+                        {/* Optional Poster Image Field for Video */}
+                        {uploadType === 'video' && (
+                          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/90 space-y-2">
+                            <label className="block text-xs font-mono text-cyan-300 uppercase tracking-wider font-semibold">
+                              Poster Frame Image (Optional — Fallback / Initial Frame, Max 5 MB)
+                            </label>
+                            <p className="text-[11px] text-slate-400">
+                              Displayed as the preview frame before playback begins or when reduced motion is preferred.
+                            </p>
+                            <div className="space-y-3 pt-1">
+                              <div>
+                                <label className="block text-[11px] font-mono text-slate-400 mb-1 uppercase">
+                                  CHOOSE POSTER IMAGE FILE (JPEG, PNG, WebP)
+                                </label>
+                                <input
+                                  ref={posterFileInputRef}
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  onChange={handlePosterFileChange}
+                                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer min-h-[44px]"
+                                />
+                              </div>
+
+                              {posterPreviewUrl && (
+                                <div className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/90 border border-cyan-500/30">
+                                  <img
+                                    src={posterPreviewUrl}
+                                    alt="Poster preview"
+                                    width={80}
+                                    height={45}
+                                    className="w-20 aspect-video object-cover rounded border border-slate-700"
+                                  />
+                                  <div className="flex-1 min-w-0 text-xs">
+                                    <p className="font-semibold text-white truncate">{posterFile?.name}</p>
+                                    <p className="text-[11px] text-slate-400 font-mono">
+                                      {posterFile ? formatFileSize(posterFile.size) : ''}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={clearPoster}
+                                    className="px-2.5 py-1 text-xs text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              )}
+
+                              <div>
+                                <label className="block text-[11px] font-mono text-slate-400 mb-1 uppercase">
+                                  Or specify Poster URL:
+                                </label>
+                                <input
+                                  type="text"
+                                  value={posterUrlInput}
+                                  onChange={(e) => setPosterUrlInput(e.target.value)}
+                                  placeholder="https://... or /assets/..."
+                                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-400 min-h-[44px]"
+                                />
+                              </div>
                             </div>
                           </div>
                         )}
@@ -921,13 +1240,16 @@ export const CommandUploadTab: React.FC = () => {
                             <div className="md:col-span-4 space-y-2">
                               <div
                                 className="relative rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center"
-                                style={{ aspectRatio: currentSlot.aspect ? currentSlot.aspect.replace(':', '/') : '16/9' }}
+                                style={{ aspectRatio: currentEffective?.aspect ? currentEffective.aspect.replace(':', '/') : (currentSlot?.aspect ? currentSlot.aspect.replace(':', '/') : '16/9') }}
                               >
                                 {item.type === 'video' ? (
                                   item.url ? (
                                     <video
                                       src={item.url}
+                                      poster={item.poster_url || undefined}
                                       controls
+                                      muted
+                                      playsInline
                                       className="w-full h-full object-cover"
                                       preload="none"
                                     />
@@ -957,6 +1279,8 @@ export const CommandUploadTab: React.FC = () => {
                                   <img
                                     src={item.url || ''}
                                     alt={item.alt || 'Media item'}
+                                    width={320}
+                                    height={180}
                                     className="w-full h-full object-cover"
                                     loading="lazy"
                                   />

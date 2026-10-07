@@ -97,7 +97,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
       </section>
 
       {/* CAPABILITY STRIP */}
-      <section className="border-y border-slate-800/60 bg-[#04091a]/80 backdrop-blur-md py-14 relative overflow-hidden">
+      <section className="border-y border-slate-800/60 bg-[#04091a]/80 backdrop-blur-md py-14 relative overflow-hidden section-diagonal-cut content-visibility-auto">
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/[0.02] via-transparent to-purple-500/[0.02] pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 stagger-children">
@@ -107,8 +107,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
               { Icon:Zap,      c:'blue',   label:'Automation',     desc:'Eliminate repetitive work. Let intelligent workflows run your operations.',           r:'solutions' },
               { Icon:LayoutGrid,c:'purple',label:'Apps & Websites',desc:"Digital experiences that don't just look premium — they perform.",             r:'apps'      },
               { Icon:GraduationCap,c:'pink',label:'Learn & Grow',  desc:'Practical AI education for people who want to build real things.',         r:'learn'     },
-            ].map(({ Icon, c, label, desc, r }) => (
+            ].map(({ Icon, c, label, desc, r }, index) => (
               <div key={label} onClick={() => onNavigate(r as NavRoute)}
+                style={{ '--i': index } as React.CSSProperties}
                 className={`reveal-up group cursor-pointer p-5 rounded-2xl bg-slate-900/35 hover:bg-slate-900/70 border border-slate-800/80 hover:border-${c}-400/40 shadow-lg hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] hover:-translate-y-1.5 transition-all duration-300`}>
                 <div className={`w-11 h-11 rounded-xl bg-gradient-to-br from-${c}-500/20 to-${c}-600/30 border border-${c}-400/30 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-[0_0_18px_rgba(34,211,238,0.25)] transition-all duration-300`}>
                   <Icon className={`w-5 h-5 text-${c}-400 group-hover:rotate-6 transition-transform`} />
@@ -122,7 +123,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
       </section>
 
       {/* PROCESS */}
-      <section className="py-24 lg:py-32 relative">
+      <section className="py-24 lg:py-32 relative content-visibility-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
             <div className="lg:col-span-5 flex items-center justify-center">
@@ -175,7 +176,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
       </section>
 
       {/* BANNER */}
-      <section className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 content-visibility-auto">
         <div className="reveal-up relative rounded-3xl overflow-hidden border border-cyan-500/25 p-8 sm:p-12 lg:p-16 bg-gradient-to-r from-[#071330] via-[#0b102b] to-[#040817] shadow-[0_0_40px_rgba(6,182,212,0.12)] hover:shadow-[0_0_60px_rgba(6,182,212,0.2)] transition-shadow duration-500">
           <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-25 pointer-events-none" />
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
@@ -195,7 +196,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
       </section>
 
       {/* EXPLORE CARDS */}
-      <section className="py-24 lg:py-32 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-24 lg:py-32 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 content-visibility-auto">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
           <div>
             <span className="reveal-up text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase block mb-2">Explore Core IQ</span>
@@ -212,8 +213,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
             { Icon:LayoutGrid,c:'purple', label:'Apps',         desc:'Powerful apps, built for your vision.',       r:'apps'      },
             { Icon:Monitor,   c:'emerald',label:'Websites',     desc:'Modern, scalable web experiences.',           r:'apps'      },
             { Icon:Layers,    c:'indigo', label:'Integrations', desc:'Connect everything in your ecosystem.',       r:'solutions' },
-          ].map(({ Icon, c, label, desc, r }) => (
+          ].map(({ Icon, c, label, desc, r }, index) => (
             <div key={label} onClick={() => onNavigate(r as NavRoute)}
+              style={{ '--i': index } as React.CSSProperties}
               className="reveal-up group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-56 hover:-translate-y-2 hover:shadow-[0_16px_40px_rgba(0,0,0,0.8),0_0_30px_rgba(34,211,238,0.2)] transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div className={`w-11 h-11 rounded-xl bg-${c}-500/15 border border-${c}-500/30 flex items-center justify-center group-hover:scale-110 group-hover:shadow-[0_0_16px_rgba(34,211,238,0.3)] transition-all duration-300`}>
@@ -301,6 +303,8 @@ function CoreIQRuntimeCard() {
             src={posterUrl}
             alt={posterAlt}
             loading="lazy"
+            width={1280}
+            height={720}
             className="w-full h-full object-cover"
           />
           {/* Overlay gradient: bottom gradient from-slate-950/60 to transparent for label readability */}
@@ -312,7 +316,7 @@ function CoreIQRuntimeCard() {
             aria-label="Play video"
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:scale-110 hover:brightness-110 hover:shadow-[0_0_40px_rgba(6,182,212,0.6)] shadow-[0_0_30px_rgba(6,182,212,0.4)] text-slate-950 flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-cyan-300 min-h-[44px] min-w-[44px] cursor-pointer"
           >
-            <Play className="w-6 h-6 sm:w-8 sm:h-8 fill-current text-slate-950 ml-1" />
+            <Play className="w-6 h-6 sm:w-8 sm:h-8 fill-current text-slate-950 ml-1" aria-hidden="true" />
           </button>
         </div>
       ) : videoItem.type === 'url' && videoItem.url ? (

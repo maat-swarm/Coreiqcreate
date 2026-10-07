@@ -203,7 +203,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
       </section>
 
       {/* 3. TOPIC GRID (10 EDITORIAL TOPICS) */}
-      <section className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 content-visibility-auto">
         <div className="mb-6">
           <span className="text-xs font-mono tracking-[0.25em] text-cyan-400 uppercase">
             EXPLORE BY TOPIC
@@ -214,11 +214,12 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-          {EDITORIAL_TOPICS.map((topic) => (
+          {EDITORIAL_TOPICS.map((topic, index) => (
             <div
               key={topic.num}
               onClick={() => onAsk(topic.query)}
-              className="cursor-pointer rounded-xl border border-slate-800 hover:border-cyan-400/50 bg-slate-900/40 hover:bg-slate-900/70 p-4 flex items-center justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)] group"
+              style={{ '--i': index } as React.CSSProperties}
+              className="reveal cursor-pointer rounded-xl border border-slate-800 hover:border-cyan-400/50 bg-slate-900/40 hover:bg-slate-900/70 p-4 flex items-center justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)] group"
             >
               <div className="flex items-center gap-3">
                 <span className="font-mono text-xs text-slate-500 group-hover:text-cyan-400 transition-colors">
@@ -235,7 +236,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
       </section>
 
       {/* 4. LEARNING PATHS */}
-      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 content-visibility-auto">
         <div className="mb-8">
           <span className="text-xs font-mono tracking-[0.25em] text-cyan-400 uppercase">
             STRUCTURED PATHWAYS
@@ -299,7 +300,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
       </section>
 
       {/* 5. CURATED GUIDES CATALOGUE */}
-      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-800/60">
+      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-800/60 content-visibility-auto">
         <div className="space-y-6 mb-10">
           <ScrollReveal>
             <div className="space-y-2">
@@ -335,7 +336,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
 
         {/* Learning Guides Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTopics.map((topic) => {
+          {filteredTopics.map((topic, index) => {
             const isPublished = topic.status === 'PUBLISHED' && Boolean(topic.body);
             const targetSlug = topic.slug || topic.content_key.replace('learn.guide.', '');
 
@@ -356,7 +357,8 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
               <div
                 key={topic.content_key}
                 onClick={() => onNavigate(`learn/${targetSlug}` as NavRoute)}
-                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-72 relative border border-cyan-500/20 hover:border-cyan-400/60 hover:-translate-y-2 hover:shadow-[0_16px_36px_rgba(0,0,0,0.8),0_0_28px_rgba(34,211,238,0.2)] transition-all duration-300"
+                style={{ '--i': index } as React.CSSProperties}
+                className="reveal group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-72 relative border border-cyan-500/20 hover:border-cyan-400/60 hover:-translate-y-2 hover:shadow-[0_16px_36px_rgba(0,0,0,0.8),0_0_28px_rgba(34,211,238,0.2)] transition-all duration-300"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">

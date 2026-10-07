@@ -109,9 +109,9 @@ const localStore: Record<string, any[]> = {
       slot_key: 'home.showcase',
       page: 'home',
       label: 'Home showcase carousel',
-      allowed_types: ['image'],
+      allowed_types: ['image', 'video'],
       max_items: 6,
-      max_bytes: 5242880,
+      max_bytes: 52428800,
       aspect: '16:9',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -164,9 +164,9 @@ const localStore: Record<string, any[]> = {
       slot_key: 'solutions.showcase',
       page: 'solutions',
       label: 'Solutions showcase carousel',
-      allowed_types: ['image'],
+      allowed_types: ['image', 'video'],
       max_items: 6,
-      max_bytes: 5242880,
+      max_bytes: 52428800,
       aspect: '16:9',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -175,9 +175,9 @@ const localStore: Record<string, any[]> = {
       slot_key: 'apps.showcase',
       page: 'apps',
       label: 'Apps showcase carousel',
-      allowed_types: ['image'],
+      allowed_types: ['image', 'video'],
       max_items: 6,
-      max_bytes: 5242880,
+      max_bytes: 52428800,
       aspect: '16:9',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -186,9 +186,9 @@ const localStore: Record<string, any[]> = {
       slot_key: 'learn.showcase',
       page: 'learn',
       label: 'Learn showcase carousel',
-      allowed_types: ['image'],
+      allowed_types: ['image', 'video'],
       max_items: 6,
-      max_bytes: 5242880,
+      max_bytes: 52428800,
       aspect: '16:9',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -197,9 +197,9 @@ const localStore: Record<string, any[]> = {
       slot_key: 'tools.showcase',
       page: 'tools',
       label: 'Tools showcase carousel',
-      allowed_types: ['image'],
+      allowed_types: ['image', 'video'],
       max_items: 6,
-      max_bytes: 5242880,
+      max_bytes: 52428800,
       aspect: '16:9',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -208,9 +208,20 @@ const localStore: Record<string, any[]> = {
       slot_key: 'about.showcase',
       page: 'about',
       label: 'About showcase carousel',
-      allowed_types: ['image'],
+      allowed_types: ['image', 'video'],
       max_items: 6,
-      max_bytes: 5242880,
+      max_bytes: 52428800,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'news.showcase',
+      page: 'news',
+      label: 'News showcase carousel',
+      allowed_types: ['image', 'video'],
+      max_items: 6,
+      max_bytes: 52428800,
       aspect: '16:9',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -1317,6 +1328,7 @@ app.post(
     const cta_label = req.body?.cta_label ? String(req.body.cta_label).trim() : '';
     const cta_url = req.body?.cta_url ? String(req.body.cta_url).trim() : '';
     const rawUrl = req.body?.url ? String(req.body.url).trim() : '';
+    const poster_url = req.body?.poster_url ? String(req.body.poster_url).trim() : '';
 
     if (!type && req.file) {
       if (req.file.mimetype.startsWith('video/')) type = 'video';
@@ -1468,6 +1480,7 @@ app.post(
       type,
       storage_path: storagePath,
       url: finalUrl,
+      poster_url: poster_url || null,
       alt: alt || null,
       title: title || null,
       caption: caption || null,
@@ -1539,6 +1552,7 @@ app.patch('/api/v1/media/slots/:slot_key/items/:id', authenticateApiKey, require
   if (updates.alt !== undefined) payload.alt = String(updates.alt).trim();
   if (updates.title !== undefined) payload.title = updates.title ? String(updates.title).trim() : null;
   if (updates.caption !== undefined) payload.caption = updates.caption ? String(updates.caption).trim() : null;
+  if (updates.poster_url !== undefined) payload.poster_url = updates.poster_url ? String(updates.poster_url).trim() : null;
   if (updates.cta_label !== undefined) payload.cta_label = updates.cta_label ? String(updates.cta_label).trim() : null;
   if (updates.cta_url !== undefined) payload.cta_url = updates.cta_url ? String(updates.cta_url).trim() : null;
   if (updates.sort_order !== undefined) payload.sort_order = Number(updates.sort_order);

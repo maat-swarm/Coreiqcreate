@@ -49,6 +49,7 @@ export interface MediaSlotItem {
   type: MediaSlotType;
   storage_path?: string | null;
   url?: string | null;
+  poster_url?: string | null;
   alt?: string | null;
   title?: string | null;
   caption?: string | null;

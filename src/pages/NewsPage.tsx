@@ -308,11 +308,12 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onNavigate, onAsk }) => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {filteredArticles.map((article) => (
-              <ScrollReveal key={article.id}>
+            {filteredArticles.map((article, index) => (
+              <ScrollReveal key={article.id} delay={Math.min(index, 6) * 0.06}>
                 <div
                   onClick={() => setSelectedArticle(article)}
-                  className="group h-full flex flex-col justify-between p-6 sm:p-7 rounded-2xl bg-[#050a1c]/80 hover:bg-[#07112d] border border-slate-800/90 hover:border-cyan-500/40 backdrop-blur-md shadow-lg hover:shadow-[0_12px_36px_rgba(0,0,0,0.6)] hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+                  style={{ '--i': index } as React.CSSProperties}
+                  className="reveal group h-full flex flex-col justify-between p-6 sm:p-7 rounded-2xl bg-[#050a1c]/80 hover:bg-[#07112d] border border-slate-800/90 hover:border-cyan-500/40 backdrop-blur-md shadow-lg hover:shadow-[0_12px_36px_rgba(0,0,0,0.6)] hover:-translate-y-1 transition-all duration-300 cursor-pointer"
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between gap-2">
@@ -349,7 +350,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onNavigate, onAsk }) => {
       </section>
 
       {/* 6. NEWSLETTER / DAILY DISPATCH CAPTURE */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 content-visibility-auto">
         <div className="rounded-3xl bg-gradient-to-br from-cyan-950/40 via-slate-900 to-purple-950/30 border border-cyan-500/30 p-8 sm:p-12 relative overflow-hidden backdrop-blur-xl">
           <div className="max-w-2xl space-y-4 relative z-10">
             <span className="text-xs font-mono tracking-widest text-cyan-400 uppercase font-semibold">
