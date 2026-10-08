@@ -135,7 +135,7 @@ export async function getMediaSlotPublished(
     const data = await res.json();
     const result = {
       slot: data.slot || null,
-      items: (data.items || []).filter((i: MediaSlotItem) => i.published),
+      items: data.items || [],
     };
     slotCache[slotKey] = { ...result, timestamp: now };
     return result;
