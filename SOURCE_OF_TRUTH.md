@@ -19510,3 +19510,30 @@ None. Verified that upload authentication checks for WRITE_MEDIA pass without 40
 PASS
 ---
 
+---
+## Session: 2026-10-08 Media Slots Fetch, Publish Button, and Allowed Types Fixes
+
+### Files Changed
+src/config/mediaPlacements.ts
+src/services/mediaSlots.ts
+src/components/command/CommandUploadTab.tsx
+server.ts
+supabase/migrations/20261002_media_slots.sql
+SOURCE_OF_TRUTH.md
+
+### What Was Done
+Resolved "Failed to fetch" errors across all Command media slots by configuring the Render backend API base URL (https://coreiqcreate.onrender.com) with an automatic 3-second retry mechanism for Render cold starts and descriptive server error messaging. Fixed the missing Publish button and unrendered items by instantly injecting newly uploaded items into the active slot view and immediately re-fetching slot items without silently overwriting state on error. Enforced allowedTypes: ['image', 'video'] and 50MB video limit across all carousel slots in configuration, server endpoints, and Supabase migrations.
+
+### New Slots Registered
+None (updated site.background with allowedTypes: ['video', 'url'] and site.background_poster with allowedTypes: ['image']).
+
+### New Components Added
+None.
+
+### Known Limitations or Follow-up Needed
+None. Verified that all carousel slots allow both images and videos, errors are surfaced clearly, and the Publish button appears reliably after upload.
+
+### Build Status
+PASS
+---
+

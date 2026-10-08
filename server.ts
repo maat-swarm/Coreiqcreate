@@ -105,6 +105,37 @@ async function ensureClaudeCodeScopes() {
 }
 ensureClaudeCodeScopes();
 
+// Ensure all carousel showcase slots in Supabase have allowed_types: ['image', 'video'] and 50MB max_bytes
+async function ensureMediaSlotsConfig() {
+  if (supabase) {
+    try {
+      const carouselKeys = [
+        'home.showcase',
+        'solutions.showcase',
+        'apps.showcase',
+        'learn.showcase',
+        'tools.showcase',
+        'about.showcase',
+        'news.showcase',
+      ];
+      for (const slotKey of carouselKeys) {
+        await supabase
+          .from('media_slots')
+          .update({
+            allowed_types: ['image', 'video'],
+            max_bytes: 52428800,
+            max_items: 6,
+          })
+          .eq('slot_key', slotKey);
+      }
+      console.log('[CoreIQ] Ensured all carousel showcase slots support image and video in Supabase');
+    } catch (e) {
+      console.warn('[CoreIQ] Could not update media slots in Supabase:', e);
+    }
+  }
+}
+ensureMediaSlotsConfig();
+
 // In-memory fallback stores if Supabase tables are still initializing
 const localStore: Record<string, any[]> = {
   leads: [],
@@ -1147,11 +1178,14 @@ function detectMimeTypeFromBuffer(buffer: Buffer): string | null {
   ) {
     return 'image/webp';
   }
-  // MP4: ISO Base Media file contains 'ftyp' at bytes 4-8
-  if (buffer.toString('ascii', 4, 8) === 'ftyp') {
+  // MP4: ISO Base Media file contains 'ftyp' at bytes 4-8 or anywhere in initial 32 bytes
+  if (
+    buffer.toString('ascii', 4, 8) === 'ftyp' ||
+    (buffer.length >= 32 && buffer.subarray(0, 32).includes(Buffer.from('ftyp')))
+  ) {
     return 'video/mp4';
   }
-  // WEBM: 1A 45 DF A3
+  // WEBM: 1A 45 DF A3 (EBML Header)
   if (buffer[0] === 0x1A && buffer[1] === 0x45 && buffer[2] === 0xDF && buffer[3] === 0xA3) {
     return 'video/webm';
   }
@@ -1277,7 +1311,14 @@ app.get('/api/v1/media/slots', authenticateApiKey, requireScope('READ_MEDIA'), a
     items = localStore.media_slot_items || [];
   }
 
-  const result = slots.map((slot) => {
+  const result = slots.map((rawSlot) => {
+    const isCarousel = rawSlot.slot_key.endsWith('.showcase') || rawSlot.slot_key === 'home.showcase';
+    const slot = {
+      ...rawSlot,
+      allowed_types: isCarousel ? ['image', 'video'] : (rawSlot.allowed_types || ['image']),
+      max_bytes: isCarousel ? Math.max(rawSlot.max_bytes || 0, 52428800) : rawSlot.max_bytes,
+      max_items: isCarousel ? 6 : rawSlot.max_items,
+    };
     const slotItems = items.filter((i) => i.slot_key === slot.slot_key);
     const count = slotItems.length;
     let status: 'empty' | 'filled' | 'error' = 'empty';
@@ -1341,11 +1382,19 @@ app.get('/api/v1/media/slots/:slot_key', async (req, res) => {
     return res.status(404).json({ error: 'Not Found', message: `Slot '${slot_key}' not found.` });
   }
 
+  const isCarousel = slot.slot_key.endsWith('.showcase') || slot.slot_key === 'home.showcase';
+  const effectiveSlot = {
+    ...slot,
+    allowed_types: isCarousel ? ['image', 'video'] : (slot.allowed_types || ['image']),
+    max_bytes: isCarousel ? Math.max(slot.max_bytes || 0, 52428800) : slot.max_bytes,
+    max_items: isCarousel ? 6 : slot.max_items,
+  };
+
   return res.json({
     slot: {
-      ...slot,
+      ...effectiveSlot,
       item_count: items.length,
-      status: items.length === 0 ? 'empty' : (items.length >= slot.max_items ? 'filled' : 'filled'),
+      status: items.length === 0 ? 'empty' : (items.length >= effectiveSlot.max_items ? 'filled' : 'filled'),
     },
     items,
   });
@@ -1377,6 +1426,11 @@ app.post(
       return res.status(404).json({ error: 'Not Found', message: `Slot '${slot_key}' not found.` });
     }
 
+    const isCarousel = slot.slot_key.endsWith('.showcase') || slot.slot_key === 'home.showcase';
+    const effectiveAllowedTypes: string[] = isCarousel
+      ? ['image', 'video']
+      : (slot.allowed_types || ['image']);
+
     // 2. Extract fields
     let type = req.body?.type as string;
     const alt = req.body?.alt ? String(req.body.alt).trim() : '';
@@ -1393,10 +1447,10 @@ app.post(
     }
 
     // 3. Validate type
-    if (!type || !slot.allowed_types.includes(type)) {
+    if (!type || !effectiveAllowedTypes.includes(type)) {
       return res.status(415).json({
         error: 'Unsupported Media Type',
-        message: `Type '${type || 'unknown'}' is not allowed for slot '${slot_key}'. Allowed types: ${slot.allowed_types.join(', ')}`,
+        message: `Type '${type || 'unknown'}' is not allowed for slot '${slot_key}'. Allowed types: ${effectiveAllowedTypes.join(', ')}`,
       });
     }
 
@@ -1420,11 +1474,15 @@ app.post(
         return res.status(400).json({ error: 'Missing File', message: `A file upload is required for media type '${type}'.` });
       }
 
-      // Check file size
-      if (req.file.size > slot.max_bytes) {
+      // Check file size (carousel slots allow 50MB for video, 5MB for image)
+      const maxAllowedBytes = isCarousel
+        ? (type === 'video' ? 52428800 : 5242880)
+        : slot.max_bytes;
+
+      if (req.file.size > maxAllowedBytes) {
         return res.status(413).json({
           error: 'Payload Too Large',
-          message: `File size (${req.file.size} bytes) exceeds slot limit of ${slot.max_bytes} bytes (${Math.round(slot.max_bytes / 1024)} KB).`,
+          message: `File size (${req.file.size} bytes) exceeds slot limit of ${maxAllowedBytes} bytes (${Math.round(maxAllowedBytes / 1024)} KB).`,
         });
       }
 
