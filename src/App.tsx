@@ -4,7 +4,6 @@ import { SplashScreen } from './components/common/SplashScreen';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
 import { SiteVisualEnvironment } from './components/environment/SiteVisualEnvironment';
-import { BackToTop } from './components/common/BackToTop';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import { NavRoute } from './types';
 import { seedManifestPlaceholders } from './services/contentResolver';
@@ -140,7 +139,6 @@ export default function App() {
       <Suspense fallback={suspenseFallback}>
         <AnimatePresence mode="wait">
           <motion.main
-            id="main-content"
             key={currentRoute}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -195,7 +193,6 @@ export default function App() {
           </motion.main>
         </AnimatePresence>
       </Suspense>
-      <BackToTop />
       <Footer onNavigate={navigateTo} />
     </div>
   );

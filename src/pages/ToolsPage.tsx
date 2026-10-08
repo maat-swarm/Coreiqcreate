@@ -211,7 +211,7 @@ Provide an executive summary, followed by a chronological execution table with m
       </section>
 
       {/* 3. EXPLORE TOOLS CATALOGUE */}
-      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 content-visibility-auto">
+      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="space-y-6 mb-12">
           <ScrollReveal>
             <div className="space-y-2">
@@ -292,8 +292,7 @@ Provide an executive summary, followed by a chronological execution table with m
               <div
                 key={tool.id}
                 onClick={() => onAsk(`Open and run the ${tool.title} tool. What does it do and how can I execute it?`)}
-                style={{ '--i': idx } as React.CSSProperties}
-                className="reveal group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-auto min-h-[200px] relative border border-slate-800/80 hover:border-cyan-400/50 hover:-translate-y-2 hover:shadow-[0_16px_36px_rgba(0,0,0,0.8),0_0_28px_rgba(34,211,238,0.2)] transition-all duration-300"
+                className="group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-auto min-h-[200px] relative border border-slate-800/80 hover:border-cyan-400/50 hover:-translate-y-2 hover:shadow-[0_16px_36px_rgba(0,0,0,0.8),0_0_28px_rgba(34,211,238,0.2)] transition-all duration-300"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">

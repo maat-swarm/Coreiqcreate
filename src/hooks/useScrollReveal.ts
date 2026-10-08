@@ -4,56 +4,25 @@ export function useScrollReveal() {
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
-    // Respect user motion preference
-    const prefersReducedMotion =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (prefersReducedMotion) {
-      document
-        .querySelectorAll<HTMLElement>('.reveal, .reveal-up, .reveal-fade')
-        .forEach((el) => {
-          el.classList.add('visible', 'is-revealed');
-        });
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries, obs) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible', 'is-revealed');
-            obs.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.15 }
-    );
-
-    const observeElements = () => {
-      document
-        .querySelectorAll<HTMLElement>('.reveal, .reveal-up, .reveal-fade')
-        .forEach((el) => {
-          if (!el.classList.contains('visible') && !el.classList.contains('is-revealed')) {
-            observer.observe(el);
-          }
-        });
+    const revealAll = () => {
+      document.querySelectorAll<HTMLElement>('.reveal-up, .reveal-fade')
+        .forEach(el => el.classList.add('is-revealed'));
     };
 
-    observeElements();
+    revealAll();
 
-    let mutationObserver: MutationObserver | null = null;
+    // Use MutationObserver so that when splash screen unmounts and HomePage / lazy pages mount,
+    // all elements with .reveal-up and .reveal-fade immediately get .is-revealed
+    let observer: MutationObserver | null = null;
     if (typeof MutationObserver !== 'undefined' && document.body) {
-      mutationObserver = new MutationObserver(() => {
-        observeElements();
+      observer = new MutationObserver(() => {
+        revealAll();
       });
-      mutationObserver.observe(document.body, { childList: true, subtree: true });
+      observer.observe(document.body, { childList: true, subtree: true });
     }
 
     return () => {
-      observer.disconnect();
-      if (mutationObserver) mutationObserver.disconnect();
+      if (observer) observer.disconnect();
     };
   }, []);
 }
-

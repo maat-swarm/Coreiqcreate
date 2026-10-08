@@ -635,8 +635,8 @@ export const CommandUploadTab: React.FC = () => {
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{actionSuccess}</span>
           </div>
-          <button onClick={() => setActionSuccess(null)} aria-label="Dismiss success message" className="text-emerald-400 hover:text-white p-1 cursor-pointer">
-            <X className="w-4 h-4" aria-hidden="true" />
+          <button onClick={() => setActionSuccess(null)} className="text-emerald-400 hover:text-white p-1">
+            <X className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -647,8 +647,8 @@ export const CommandUploadTab: React.FC = () => {
             <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
             <span>{errorMessage}</span>
           </div>
-          <button onClick={() => setErrorMessage(null)} aria-label="Dismiss error message" className="text-rose-400 hover:text-white p-1 cursor-pointer">
-            <X className="w-4 h-4" aria-hidden="true" />
+          <button onClick={() => setErrorMessage(null)} className="text-rose-400 hover:text-white p-1">
+            <X className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -1031,8 +1031,6 @@ export const CommandUploadTab: React.FC = () => {
                                   <img
                                     src={previewUrl}
                                     alt="Upload preview"
-                                    width={80}
-                                    height={45}
                                     className="w-full h-full object-cover"
                                   />
                                 )}
@@ -1080,8 +1078,6 @@ export const CommandUploadTab: React.FC = () => {
                                   <img
                                     src={posterPreviewUrl}
                                     alt="Poster preview"
-                                    width={80}
-                                    height={45}
                                     className="w-20 aspect-video object-cover rounded border border-slate-700"
                                   />
                                   <div className="flex-1 min-w-0 text-xs">
@@ -1308,8 +1304,6 @@ export const CommandUploadTab: React.FC = () => {
                                   <img
                                     src={item.url || ''}
                                     alt={item.alt || 'Media item'}
-                                    width={320}
-                                    height={180}
                                     className="w-full h-full object-cover"
                                     loading="lazy"
                                   />

@@ -36,10 +36,7 @@ export const ImageBackground: React.FC<ImageBackgroundProps> = ({
         {customPosterUrl ? (
           <img
             src={customPosterUrl}
-            alt=""
-            role="presentation"
-            width={1920}
-            height={1080}
+            alt="Core IQ Living World"
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-[75%_45%] sm:object-[70%_48%] lg:object-[68%_50%] transition-opacity duration-1000"
             style={{
@@ -51,10 +48,7 @@ export const ImageBackground: React.FC<ImageBackgroundProps> = ({
             <source srcSet="/assets/backgrounds/coreiq-world.webp" type="image/webp" />
             <img
               src={ASSETS.worldArt || '/assets/backgrounds/coreiq-world.jpg'}
-              alt=""
-              role="presentation"
-              width={1920}
-              height={1080}
+              alt="Core IQ Living World"
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover object-[75%_45%] sm:object-[70%_48%] lg:object-[68%_50%] transition-opacity duration-1000"
               style={{

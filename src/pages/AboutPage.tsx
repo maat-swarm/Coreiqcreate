@@ -114,7 +114,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
       </section>
 
       {/* 3. PRINCIPLES STREAM: 5 full-width numbered editorial rows */}
-      <section className="py-20 lg:py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 content-visibility-auto">
+      <section className="py-20 lg:py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <ScrollReveal>
           <div className="space-y-3 mb-16">
             <span className="text-xs font-mono tracking-[0.3em] text-cyan-400 uppercase">
@@ -133,11 +133,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onAsk }) => {
         <div className="relative border-t border-slate-800/80">
           <div className="absolute left-[38px] top-0 bottom-0 w-[1px] bg-gradient-to-b from-cyan-500/30 via-purple-500/20 to-transparent hidden lg:block animate-line-grow" />
 
-          {MANIFESTO_PRINCIPLES.map((principle, index) => (
+          {MANIFESTO_PRINCIPLES.map((principle) => (
             <div
               key={principle.num}
-              style={{ '--i': index } as React.CSSProperties}
-              className="reveal group py-10 sm:py-12 border-b border-slate-800/80 transition-all duration-300 hover:bg-gradient-to-r hover:from-cyan-950/20 hover:via-slate-900/40 hover:to-transparent px-4 sm:px-6 -mx-4 sm:-mx-6 rounded-2xl hover:translate-x-1"
+              className="group py-10 sm:py-12 border-b border-slate-800/80 transition-all duration-300 hover:bg-gradient-to-r hover:from-cyan-950/20 hover:via-slate-900/40 hover:to-transparent px-4 sm:px-6 -mx-4 sm:-mx-6 rounded-2xl hover:translate-x-1"
             >
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 items-center">
                 {/* Large Monospace Number */}

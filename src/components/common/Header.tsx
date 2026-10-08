@@ -24,39 +24,15 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [observedActiveNav, setObservedActiveNav] = useState<NavRoute | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 60);
+      setIsScrolled(window.scrollY > 80);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const sections = document.querySelectorAll<HTMLElement>('section[id], [data-nav-section]');
-    if (!sections.length) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const navId = (entry.target.getAttribute('data-nav-section') || entry.target.id) as NavRoute;
-            if (NAV_ITEMS.some((i) => i.id === navId)) {
-              setObservedActiveNav(navId);
-            }
-          }
-        });
-      },
-      { threshold: 0.5 }
-    );
-
-    sections.forEach((s) => observer.observe(s));
-    return () => observer.disconnect();
-  }, [currentRoute]);
 
   const handleNavClick = (route: NavRoute) => {
     onNavigate(route);
@@ -64,15 +40,15 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const activeNavId = observedActiveNav || (NAV_ITEMS.some((i) => i.id === currentRoute) ? currentRoute : null);
+  const activeNavId = NAV_ITEMS.some((i) => i.id === currentRoute) ? currentRoute : null;
   const targetUnderlineId = hoveredNav || activeNavId;
 
   return (
     <header
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${
         isScrolled
-          ? 'nav-scrolled bg-[rgba(var(--nav-bg-rgb),0.92)] backdrop-blur-[12px] shadow-[0_1px_12px_rgba(0,0,0,0.1)] border-b border-[rgba(255,255,255,0.1)]'
-          : 'nav-frosted bg-[rgba(var(--nav-bg-rgb),0.75)] backdrop-blur-[12px] backdrop-saturate-[1.4] border-b border-[rgba(255,255,255,0.1)]'
+          ? 'bg-[#050814]/95 backdrop-blur-2xl border-b border-[rgba(150,185,255,0.1)] shadow-[0_12px_32px_rgba(0,0,0,0.6)]'
+          : 'bg-[#050814]/70 backdrop-blur-md border-b border-transparent'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -126,7 +102,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
                 <span 
                   className={`relative z-10 transition-colors duration-200 inline-block ${
                     isActive
-                      ? 'nav-link-active text-white font-semibold'
+                      ? 'text-white font-semibold'
                       : isHovered
                       ? 'text-white'
                       : 'text-slate-400'
@@ -189,14 +165,14 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
             className="p-2 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 active:scale-90 transition-transform flex items-center justify-center"
             aria-label="Ask CoreIQ"
           >
-            <Sparkles className="w-4 h-4 animate-pulse" aria-hidden="true" />
+            <Sparkles className="w-4 h-4 animate-pulse" />
           </a>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 text-slate-400 hover:text-white focus:outline-none active:scale-90 transition-transform"
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
-            {mobileMenuOpen ? <X className="w-6 h-6" aria-hidden="true" /> : <Menu className="w-6 h-6" aria-hidden="true" />}
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
       </div>

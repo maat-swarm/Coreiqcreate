@@ -12,67 +12,15 @@
 @import "tailwindcss";
 
 @layer base {
-  :root {
-    --nav-bg-rgb: 5, 8, 20;
-    --color-accent: #06b6d4;
-  }
-
-  html {
-    scroll-behavior: smooth;
-    scroll-padding-top: 80px;
-  }
-
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: #050814;
     color: #f8fafc;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    line-height: 1.65;
   }
 
   h1, h2, h3, .font-display {
     font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
-    text-wrap: balance;
-    text-rendering: optimizeLegibility;
-  }
-
-  h1 {
-    font-size: clamp(2rem, 5vw + 1rem, 4rem);
     letter-spacing: -0.02em;
-    line-height: 1.05;
-  }
-
-  h2 {
-    font-size: clamp(1.5rem, 3vw + 0.75rem, 2.75rem);
-    letter-spacing: -0.02em;
-    line-height: 1.15;
-  }
-
-  h3 {
-    font-size: clamp(1.25rem, 2vw + 0.5rem, 1.875rem);
-    letter-spacing: -0.015em;
-    line-height: 1.25;
-  }
-
-  .hero-heading {
-    letter-spacing: -0.02em;
-  }
-
-  .stat-number,
-  .tabular-nums,
-  [data-tabular-nums] {
-    font-variant-numeric: tabular-nums;
-  }
-
-  :focus {
-    outline: none;
-  }
-
-  :focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 2px;
-    border-radius: 4px;
   }
 }
 
@@ -1448,122 +1396,9 @@ body {
               0 0 35px rgba(34, 211, 238, 0.22);
 }
 
-/* ==========================================================================
-   POLISH PASS — PERFORMANCE, DEPTH, MICRO-INTERACTIONS & ACCESSIBILITY
-   ========================================================================== */
-
-/* 1. Performance: Content Visibility */
-.content-visibility-auto,
-.section-cv {
-  content-visibility: auto;
-  contain-intrinsic-size: 1px 700px;
-}
-
-/* 2. Visual Depth: Frosted Glass Nav & Active Link */
-.nav-frosted {
-  backdrop-filter: blur(12px) saturate(1.4);
-  -webkit-backdrop-filter: blur(12px) saturate(1.4);
-  background: rgba(var(--nav-bg-rgb, 5, 8, 20), 0.75);
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
-  transition: background 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease;
-}
-
-.nav-scrolled {
-  background: rgba(var(--nav-bg-rgb, 5, 8, 20), 0.92) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.1) !important;
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
-}
-
-.nav-link-active {
-  color: #ffffff !important;
-  font-weight: 600;
-}
-
-/* 3. Visual Depth: Two-Layer Stack Card Depth */
-.card-depth,
-.coreiq-glass-card {
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.06),
-    0 4px 16px rgba(0, 0, 0, 0.08);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-  will-change: transform;
-}
-
-.card-depth:hover,
-.coreiq-glass-card:hover {
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.08),
-    0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-/* 4. Section Divider: CSS Clip-Path Diagonal Cut */
-.section-diagonal-cut {
-  clip-path: polygon(0 0, 100% 4%, 100% 100%, 0 96%);
-}
-
-/* 5. Accessibility: Contrast Hardening for Muted Text on Dark Surfaces */
-.text-slate-500,
-.text-slate-600 {
-  color: #94a3b8;
-}
-
-/* 6. Motion & Micro-animations */
-@media (prefers-reduced-motion: no-preference) {
-  .reveal {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-    will-change: transform, opacity;
-  }
-
-  .reveal.visible,
-  .reveal.is-revealed {
-    opacity: 1;
-    transform: none;
-  }
-
-  /* Staggered card grid delay using --i (capped at 6) */
-  .reveal[style*="--i"],
-  .reveal-up[style*="--i"] {
-    transition-delay: calc(min(var(--i, 0), 6) * 60ms);
-  }
-
-  /* Primary CTA button hover micro-animation */
-  .cta-button,
-  .btn-cta,
-  a[href="/ask"],
-  button.bg-cyan-400,
-  button.bg-cyan-500 {
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-
-  .cta-button:hover,
-  .btn-cta:hover,
-  a[href="/ask"]:hover,
-  button.bg-cyan-400:hover,
-  button.bg-cyan-500:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .reveal,
-  .reveal-up,
-  .reveal-fade {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-    transition: none !important;
-  }
-  .animate-float-subtle,
-  .animate-float-delayed,
-  .animate-neon-aura,
-  .animate-cyber-beam,
-  .animate-radar-ping,
-  .animate-shimmer-sweep {
+  .reveal-up, .reveal-fade { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .animate-float-subtle, .animate-float-delayed, .animate-neon-aura, .animate-cyber-beam, .animate-radar-ping, .animate-shimmer-sweep {
     animation: none !important;
   }
 }
