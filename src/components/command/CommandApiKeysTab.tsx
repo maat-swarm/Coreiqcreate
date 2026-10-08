@@ -36,6 +36,8 @@ const ALL_SCOPES: { id: ApiScope; label: string; description: string; category: 
   { id: 'WRITE_CONTENT', label: 'Write Content', description: 'Publish or modify site content items', category: 'write' },
   { id: 'READ_CONFIG', label: 'Read Config', description: 'Fetch system prompt and active model specs', category: 'read' },
   { id: 'WRITE_CONFIG', label: 'Write Config', description: 'Update sovereign agent configuration', category: 'write' },
+  { id: 'READ_MEDIA', label: 'Read Media', description: 'Read media slot items and published assets', category: 'read' },
+  { id: 'WRITE_MEDIA', label: 'Write Media', description: 'Upload, publish, reorder and delete media slot items', category: 'write' },
 ];
 
 export const CommandApiKeysTab: React.FC<CommandApiKeysTabProps> = ({ apiKeys, onRefresh }) => {
@@ -107,11 +109,12 @@ export const CommandApiKeysTab: React.FC<CommandApiKeysTabProps> = ({ apiKeys, o
     onRefresh();
   };
 
-  const handleRevokeKey = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to revoke API key "${name}"? External agents using this key will immediately be blocked.`)) {
-      await CoreIQData.revokeApiKey(id);
-      onRefresh();
-    }
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null);
+
+  const handleRevokeKey = async (id: string) => {
+    await CoreIQData.revokeApiKey(id);
+    setConfirmRevokeId(null);
+    onRefresh();
   };
 
   const handleDeleteKey = async (id: string) => {
@@ -302,12 +305,29 @@ export const CommandApiKeysTab: React.FC<CommandApiKeysTabProps> = ({ apiKeys, o
                 {/* Actions */}
                 <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                   {!key.revoked ? (
-                    <button
-                      onClick={() => handleRevokeKey(key.id, key.name)}
-                      className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-semibold transition-colors"
-                    >
-                      Revoke
-                    </button>
+                    confirmRevokeId === key.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleRevokeKey(key.id)}
+                          className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors"
+                        >
+                          Confirm Revoke
+                        </button>
+                        <button
+                          onClick={() => setConfirmRevokeId(null)}
+                          className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmRevokeId(key.id)}
+                        className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-semibold transition-colors"
+                      >
+                        Revoke
+                      </button>
+                    )
                   ) : (
                     <button
                       onClick={() => handleDeleteKey(key.id)}

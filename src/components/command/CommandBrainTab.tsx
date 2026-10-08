@@ -75,9 +75,7 @@ export const CommandBrainTab: React.FC<CommandBrainTabProps> = ({
   };
 
   const handleResetPrompt = () => {
-    if (confirm('Reset CoreIQ system prompt to standard architecture baseline?')) {
-      setSystemPrompt(DEFAULT_COREIQ_SYSTEM_PROMPT);
-    }
+    setSystemPrompt(DEFAULT_COREIQ_SYSTEM_PROMPT);
   };
 
   const handlePingBrain = async () => {

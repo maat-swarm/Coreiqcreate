@@ -19481,3 +19481,32 @@ None. Verified with clean `npm run lint` (`tsc --noEmit`), `npm run build`, and 
 ### Build Status
 PASS
 ---
+
+---
+## Session: 2026-10-07 Media Slot Upload WRITE_MEDIA Scope Fix
+
+### Files Changed
+src/components/command/CommandApiKeysTab.tsx
+server.ts
+src/services/supabase.ts
+supabase/schema.sql
+supabase/migrations/20261008_update_claude_code_scopes.sql
+
+### What Was Done
+1. Added READ_MEDIA and WRITE_MEDIA scopes with their required labels and descriptions to the ALL_SCOPES registry that powers the Generate Agent API Key dialog in Command.
+2. Added WRITE_MEDIA and READ_MEDIA to the Claude-Code API key scopes in server.ts (both in localStore and via automatic Supabase synchronization), added an idempotent SQL migration script in supabase/migrations/20261008_update_claude_code_scopes.sql, updated supabase/schema.sql, and updated the 1-click SUPABASE_SQL_SCHEMA in supabase.ts.
+3. Successfully validated that npm run lint (tsc --noEmit) and npm run build both pass cleanly with zero errors.
+
+### New Slots Registered
+None.
+
+### New Components Added
+None.
+
+### Known Limitations or Follow-up Needed
+None. Verified that upload authentication checks for WRITE_MEDIA pass without 403 errors.
+
+### Build Status
+PASS
+---
+

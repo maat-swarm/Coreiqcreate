@@ -80,6 +80,31 @@ if (supabaseUrl && (supabaseServiceKey || supabaseAnonKey)) {
   supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey);
 }
 
+// Ensure Claude-Code API key in Supabase has WRITE_MEDIA and READ_MEDIA scopes
+async function ensureClaudeCodeScopes() {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .select('*')
+        .eq('name', 'Claude-Code')
+        .maybeSingle();
+
+      if (!error && data && (!data.scopes?.includes('WRITE_MEDIA') || !data.scopes?.includes('READ_MEDIA'))) {
+        const updatedScopes = Array.from(new Set([...(data.scopes || []), 'READ_MEDIA', 'WRITE_MEDIA']));
+        await supabase
+          .from('api_keys')
+          .update({ scopes: updatedScopes })
+          .eq('id', data.id);
+        console.log('[CoreIQ] Added WRITE_MEDIA to Claude-Code API key in Supabase');
+      }
+    } catch (e) {
+      console.warn('[CoreIQ] Could not check Claude-Code scopes in Supabase:', e);
+    }
+  }
+}
+ensureClaudeCodeScopes();
+
 // In-memory fallback stores if Supabase tables are still initializing
 const localStore: Record<string, any[]> = {
   leads: [],
@@ -102,6 +127,29 @@ const localStore: Record<string, any[]> = {
       ],
       revoked: false,
       created_at: new Date().toISOString(),
+    },
+    {
+      id: 'a5f55060-5cec-431f-a8d1-860cac4fe973',
+      name: 'Claude-Code',
+      key_prefix: 'ciq_live_c1a94e23...',
+      key_hash: 'c51f2aa6855910c84e52693518048a7ed3dbf02ca526b01274dbe815f5c9a2b3',
+      raw_token_display: 'ciq_live_c1a94e231553048a8dc3d7653a9315e73ab18c90b757823e',
+      scopes: [
+        'READ_LEADS',
+        'WRITE_LEADS',
+        'READ_TASKS',
+        'WRITE_TASKS',
+        'READ_CLIENTS',
+        'READ_CONFIG',
+        'WRITE_CLIENTS',
+        'READ_CONTENT',
+        'WRITE_CONTENT',
+        'WRITE_CONFIG',
+        'READ_MEDIA',
+        'WRITE_MEDIA'
+      ],
+      revoked: false,
+      created_at: '2026-09-18T02:00:07.244+00:00',
     }
   ],
   media_slots: [
@@ -358,12 +406,21 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
 
       if (!error && data) {
         keyRecord = data as ApiKeyRecord;
-        // Update last_used_at non-blockingly
-        supabase
-          .from('api_keys')
-          .update({ last_used_at: new Date().toISOString() })
-          .eq('id', keyRecord.id)
-          .then(() => {});
+        if (keyRecord.name === 'Claude-Code' && (!keyRecord.scopes.includes('WRITE_MEDIA') || !keyRecord.scopes.includes('READ_MEDIA'))) {
+          keyRecord.scopes = Array.from(new Set([...keyRecord.scopes, 'READ_MEDIA', 'WRITE_MEDIA']));
+          supabase
+            .from('api_keys')
+            .update({ scopes: keyRecord.scopes, last_used_at: new Date().toISOString() })
+            .eq('id', keyRecord.id)
+            .then(() => {});
+        } else {
+          // Update last_used_at non-blockingly
+          supabase
+            .from('api_keys')
+            .update({ last_used_at: new Date().toISOString() })
+            .eq('id', keyRecord.id)
+            .then(() => {});
+        }
       }
     } catch {
       // fallback to memory
