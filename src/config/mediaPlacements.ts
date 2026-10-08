@@ -147,12 +147,6 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     component: 'VideoBackground',
     position: 'Fixed full-page background behind every page',
     wired: true,
-    label: 'Site global background video',
-    allowedTypes: ['video', 'url'],
-    capacity: 1,
-    maxSize: 52428800,
-    videoMaxBytes: 52428800,
-    aspectRatio: '16:9',
   },
   'site.background_poster': {
     slotKey: 'site.background_poster',
@@ -161,12 +155,6 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     component: 'VideoBackground',
     position: 'Image shown while the background video loads and when motion is reduced',
     wired: true,
-    label: 'Site global background poster',
-    allowedTypes: ['image'],
-    capacity: 1,
-    maxSize: 5242880,
-    imageMaxBytes: 5242880,
-    aspectRatio: '16:9',
   },
 };
 

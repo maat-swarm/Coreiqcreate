@@ -1400,15 +1400,4 @@ You are an architectural strategist, product engineer, and capability orchestrat
 - When a client brings a project idea, analyze it into: INTENT -> BLUEPRINT -> EXECUTION MILESTONES -> CAPABILITIES.',
     NOW()
 ) ON CONFLICT (id) DO NOTHING;
-
--- UPDATE CLAUDE-CODE SCOPES (Add WRITE_MEDIA and READ_MEDIA)
-UPDATE public.api_keys
-SET scopes = array_append(scopes, 'WRITE_MEDIA')
-WHERE name = 'Claude-Code'
-  AND NOT ('WRITE_MEDIA' = ANY(scopes));
-
-UPDATE public.api_keys
-SET scopes = array_append(scopes, 'READ_MEDIA')
-WHERE name = 'Claude-Code'
-  AND NOT ('READ_MEDIA' = ANY(scopes));
 `;

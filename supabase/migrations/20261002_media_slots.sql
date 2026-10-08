@@ -41,17 +41,16 @@ CREATE TABLE IF NOT EXISTS public.media_slot_items (
 -- 3. Seed slots (Idempotent UPSERT)
 INSERT INTO public.media_slots (slot_key, page, label, allowed_types, max_items, max_bytes, aspect)
 VALUES
-  ('home.showcase', 'home', 'Home showcase carousel', ARRAY['image', 'video'], 6, 52428800, '16:9'),
+  ('home.showcase', 'home', 'Home showcase carousel', ARRAY['image'], 6, 307200, '16:9'),
   ('home.intro_video', 'home', 'Home intro video', ARRAY['video', 'url'], 1, 52428800, '16:9'),
-  ('home.intro_poster', 'home', 'Home intro video poster', ARRAY['image'], 1, 5242880, '16:9'),
+  ('home.intro_poster', 'home', 'Home intro video poster', ARRAY['image'], 1, 307200, '16:9'),
   ('site.background', 'site', 'Site global background video', ARRAY['video', 'url'], 1, 52428800, '16:9'),
   ('site.background_poster', 'site', 'Site global background poster', ARRAY['image'], 1, 5242880, '16:9'),
-  ('solutions.showcase', 'solutions', 'Solutions showcase carousel', ARRAY['image', 'video'], 6, 52428800, '16:9'),
-  ('apps.showcase', 'apps', 'Apps showcase carousel', ARRAY['image', 'video'], 6, 52428800, '16:9'),
-  ('learn.showcase', 'learn', 'Learn showcase carousel', ARRAY['image', 'video'], 6, 52428800, '16:9'),
-  ('tools.showcase', 'tools', 'Tools showcase carousel', ARRAY['image', 'video'], 6, 52428800, '16:9'),
-  ('about.showcase', 'about', 'About showcase carousel', ARRAY['image', 'video'], 6, 52428800, '16:9'),
-  ('news.showcase', 'news', 'News showcase carousel', ARRAY['image', 'video'], 6, 52428800, '16:9')
+  ('solutions.showcase', 'solutions', 'Solutions showcase carousel', ARRAY['image'], 6, 307200, '16:9'),
+  ('apps.showcase', 'apps', 'Apps showcase carousel', ARRAY['image'], 6, 307200, '16:9'),
+  ('learn.showcase', 'learn', 'Learn showcase carousel', ARRAY['image'], 6, 307200, '16:9'),
+  ('tools.showcase', 'tools', 'Tools showcase carousel', ARRAY['image'], 6, 307200, '16:9'),
+  ('about.showcase', 'about', 'About showcase carousel', ARRAY['image'], 6, 307200, '16:9')
 ON CONFLICT (slot_key) DO UPDATE SET
   page = EXCLUDED.page,
   label = EXCLUDED.label,

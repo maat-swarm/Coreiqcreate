@@ -80,62 +80,6 @@ if (supabaseUrl && (supabaseServiceKey || supabaseAnonKey)) {
   supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey);
 }
 
-// Ensure Claude-Code API key in Supabase has WRITE_MEDIA and READ_MEDIA scopes
-async function ensureClaudeCodeScopes() {
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('api_keys')
-        .select('*')
-        .eq('name', 'Claude-Code')
-        .maybeSingle();
-
-      if (!error && data && (!data.scopes?.includes('WRITE_MEDIA') || !data.scopes?.includes('READ_MEDIA'))) {
-        const updatedScopes = Array.from(new Set([...(data.scopes || []), 'READ_MEDIA', 'WRITE_MEDIA']));
-        await supabase
-          .from('api_keys')
-          .update({ scopes: updatedScopes })
-          .eq('id', data.id);
-        console.log('[CoreIQ] Added WRITE_MEDIA to Claude-Code API key in Supabase');
-      }
-    } catch (e) {
-      console.warn('[CoreIQ] Could not check Claude-Code scopes in Supabase:', e);
-    }
-  }
-}
-ensureClaudeCodeScopes();
-
-// Ensure all carousel showcase slots in Supabase have allowed_types: ['image', 'video'] and 50MB max_bytes
-async function ensureMediaSlotsConfig() {
-  if (supabase) {
-    try {
-      const carouselKeys = [
-        'home.showcase',
-        'solutions.showcase',
-        'apps.showcase',
-        'learn.showcase',
-        'tools.showcase',
-        'about.showcase',
-        'news.showcase',
-      ];
-      for (const slotKey of carouselKeys) {
-        await supabase
-          .from('media_slots')
-          .update({
-            allowed_types: ['image', 'video'],
-            max_bytes: 52428800,
-            max_items: 6,
-          })
-          .eq('slot_key', slotKey);
-      }
-      console.log('[CoreIQ] Ensured all carousel showcase slots support image and video in Supabase');
-    } catch (e) {
-      console.warn('[CoreIQ] Could not update media slots in Supabase:', e);
-    }
-  }
-}
-ensureMediaSlotsConfig();
-
 // In-memory fallback stores if Supabase tables are still initializing
 const localStore: Record<string, any[]> = {
   leads: [],
@@ -158,29 +102,6 @@ const localStore: Record<string, any[]> = {
       ],
       revoked: false,
       created_at: new Date().toISOString(),
-    },
-    {
-      id: 'a5f55060-5cec-431f-a8d1-860cac4fe973',
-      name: 'Claude-Code',
-      key_prefix: 'ciq_live_c1a94e23...',
-      key_hash: 'c51f2aa6855910c84e52693518048a7ed3dbf02ca526b01274dbe815f5c9a2b3',
-      raw_token_display: 'ciq_live_c1a94e231553048a8dc3d7653a9315e73ab18c90b757823e',
-      scopes: [
-        'READ_LEADS',
-        'WRITE_LEADS',
-        'READ_TASKS',
-        'WRITE_TASKS',
-        'READ_CLIENTS',
-        'READ_CONFIG',
-        'WRITE_CLIENTS',
-        'READ_CONTENT',
-        'WRITE_CONTENT',
-        'WRITE_CONFIG',
-        'READ_MEDIA',
-        'WRITE_MEDIA'
-      ],
-      revoked: false,
-      created_at: '2026-09-18T02:00:07.244+00:00',
     }
   ],
   media_slots: [
@@ -437,21 +358,12 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
 
       if (!error && data) {
         keyRecord = data as ApiKeyRecord;
-        if (keyRecord.name === 'Claude-Code' && (!keyRecord.scopes.includes('WRITE_MEDIA') || !keyRecord.scopes.includes('READ_MEDIA'))) {
-          keyRecord.scopes = Array.from(new Set([...keyRecord.scopes, 'READ_MEDIA', 'WRITE_MEDIA']));
-          supabase
-            .from('api_keys')
-            .update({ scopes: keyRecord.scopes, last_used_at: new Date().toISOString() })
-            .eq('id', keyRecord.id)
-            .then(() => {});
-        } else {
-          // Update last_used_at non-blockingly
-          supabase
-            .from('api_keys')
-            .update({ last_used_at: new Date().toISOString() })
-            .eq('id', keyRecord.id)
-            .then(() => {});
-        }
+        // Update last_used_at non-blockingly
+        supabase
+          .from('api_keys')
+          .update({ last_used_at: new Date().toISOString() })
+          .eq('id', keyRecord.id)
+          .then(() => {});
       }
     } catch {
       // fallback to memory
@@ -1178,14 +1090,11 @@ function detectMimeTypeFromBuffer(buffer: Buffer): string | null {
   ) {
     return 'image/webp';
   }
-  // MP4: ISO Base Media file contains 'ftyp' at bytes 4-8 or anywhere in initial 32 bytes
-  if (
-    buffer.toString('ascii', 4, 8) === 'ftyp' ||
-    (buffer.length >= 32 && buffer.subarray(0, 32).includes(Buffer.from('ftyp')))
-  ) {
+  // MP4: ISO Base Media file contains 'ftyp' at bytes 4-8
+  if (buffer.toString('ascii', 4, 8) === 'ftyp') {
     return 'video/mp4';
   }
-  // WEBM: 1A 45 DF A3 (EBML Header)
+  // WEBM: 1A 45 DF A3
   if (buffer[0] === 0x1A && buffer[1] === 0x45 && buffer[2] === 0xDF && buffer[3] === 0xA3) {
     return 'video/webm';
   }
@@ -1311,14 +1220,7 @@ app.get('/api/v1/media/slots', authenticateApiKey, requireScope('READ_MEDIA'), a
     items = localStore.media_slot_items || [];
   }
 
-  const result = slots.map((rawSlot) => {
-    const isCarousel = rawSlot.slot_key.endsWith('.showcase') || rawSlot.slot_key === 'home.showcase';
-    const slot = {
-      ...rawSlot,
-      allowed_types: isCarousel ? ['image', 'video'] : (rawSlot.allowed_types || ['image']),
-      max_bytes: isCarousel ? Math.max(rawSlot.max_bytes || 0, 52428800) : rawSlot.max_bytes,
-      max_items: isCarousel ? 6 : rawSlot.max_items,
-    };
+  const result = slots.map((slot) => {
     const slotItems = items.filter((i) => i.slot_key === slot.slot_key);
     const count = slotItems.length;
     let status: 'empty' | 'filled' | 'error' = 'empty';
@@ -1382,19 +1284,11 @@ app.get('/api/v1/media/slots/:slot_key', async (req, res) => {
     return res.status(404).json({ error: 'Not Found', message: `Slot '${slot_key}' not found.` });
   }
 
-  const isCarousel = slot.slot_key.endsWith('.showcase') || slot.slot_key === 'home.showcase';
-  const effectiveSlot = {
-    ...slot,
-    allowed_types: isCarousel ? ['image', 'video'] : (slot.allowed_types || ['image']),
-    max_bytes: isCarousel ? Math.max(slot.max_bytes || 0, 52428800) : slot.max_bytes,
-    max_items: isCarousel ? 6 : slot.max_items,
-  };
-
   return res.json({
     slot: {
-      ...effectiveSlot,
+      ...slot,
       item_count: items.length,
-      status: items.length === 0 ? 'empty' : (items.length >= effectiveSlot.max_items ? 'filled' : 'filled'),
+      status: items.length === 0 ? 'empty' : (items.length >= slot.max_items ? 'filled' : 'filled'),
     },
     items,
   });
@@ -1426,11 +1320,6 @@ app.post(
       return res.status(404).json({ error: 'Not Found', message: `Slot '${slot_key}' not found.` });
     }
 
-    const isCarousel = slot.slot_key.endsWith('.showcase') || slot.slot_key === 'home.showcase';
-    const effectiveAllowedTypes: string[] = isCarousel
-      ? ['image', 'video']
-      : (slot.allowed_types || ['image']);
-
     // 2. Extract fields
     let type = req.body?.type as string;
     const alt = req.body?.alt ? String(req.body.alt).trim() : '';
@@ -1447,10 +1336,10 @@ app.post(
     }
 
     // 3. Validate type
-    if (!type || !effectiveAllowedTypes.includes(type)) {
+    if (!type || !slot.allowed_types.includes(type)) {
       return res.status(415).json({
         error: 'Unsupported Media Type',
-        message: `Type '${type || 'unknown'}' is not allowed for slot '${slot_key}'. Allowed types: ${effectiveAllowedTypes.join(', ')}`,
+        message: `Type '${type || 'unknown'}' is not allowed for slot '${slot_key}'. Allowed types: ${slot.allowed_types.join(', ')}`,
       });
     }
 
@@ -1474,15 +1363,11 @@ app.post(
         return res.status(400).json({ error: 'Missing File', message: `A file upload is required for media type '${type}'.` });
       }
 
-      // Check file size (carousel slots allow 50MB for video, 5MB for image)
-      const maxAllowedBytes = isCarousel
-        ? (type === 'video' ? 52428800 : 5242880)
-        : slot.max_bytes;
-
-      if (req.file.size > maxAllowedBytes) {
+      // Check file size
+      if (req.file.size > slot.max_bytes) {
         return res.status(413).json({
           error: 'Payload Too Large',
-          message: `File size (${req.file.size} bytes) exceeds slot limit of ${maxAllowedBytes} bytes (${Math.round(maxAllowedBytes / 1024)} KB).`,
+          message: `File size (${req.file.size} bytes) exceeds slot limit of ${slot.max_bytes} bytes (${Math.round(slot.max_bytes / 1024)} KB).`,
         });
       }
 

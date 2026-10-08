@@ -58,10 +58,8 @@ export function formatFileSize(bytes: number): string {
 
 export function getSlotEffectiveConfig(slot: MediaSlot) {
   const placement = getPlacementForSlot(slot.slot_key);
+  const allowedTypes = (placement?.allowedTypes as MediaSlotType[]) || slot.allowed_types;
   const isCarousel = slot.slot_key.endsWith('.showcase') || placement?.component === 'CoreIQSentinel';
-  const allowedTypes = isCarousel
-    ? (['image', 'video'] as MediaSlotType[])
-    : ((placement?.allowedTypes as MediaSlotType[]) || slot.allowed_types || ['image']);
   const maxItems = placement?.capacity ?? (isCarousel ? 6 : slot.max_items);
 
   const hasImage = allowedTypes.includes('image');
@@ -230,31 +228,26 @@ export const CommandUploadTab: React.FC = () => {
         setUploadType(detail.slot.allowed_types[0]);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || `Failed to load details for slot ${slotKey}`);
-      setSelectedSlotDetail((prev) => {
-        // If we already have loaded items for this slot, preserve them so they don't vanish
-        if (prev && prev.slot.slot_key === slotKey && prev.items.length > 0) {
-          return prev;
-        }
-        const placement = getPlacementForSlot(slotKey);
-        if (placement) {
-          const fallbackSlot: MediaSlot = {
-            slot_key: placement.slotKey,
-            page: placement.page,
-            label: placement.label || placement.slotKey,
-            allowed_types: (placement.allowedTypes as MediaSlotType[]) || ['image', 'video'],
-            max_items: placement.capacity ?? 6,
-            max_bytes: placement.maxSize ?? 52428800,
-            aspect: placement.aspectRatio ?? '16:9',
-            item_count: 0,
-            status: 'empty',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-          return { slot: fallbackSlot, items: [] };
-        }
-        return null;
-      });
+      const placement = getPlacementForSlot(slotKey);
+      if (placement) {
+        const fallbackSlot: MediaSlot = {
+          slot_key: placement.slotKey,
+          page: placement.page,
+          label: placement.label || placement.slotKey,
+          allowed_types: (placement.allowedTypes as MediaSlotType[]) || ['image', 'video'],
+          max_items: placement.capacity ?? 6,
+          max_bytes: placement.maxSize ?? 52428800,
+          aspect: placement.aspectRatio ?? '16:9',
+          item_count: 0,
+          status: 'empty',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setSelectedSlotDetail({ slot: fallbackSlot, items: [] });
+      } else {
+        setErrorMessage(err.message || `Failed to load details for slot ${slotKey}`);
+        setSelectedSlotDetail(null);
+      }
     } finally {
       setIsLoadingDetail(false);
     }
@@ -420,9 +413,8 @@ export const CommandUploadTab: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      let createdItem: MediaSlotItem | null = null;
       if (uploadType === 'url') {
-        createdItem = await createUrlMediaItem(slot.slot_key, {
+        await createUrlMediaItem(slot.slot_key, {
           type: 'url',
           url: urlInput.trim(),
           alt: altInput.trim() || undefined,
@@ -455,32 +447,11 @@ export const CommandUploadTab: React.FC = () => {
           }
         }
 
-        createdItem = await uploadMediaItem(slot.slot_key, formData);
+        await uploadMediaItem(slot.slot_key, formData);
       }
 
-      // Immediately render new item in Current Slot Items state so the Publish button is instantly accessible
-      if (createdItem) {
-        setSelectedSlotDetail((prev) => {
-          if (!prev) return prev;
-          const placement = getPlacementForSlot(slot.slot_key);
-          const isSingle = (placement?.capacity ?? slot.max_items) === 1;
-          const remaining = prev.items.filter((i) => i.id !== createdItem!.id);
-          const nextItems = isSingle ? [createdItem!] : [...remaining, createdItem!];
-          return {
-            ...prev,
-            items: nextItems,
-            slot: {
-              ...prev.slot,
-              item_count: nextItems.length,
-            },
-          };
-        });
-      }
-
-      setActionSuccess(`New item successfully created in ${slot.label}. Remember to click "Publish Item" to activate it on the site!`);
+      setActionSuccess(`New item successfully created in ${slot.label}. Remember to Publish it when ready!`);
       resetForm();
-
-      // Immediately re-fetch slot items list from server to guarantee sync across all pages/slots
       await loadSlotDetail(slot.slot_key);
       await loadSlots();
     } catch (err: any) {
@@ -1359,22 +1330,21 @@ export const CommandUploadTab: React.FC = () => {
                                   {/* Publish toggle */}
                                   <button
                                     onClick={() => handleTogglePublish(item)}
-                                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all min-h-[44px] cursor-pointer ${
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all min-h-[44px] ${
                                       isPublished
-                                        ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                                        : 'bg-gradient-to-r from-cyan-500/25 to-blue-500/25 hover:from-cyan-500/35 hover:to-blue-500/35 text-cyan-200 border border-cyan-400/60 shadow-[0_0_15px_rgba(25,217,255,0.25)] font-bold'
+                                        ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+                                        : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'
                                     }`}
-                                    title={isPublished ? 'Live on public site - click to unpublish' : 'Click to publish this item live to the site'}
                                   >
                                     {isPublished ? (
                                       <>
-                                        <Eye className="w-4 h-4 text-emerald-400" />
+                                        <Eye className="w-3.5 h-3.5 text-emerald-400" />
                                         <span>Published</span>
                                       </>
                                     ) : (
                                       <>
-                                        <EyeOff className="w-4 h-4 text-cyan-300 animate-pulse" />
-                                        <span className="text-white font-bold tracking-wide">Publish Item</span>
+                                        <EyeOff className="w-3.5 h-3.5" />
+                                        <span>Publish Item</span>
                                       </>
                                     )}
                                   </button>
