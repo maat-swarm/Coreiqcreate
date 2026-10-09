@@ -80,6 +80,15 @@ if (supabaseUrl && (supabaseServiceKey || supabaseAnonKey)) {
   supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey);
 }
 
+// Dedicated admin client strictly using SUPABASE_SERVICE_ROLE_KEY (never a VITE_ key)
+// for all store writes, access link creation, and storage bucket signing
+let adminSupabase: SupabaseClient | null = null;
+if (supabaseUrl && supabaseServiceKey) {
+  adminSupabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 // In-memory fallback stores if Supabase tables are still initializing
 const localStore: Record<string, any[]> = {
   leads: [],
@@ -488,7 +497,165 @@ const localStore: Record<string, any[]> = {
       updated_at: new Date().toISOString()
     }
   ],
-  use_case_files: []
+  use_case_files: [],
+  store_apps: [
+    {
+      id: 'app-seed-imageforge',
+      slug: 'imageforge',
+      title: 'ImageForge',
+      tagline: 'Create and edit stunning images with AI.',
+      description: 'ImageForge is a neural creative engine designed for high-resolution asset generation, prompt refining, and real-time canvas editing.',
+      category: 'Creative',
+      status: 'published',
+      price_mode: 'free',
+      price_amount: 0,
+      currency: 'USD',
+      price_note: 'Free & Open Community Tier',
+      payment_label: '',
+      payment_url: '',
+      payment_instructions: '',
+      distribution_type: 'download',
+      external_url: '',
+      file_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      sha256: null,
+      icon_url: null,
+      icon_name: 'Flame',
+      accent_color: '#ec4899',
+      screenshots: [],
+      version: '1.0.0',
+      changelog: 'Initial public release.',
+      sort_order: 1,
+      featured: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'app-seed-writepro',
+      slug: 'writepro',
+      title: 'WritePro',
+      tagline: 'Generate, refine and improve your writing.',
+      description: 'WritePro structures enterprise briefs, documents, and marketing copy with automated clarity checks and tone modulation.',
+      category: 'Productivity',
+      status: 'published',
+      price_mode: 'free',
+      price_amount: 0,
+      currency: 'USD',
+      price_note: 'Free Utility Tier',
+      payment_label: '',
+      payment_url: '',
+      payment_instructions: '',
+      distribution_type: 'download',
+      external_url: '',
+      file_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      sha256: null,
+      icon_url: null,
+      icon_name: 'PenTool',
+      accent_color: '#06b6d4',
+      screenshots: [],
+      version: '1.0.0',
+      changelog: 'Initial release.',
+      sort_order: 2,
+      featured: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'app-seed-datamind',
+      slug: 'datamind',
+      title: 'DataMind',
+      tagline: 'Turn your data into insights with AI.',
+      description: 'Enterprise data exploration bridge that ingests raw CSVs, databases, and logs into automated executive dashboards.',
+      category: 'Data',
+      status: 'published',
+      price_mode: 'contact',
+      price_amount: null,
+      currency: 'USD',
+      price_note: 'Custom Integration License',
+      payment_label: 'Request Access & Architecture Session',
+      payment_url: '',
+      payment_instructions: 'Submit a deployment request. Our engineering team reviews specifications and issues private repository access.',
+      distribution_type: 'custom',
+      external_url: '',
+      file_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      sha256: null,
+      icon_url: null,
+      icon_name: 'Database',
+      accent_color: '#8b5cf6',
+      screenshots: [],
+      version: '1.2.0',
+      changelog: 'Multi-schema query federation.',
+      sort_order: 3,
+      featured: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'app-seed-flowbuilder',
+      slug: 'flowbuilder',
+      title: 'FlowBuilder',
+      tagline: 'Automate your workflows without code.',
+      description: 'Node-based visual orchestrator for building automated pipelines, microservice integrations, and autonomous workers.',
+      category: 'Automation',
+      status: 'published',
+      price_mode: 'paid',
+      price_amount: 49,
+      currency: 'USD',
+      price_note: 'One-Time License with Full Source',
+      payment_label: 'Purchase License',
+      payment_url: 'https://paypal.me/coreiqcreate',
+      payment_instructions: 'Pay $49 USD via PayPal or international bank wire. After payment, request an access link with your transaction ID.',
+      distribution_type: 'download',
+      external_url: '',
+      file_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      sha256: null,
+      icon_url: null,
+      icon_name: 'GitMerge',
+      accent_color: '#3b82f6',
+      screenshots: [],
+      version: '2.1.0',
+      changelog: 'Introduced webhook re-try queues.',
+      sort_order: 4,
+      featured: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+  ],
+  app_requests: [],
+  app_access_links: [],
+  app_downloads: [],
+  store_settings: [
+    {
+      key: 'payment',
+      value: {
+        heading: 'Global Payment & Direct Release',
+        default_instructions: 'CoreIQ operates worldwide without merchant lock-in. Settle payments via PayPal, Wise, or Direct Wire. We issue an expiring secure download link upon receipt.',
+        default_currency: 'USD',
+        methods: [
+          {
+            id: 'method-paypal',
+            label: 'PayPal (Global)',
+            url: 'https://paypal.me/coreiqcreate',
+            details: 'Include your application name and email in the payment reference.'
+          },
+          {
+            id: 'method-wire',
+            label: 'International Wire / Bank Transfer',
+            url: '',
+            details: 'Direct routing provided on invoice generation. Wire references matched automatically.'
+          }
+        ]
+      },
+      updated_at: new Date().toISOString()
+    }
+  ]
 };
 
 // Seed localStore with manifest placeholders
@@ -2466,6 +2633,1265 @@ app.delete('/api/v1/admin/use-cases/:id', authenticateApiKey, async (req, res) =
   localStore.use_case_files = (localStore.use_case_files || []).filter((f: any) => f.use_case_id !== id);
 
   return res.json({ status: 'deleted', id });
+});
+
+// -----------------------------------------------------------------------------
+// APP STORE & COMMAND STORE ENGINE (server.ts)
+// -----------------------------------------------------------------------------
+
+const ALLOWED_STORE_STATUSES = ['draft', 'published', 'archived'] as const;
+const ALLOWED_PRICE_MODES = ['free', 'paid', 'contact'] as const;
+const ALLOWED_DISTRIBUTION_TYPES = ['download', 'link', 'access', 'custom'] as const;
+
+function validateStoreAppPayload(body: any, isPatch = false): string[] {
+  const errors: string[] = [];
+
+  if (!isPatch || body.slug !== undefined) {
+    if (!body.slug || typeof body.slug !== 'string' || !/^[a-z0-9-]+$/.test(body.slug)) {
+      errors.push('Slug is required and must contain only lowercase letters, numbers, and hyphens (a-z0-9-).');
+    }
+  }
+
+  if (!isPatch || body.title !== undefined) {
+    if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
+      errors.push('Title is required.');
+    }
+  }
+
+  if (body.status !== undefined && !ALLOWED_STORE_STATUSES.includes(body.status)) {
+    errors.push(`Status must be one of: ${ALLOWED_STORE_STATUSES.join(', ')}.`);
+  }
+
+  if (body.price_mode !== undefined && !ALLOWED_PRICE_MODES.includes(body.price_mode)) {
+    errors.push(`Price mode must be one of: ${ALLOWED_PRICE_MODES.join(', ')}.`);
+  }
+
+  if (body.distribution_type !== undefined && !ALLOWED_DISTRIBUTION_TYPES.includes(body.distribution_type)) {
+    errors.push(`Distribution type must be one of: ${ALLOWED_DISTRIBUTION_TYPES.join(', ')}.`);
+  }
+
+  if (body.price_amount !== undefined && body.price_amount !== null && isNaN(Number(body.price_amount))) {
+    errors.push('Price amount must be a valid number or null.');
+  }
+
+  return errors;
+}
+
+// 1. GET /api/v1/store/apps — operator lists all store apps
+app.get('/api/v1/store/apps', authenticateApiKey, requireScope('READ_MEDIA'), async (req, res) => {
+  const { status, category } = req.query as { status?: string; category?: string };
+
+  let apps: any[] = [];
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      let q = client.from('store_apps').select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false });
+      if (status && status !== 'all') q = q.eq('status', status);
+      if (category && category !== 'all' && category !== 'All') q = q.eq('category', category);
+      const { data, error } = await q;
+      if (!error && Array.isArray(data)) {
+        apps = data;
+      }
+    } catch {}
+  }
+
+  if (apps.length === 0 && localStore.store_apps) {
+    apps = [...localStore.store_apps];
+    if (status && status !== 'all') apps = apps.filter((a) => a.status === status);
+    if (category && category !== 'all' && category !== 'All') apps = apps.filter((a) => a.category === category);
+    apps.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  }
+
+  return res.json({ apps, total: apps.length });
+});
+
+// 2. POST /api/v1/store/apps — operator creates an app
+app.post('/api/v1/store/apps', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+  const errors = validateStoreAppPayload(req.body, false);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: 'Validation Error', messages: errors });
+  }
+
+  const {
+    slug,
+    title,
+    tagline = '',
+    description = '',
+    category = 'Productivity',
+    status = 'draft',
+    price_mode = 'free',
+    price_amount = null,
+    currency = 'USD',
+    price_note = '',
+    payment_label = '',
+    payment_url = '',
+    payment_instructions = '',
+    distribution_type = 'download',
+    external_url = '',
+    icon_url = null,
+    icon_name = 'Sparkles',
+    accent_color = '#06b6d4',
+    screenshots = [],
+    version = '1.0.0',
+    changelog = '',
+    sort_order = 0,
+    featured = false,
+  } = req.body;
+
+  const client = adminSupabase || supabase;
+
+  // Check slug uniqueness
+  if (client) {
+    try {
+      const { data: existing } = await client.from('store_apps').select('id').eq('slug', slug).maybeSingle();
+      if (existing) {
+        return res.status(409).json({ error: 'Conflict', message: `An app with slug "${slug}" already exists.` });
+      }
+    } catch {}
+  }
+  if ((localStore.store_apps || []).some((a: any) => a.slug === slug)) {
+    return res.status(409).json({ error: 'Conflict', message: `An app with slug "${slug}" already exists.` });
+  }
+
+  const newApp = {
+    id: crypto.randomUUID ? crypto.randomUUID() : `app_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    slug: slug.trim().toLowerCase(),
+    title: title.trim(),
+    tagline: tagline.trim(),
+    description: description.trim(),
+    category,
+    status,
+    price_mode,
+    price_amount: price_amount !== null && price_amount !== undefined ? Number(price_amount) : null,
+    currency: currency.trim() || 'USD',
+    price_note: price_note.trim(),
+    payment_label: payment_label.trim(),
+    payment_url: payment_url.trim(),
+    payment_instructions: payment_instructions.trim(),
+    distribution_type,
+    external_url: external_url.trim(),
+    file_path: null,
+    file_name: null,
+    file_size_bytes: null,
+    sha256: null,
+    icon_url,
+    icon_name,
+    accent_color,
+    screenshots: Array.isArray(screenshots) ? screenshots : [],
+    version: version.trim() || '1.0.0',
+    changelog: changelog.trim(),
+    sort_order: Number(sort_order) || 0,
+    featured: Boolean(featured),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  if (adminSupabase) {
+    try {
+      const { data, error } = await adminSupabase.from('store_apps').insert([newApp]).select().single();
+      if (!error && data) {
+        localStore.store_apps = localStore.store_apps || [];
+        localStore.store_apps.push(data);
+        return res.status(201).json({ status: 'created', app: data });
+      }
+    } catch {}
+  }
+
+  localStore.store_apps = localStore.store_apps || [];
+  localStore.store_apps.push(newApp);
+  return res.status(201).json({ status: 'created', app: newApp });
+});
+
+// 3. PATCH /api/v1/store/apps/:id — operator updates an app
+app.patch('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+  const { id } = req.params;
+  const errors = validateStoreAppPayload(req.body, true);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: 'Validation Error', messages: errors });
+  }
+
+  const client = adminSupabase || supabase;
+
+  // If slug is changing, verify uniqueness
+  if (req.body.slug) {
+    const nextSlug = req.body.slug.trim().toLowerCase();
+    if (client) {
+      try {
+        const { data: existing } = await client.from('store_apps').select('id').eq('slug', nextSlug).neq('id', id).maybeSingle();
+        if (existing) {
+          return res.status(409).json({ error: 'Conflict', message: `An app with slug "${nextSlug}" already exists.` });
+        }
+      } catch {}
+    }
+    const localExisting = (localStore.store_apps || []).find((a: any) => a.slug === nextSlug && a.id !== id);
+    if (localExisting) {
+      return res.status(409).json({ error: 'Conflict', message: `An app with slug "${nextSlug}" already exists.` });
+    }
+    req.body.slug = nextSlug;
+  }
+
+  const updates: Record<string, any> = {
+    ...req.body,
+    updated_at: new Date().toISOString(),
+  };
+  delete updates.id;
+  delete updates.created_at;
+
+  if (updates.price_amount !== undefined && updates.price_amount !== null) {
+    updates.price_amount = Number(updates.price_amount);
+  }
+
+  let updatedApp: any = null;
+  if (adminSupabase) {
+    try {
+      const { data, error } = await adminSupabase.from('store_apps').update(updates).eq('id', id).select().single();
+      if (!error && data) {
+        updatedApp = data;
+      }
+    } catch {}
+  }
+
+  const localIdx = (localStore.store_apps || []).findIndex((a: any) => a.id === id);
+  if (localIdx >= 0) {
+    localStore.store_apps[localIdx] = { ...localStore.store_apps[localIdx], ...updates };
+    if (!updatedApp) updatedApp = localStore.store_apps[localIdx];
+  }
+
+  if (!updatedApp) {
+    return res.status(404).json({ error: 'Not Found', message: `Store app "${id}" not found.` });
+  }
+
+  return res.json({ status: 'updated', app: updatedApp });
+});
+
+// 4. DELETE /api/v1/store/apps/:id — operator deletes an app
+app.delete('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+  const { id } = req.params;
+
+  if (adminSupabase) {
+    try {
+      await adminSupabase.from('store_apps').delete().eq('id', id);
+    } catch {}
+  }
+
+  localStore.store_apps = (localStore.store_apps || []).filter((a: any) => a.id !== id);
+  return res.json({ status: 'deleted', id });
+});
+
+// 5. POST /api/v1/store/apps/:id/upload-url — direct signed upload URL generation for private app-files bucket
+app.post('/api/v1/store/apps/:id/upload-url', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+  const { id } = req.params;
+  const { filename } = req.body;
+
+  const rawFilename = typeof filename === 'string' && filename.trim() ? filename.trim() : 'app-package.zip';
+  const safeFilename = rawFilename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const pathInBucket = `${id}/${Date.now()}-${safeFilename}`;
+
+  if (adminSupabase) {
+    try {
+      const { data, error } = await adminSupabase.storage.from('app-files').createSignedUploadUrl(pathInBucket);
+      if (error) {
+        console.error('Supabase signed upload URL error:', error);
+        return res.status(500).json({ error: 'Storage Error', message: error.message });
+      }
+      return res.json({
+        path: data.path,
+        token: data.token,
+        signedUrl: data.signedUrl,
+      });
+    } catch (e: any) {
+      console.error('Signed upload error:', e);
+      return res.status(500).json({ error: 'Storage Exception', message: e?.message || 'Storage error' });
+    }
+  }
+
+  // Local/dev fallback
+  return res.json({
+    path: pathInBucket,
+    token: 'local_upload_dev_token',
+    signedUrl: `/api/v1/store/local-upload?path=${encodeURIComponent(pathInBucket)}`,
+  });
+});
+
+// 6. POST /api/v1/store/apps/:id/file-complete — confirm upload and store metadata
+app.post('/api/v1/store/apps/:id/file-complete', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+  const { id } = req.params;
+  const { path: storagePath, name, size, sha256 } = req.body;
+
+  if (!storagePath || typeof storagePath !== 'string') {
+    return res.status(400).json({ error: 'Missing Parameter', message: 'Storage path is required.' });
+  }
+
+  const numericSize = Number(size) || 0;
+  if (numericSize > 50 * 1024 * 1024) {
+    return res.status(400).json({ error: 'File Too Large', message: 'Application package exceeds the 50 MB limit.' });
+  }
+
+  // Confirm folder object existence in storage when adminSupabase is active
+  if (adminSupabase) {
+    try {
+      const folder = storagePath.split('/')[0];
+      const filename = storagePath.split('/').slice(1).join('/');
+      const { data: files } = await adminSupabase.storage.from('app-files').list(folder);
+      const matched = files?.some((f) => f.name === filename);
+      if (!matched && files && files.length === 0) {
+        console.warn(`[Store File Complete] Folder ${folder} check warning: file not listed yet, but saving reference.`);
+      }
+    } catch (checkErr) {
+      console.warn('[Store File Complete] Storage list check warning:', checkErr);
+    }
+  }
+
+  const updates = {
+    file_path: storagePath,
+    file_name: name || storagePath.split('/').pop() || 'package.zip',
+    file_size_bytes: numericSize,
+    sha256: sha256 || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  let updatedApp: any = null;
+  if (adminSupabase) {
+    try {
+      const { data } = await adminSupabase.from('store_apps').update(updates).eq('id', id).select().single();
+      if (data) updatedApp = data;
+    } catch {}
+  }
+
+  const localIdx = (localStore.store_apps || []).findIndex((a: any) => a.id === id);
+  if (localIdx >= 0) {
+    localStore.store_apps[localIdx] = { ...localStore.store_apps[localIdx], ...updates };
+    if (!updatedApp) updatedApp = localStore.store_apps[localIdx];
+  }
+
+  return res.json({ status: 'completed', app: updatedApp });
+});
+
+// 7. POST /api/v1/store/apps/:id/access-links — create secure expiring access link
+app.post('/api/v1/store/apps/:id/access-links', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+  const { id } = req.params;
+  const { note = '', hours = 72, max_uses = 1 } = req.body;
+
+  const rawToken = crypto.randomBytes(24).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+  const validHours = Math.max(1, Number(hours) || 72);
+  const validMaxUses = Math.max(1, Number(max_uses) || 1);
+  const expiresAt = new Date(Date.now() + validHours * 3600 * 1000).toISOString();
+  const linkId = crypto.randomUUID ? crypto.randomUUID() : `link_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+  const accessRecord = {
+    id: linkId,
+    app_id: id,
+    token_hash: tokenHash,
+    note: String(note || ''),
+    expires_at: expiresAt,
+    max_uses: validMaxUses,
+    use_count: 0,
+    created_at: new Date().toISOString(),
+  };
+
+  if (adminSupabase) {
+    try {
+      await adminSupabase.from('app_access_links').insert([accessRecord]);
+    } catch (dbErr) {
+      console.warn('Supabase access link insert warning:', dbErr);
+    }
+  }
+
+  localStore.app_access_links = localStore.app_access_links || [];
+  localStore.app_access_links.push(accessRecord);
+
+  const siteUrl = process.env.SITE_URL || (req.headers.origin as string) || 'https://coreiqcreate-ten.vercel.app';
+  const cleanSiteUrl = siteUrl.replace(/\/$/, '');
+  const accessUrl = `${cleanSiteUrl}/apps/access/${rawToken}`;
+
+  return res.json({
+    id: linkId,
+    url: accessUrl,
+    token: rawToken,
+    expires_at: expiresAt,
+    max_uses: validMaxUses,
+    note: note || '',
+  });
+});
+
+// 8. GET /api/v1/store/apps/:id/access-links — list access links for an app
+app.get('/api/v1/store/apps/:id/access-links', authenticateApiKey, requireScope('READ_MEDIA'), async (req, res) => {
+  const { id } = req.params;
+
+  let links: any[] = [];
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('app_access_links')
+        .select('id, app_id, note, expires_at, max_uses, use_count, created_at')
+        .eq('app_id', id)
+        .order('created_at', { ascending: false });
+      if (!error && Array.isArray(data)) links = data;
+    } catch {}
+  }
+
+  if (links.length === 0 && localStore.app_access_links) {
+    links = localStore.app_access_links
+      .filter((l: any) => l.app_id === id)
+      .map(({ token_hash, ...rest }: any) => rest)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  return res.json({ links });
+});
+
+// 9. GET /api/v1/store/requests — list customer/user requests
+app.get('/api/v1/store/requests', authenticateApiKey, requireScope('READ_MEDIA'), async (req, res) => {
+  const { app_id, status } = req.query as { app_id?: string; status?: string };
+
+  let requests: any[] = [];
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      let q = client.from('app_requests').select('*').order('created_at', { ascending: false });
+      if (app_id) q = q.eq('app_id', app_id);
+      if (status && status !== 'all') q = q.eq('status', status);
+      const { data, error } = await q;
+      if (!error && Array.isArray(data)) requests = data;
+    } catch {}
+  }
+
+  if (requests.length === 0 && localStore.app_requests) {
+    requests = [...localStore.app_requests];
+    if (app_id) requests = requests.filter((r) => r.app_id === app_id);
+    if (status && status !== 'all') requests = requests.filter((r) => r.status === status);
+    requests.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  return res.json({ requests, total: requests.length });
+});
+
+// 10. PATCH /api/v1/store/requests/:id — update request status
+app.patch('/api/v1/store/requests/:id', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+  const { id } = req.params;
+  const { status, admin_note } = req.body;
+
+  const updates: Record<string, any> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (status) updates.status = status;
+  if (admin_note !== undefined) updates.admin_note = admin_note;
+
+  let updatedReq: any = null;
+  if (adminSupabase) {
+    try {
+      const { data } = await adminSupabase.from('app_requests').update(updates).eq('id', id).select().single();
+      if (data) updatedReq = data;
+    } catch {}
+  }
+
+  const localIdx = (localStore.app_requests || []).findIndex((r: any) => r.id === id);
+  if (localIdx >= 0) {
+    localStore.app_requests[localIdx] = { ...localStore.app_requests[localIdx], ...updates };
+    if (!updatedReq) updatedReq = localStore.app_requests[localIdx];
+  }
+
+  return res.json({ status: 'updated', request: updatedReq });
+});
+
+// 11. GET /api/v1/store/settings/:key — get setting (e.g. 'payment')
+app.get('/api/v1/store/settings/:key', authenticateApiKey, requireScope('READ_MEDIA'), async (req, res) => {
+  const { key } = req.params;
+
+  let setting: any = null;
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      const { data } = await client.from('store_settings').select('*').eq('key', key).maybeSingle();
+      if (data) setting = data;
+    } catch {}
+  }
+
+  if (!setting && localStore.store_settings) {
+    setting = localStore.store_settings.find((s: any) => s.key === key);
+  }
+
+  return res.json({ key, value: setting ? setting.value : null });
+});
+
+// 12. PUT /api/v1/store/settings/:key — operator saves global setting (e.g. 'payment')
+app.put('/api/v1/store/settings/:key', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+  const { key } = req.params;
+  const { value } = req.body;
+
+  const payload = {
+    key,
+    value: value ?? {},
+    updated_at: new Date().toISOString(),
+  };
+
+  if (adminSupabase) {
+    try {
+      await adminSupabase.from('store_settings').upsert([payload]);
+    } catch (e) {
+      console.warn('Supabase store_settings upsert error:', e);
+    }
+  }
+
+  localStore.store_settings = localStore.store_settings || [];
+  const idx = localStore.store_settings.findIndex((s: any) => s.key === key);
+  if (idx >= 0) {
+    localStore.store_settings[idx] = payload;
+  } else {
+    localStore.store_settings.push(payload);
+  }
+
+  return res.json({ status: 'saved', key, value: payload.value });
+});
+
+// 13. POST /api/v1/store/apps/:id/media-upload — upload app icon / screenshots to public app-media
+app.post(
+  '/api/v1/store/apps/:id/media-upload',
+  authenticateApiKey,
+  requireScope('WRITE_MEDIA'),
+  (upload.single('file') as any),
+  async (req, res) => {
+    const appId = String(req.params.id);
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ error: 'No file provided' });
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Media exceeds 10 MB limit' });
+    }
+
+    const safeName = `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const storagePath = `apps/${appId}/${safeName}`;
+
+    let publicUrl = '';
+    if (adminSupabase) {
+      try {
+        const { error: upErr } = await adminSupabase.storage
+          .from('app-media')
+          .upload(storagePath, file.buffer, { contentType: file.mimetype, upsert: true });
+        if (!upErr) {
+          const { data: pubData } = adminSupabase.storage.from('app-media').getPublicUrl(storagePath);
+          publicUrl = pubData.publicUrl;
+        }
+      } catch (err) {
+        console.warn('Storage app-media upload error:', err);
+      }
+    }
+
+    if (!publicUrl) {
+      // Local disk fallback
+      const localDir = path.join(process.cwd(), 'public', 'media', 'store', 'apps', appId);
+      try {
+        if (!fs.existsSync(localDir)) {
+          fs.mkdirSync(localDir, { recursive: true });
+        }
+        const localPath = path.join(localDir, safeName);
+        fs.writeFileSync(localPath, file.buffer);
+        publicUrl = `/media/store/apps/${appId}/${safeName}`;
+      } catch (fsErr) {
+        console.error('Local disk write error:', fsErr);
+        return res.status(500).json({ error: 'Failed to save media locally' });
+      }
+    }
+
+    return res.json({ status: 'uploaded', url: publicUrl, filename: safeName });
+  }
+);
+
+// 14. GET /api/v1/store/stats — real download counts per app
+app.get('/api/v1/store/stats', authenticateApiKey, requireScope('READ_MEDIA'), async (req, res) => {
+  const statsMap: Record<string, { downloads: number; last_download_at: string | null }> = {};
+
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      const { data, error } = await client.from('app_downloads').select('app_id, downloaded_at');
+      if (!error && Array.isArray(data)) {
+        for (const row of data) {
+          if (!row.app_id) continue;
+          if (!statsMap[row.app_id]) {
+            statsMap[row.app_id] = { downloads: 0, last_download_at: null };
+          }
+          statsMap[row.app_id].downloads++;
+          if (!statsMap[row.app_id].last_download_at || new Date(row.downloaded_at) > new Date(statsMap[row.app_id].last_download_at!)) {
+            statsMap[row.app_id].last_download_at = row.downloaded_at;
+          }
+        }
+      }
+    } catch (dbErr) {
+      console.warn('[Store Stats] DB query error:', dbErr);
+    }
+  }
+
+  if (localStore.app_downloads) {
+    for (const row of localStore.app_downloads) {
+      if (!row.app_id) continue;
+      if (!statsMap[row.app_id]) {
+        statsMap[row.app_id] = { downloads: 0, last_download_at: null };
+      }
+      statsMap[row.app_id].downloads++;
+      if (!statsMap[row.app_id].last_download_at || new Date(row.downloaded_at) > new Date(statsMap[row.app_id].last_download_at!)) {
+        statsMap[row.app_id].last_download_at = row.downloaded_at;
+      }
+    }
+  }
+
+  return res.json({ stats: statsMap });
+});
+
+// Helper for SSRF protection in check-url
+function isPrivateOrDisallowedHost(hostname: string): boolean {
+  const lower = hostname.toLowerCase();
+  if (
+    lower === 'localhost' ||
+    lower.endsWith('.localhost') ||
+    lower.endsWith('.local') ||
+    lower.endsWith('.internal')
+  ) {
+    return true;
+  }
+  // Check IPv4
+  const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+  const m = lower.match(ipv4Regex);
+  if (m) {
+    const [, a, b, c, d] = m.map(Number);
+    if (a === 127) return true; // 127.0.0.0/8 loopback
+    if (a === 10) return true; // 10.0.0.0/8 private
+    if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12 private
+    if (a === 192 && b === 168) return true; // 192.168.0.0/16 private
+    if (a === 169 && b === 254) return true; // 169.254.0.0/16 link-local
+    if (a === 0) return true; // 0.0.0.0/8
+    if (a >= 224) return true; // multicast/reserved
+  }
+  // Check IPv6
+  if (lower === '::1' || lower === '::' || lower.startsWith('fc') || lower.startsWith('fd') || lower.startsWith('fe80')) {
+    return true;
+  }
+  return false;
+}
+
+// 15. POST /api/v1/store/check-url — operator validates custom payment or app URL with SSRF protection
+app.post('/api/v1/store/check-url', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+  const { url } = req.body;
+  if (!url || typeof url !== 'string') {
+    return res.status(400).json({ error: 'Validation Error', message: 'url string is required' });
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url.trim());
+  } catch {
+    return res.status(400).json({ error: 'Invalid URL', message: 'Malformed URL provided' });
+  }
+
+  // https only
+  if (parsed.protocol !== 'https:') {
+    return res.status(400).json({ error: 'Protocol Prohibited', message: 'Only secure https URLs are permitted.' });
+  }
+
+  if (isPrivateOrDisallowedHost(parsed.hostname)) {
+    return res.status(400).json({ error: 'Security Exception', message: 'Loopback and private network destinations are prohibited.' });
+  }
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+
+    const checkRes = await fetch(parsed.toString(), {
+      method: 'HEAD',
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'CoreIQ-UrlChecker/1.0',
+      },
+    });
+    clearTimeout(timer);
+
+    return res.json({
+      reachable: checkRes.ok || (checkRes.status >= 200 && checkRes.status < 400),
+      status: checkRes.status,
+    });
+  } catch (err: any) {
+    return res.json({
+      reachable: false,
+      status: null,
+      error: err?.message || 'Connection failed or timed out',
+    });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// PUBLIC STORE ROUTES (Unauthenticated, Consumer / Visitor Facing, Rate Limited)
+// -----------------------------------------------------------------------------
+
+// Rate limiter per IP for public store routes (60 requests per minute)
+const publicStoreRateMap = new Map<string, { count: number; resetAt: number }>();
+function publicStoreRateLimiter(req: Request, res: Response, next: NextFunction) {
+  const ip = String(req.ip || req.socket.remoteAddress || 'unknown');
+  const now = Date.now();
+  const entry = publicStoreRateMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    publicStoreRateMap.set(ip, { count: 1, resetAt: now + 60 * 1000 });
+    return next();
+  }
+  if (entry.count >= 60) {
+    return res.status(429).json({ error: 'Too Many Requests', message: 'Rate limit exceeded. Please wait a minute and retry.' });
+  }
+  entry.count++;
+  return next();
+}
+
+// Fetch global payment settings helper
+async function getPublicPaymentSettingsConfig() {
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      const { data } = await client.from('store_settings').select('*').eq('key', 'payment').maybeSingle();
+      if (data?.value) return data.value;
+    } catch {}
+  }
+  const local = (localStore.store_settings || []).find((s: any) => s.key === 'payment');
+  return local?.value || {
+    heading: 'Global Direct Payment',
+    default_instructions: 'CoreIQ operates worldwide without merchant lock-in. Settle payments via PayPal, Wise, or Direct Wire. We issue an expiring secure download link upon receipt.',
+    default_currency: 'USD',
+    methods: [
+      { label: 'PayPal (International)', url: 'https://paypal.me/coreiq', details: 'Include your app title or invoice in payment memo.' },
+      { label: 'Wise (Multi-Currency)', url: 'https://wise.com/pay/coreiq', details: 'Zero markup transfer in USD, EUR, GBP, or CAD.' },
+    ],
+  };
+}
+
+// Helper to record a lead into the existing leads table
+async function recordStoreLead(clientName: string, clientContact: string, clientMessage: string, source: string, summary: string): Promise<boolean> {
+  const newLead = {
+    id: crypto.randomUUID ? crypto.randomUUID() : `lead_${Date.now()}`,
+    created_at: new Date().toISOString(),
+    client_name: clientName || 'Anonymous Visitor',
+    client_contact: clientContact,
+    client_message: clientMessage || '',
+    conversation_summary: summary || '',
+    intent_type: 'app_store',
+    source: source || 'app_store',
+    status: 'new',
+    budget_range: '',
+    notes: `Source: App Store (${source})`,
+  };
+
+  let ok = false;
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      const { data, error } = await client.from('leads').insert([newLead]).select().single();
+      if (!error && data) {
+        ok = true;
+      }
+    } catch (e) {
+      console.warn('Lead insert error:', e);
+    }
+  }
+
+  if (!ok) {
+    localStore.leads = localStore.leads || [];
+    localStore.leads.unshift(newLead);
+    ok = true;
+  }
+  return ok;
+}
+
+// Sanitize app for public consumer display
+// Strip file_path, file_size internals and, for any app with price_mode paid or contact, also strip app_url / external_url.
+function sanitizeAppForPublic(app: any, includePayment = false, paymentConfig: any = null) {
+  const isPaidOrContact = app.price_mode === 'paid' || app.price_mode === 'contact';
+
+  const clean: Record<string, any> = {
+    id: app.id,
+    slug: app.slug,
+    title: app.title,
+    tagline: app.tagline || '',
+    description: app.description || '',
+    category: app.category || 'Productivity',
+    status: app.status,
+    price_mode: app.price_mode || 'free',
+    price_amount: app.price_amount,
+    currency: app.currency || 'USD',
+    price_note: app.price_note || '',
+    payment_label: app.payment_label || '',
+    payment_url: app.payment_url || '',
+    payment_instructions: app.payment_instructions || '',
+    distribution_type: app.distribution_type || 'download',
+    requires_email: Boolean(app.requires_email),
+    has_file: Boolean(app.file_path),
+    icon_url: app.icon_url || null,
+    icon_name: app.icon_name || 'Sparkles',
+    accent_color: app.accent_color || '#06b6d4',
+    screenshots: Array.isArray(app.screenshots) ? app.screenshots : [],
+    version: app.version || '1.0.0',
+    changelog: app.changelog || '',
+    sort_order: app.sort_order ?? 0,
+    featured: Boolean(app.featured),
+    updated_at: app.updated_at,
+  };
+
+  if (!isPaidOrContact) {
+    clean.external_url = app.external_url || '';
+    clean.app_url = app.external_url || '';
+  }
+
+  if (includePayment && app.price_mode === 'paid' && paymentConfig) {
+    clean.payment_settings = {
+      heading: paymentConfig.heading || 'Payment Options',
+      instructions: app.payment_instructions || paymentConfig.default_instructions || '',
+      default_currency: paymentConfig.default_currency || app.currency || 'USD',
+      methods: paymentConfig.methods || [],
+    };
+  }
+
+  return clean;
+}
+
+// 16. GET /api/v1/store/apps/public — list published and coming_soon apps
+const handlePublicAppsList = async (req: Request, res: Response) => {
+  const { category, search } = req.query as { category?: string; search?: string };
+
+  let apps: any[] = [];
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      let q = client
+        .from('store_apps')
+        .select('*')
+        .in('status', ['published', 'coming_soon'])
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false });
+
+      if (category && category !== 'All' && category !== 'all') {
+        q = q.eq('category', category);
+      }
+      const { data, error } = await q;
+      if (!error && Array.isArray(data)) apps = data;
+    } catch (e) {
+      console.warn('Error querying public store_apps:', e);
+    }
+  }
+
+  if (apps.length === 0 && localStore.store_apps) {
+    apps = localStore.store_apps.filter((a) => a.status === 'published' || a.status === 'coming_soon');
+    if (category && category !== 'All' && category !== 'all') {
+      apps = apps.filter((a) => a.category === category);
+    }
+    apps.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  }
+
+  if (search && typeof search === 'string' && search.trim()) {
+    const s = search.trim().toLowerCase();
+    apps = apps.filter(
+      (a) =>
+        (a.title && a.title.toLowerCase().includes(s)) ||
+        (a.tagline && a.tagline.toLowerCase().includes(s)) ||
+        (a.description && a.description.toLowerCase().includes(s))
+    );
+  }
+
+  const paymentConfig = await getPublicPaymentSettingsConfig();
+  const sanitized = apps.map((app) => sanitizeAppForPublic(app, false, paymentConfig));
+
+  return res.json({ apps: sanitized, count: sanitized.length });
+};
+
+app.get('/api/v1/store/apps/public', publicStoreRateLimiter, handlePublicAppsList);
+app.get('/api/v1/store/public/apps', publicStoreRateLimiter, handlePublicAppsList);
+app.get('/api/v1/store/apps/published', publicStoreRateLimiter, handlePublicAppsList);
+
+// 17. GET /api/v1/store/apps/public/:slug — get single public app details
+const handlePublicAppBySlug = async (req: Request, res: Response) => {
+  const { slug } = req.params;
+
+  let app: any = null;
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      const { data } = await client
+        .from('store_apps')
+        .select('*')
+        .eq('slug', slug)
+        .in('status', ['published', 'coming_soon'])
+        .maybeSingle();
+      if (data) app = data;
+    } catch {}
+  }
+
+  if (!app && localStore.store_apps) {
+    app = localStore.store_apps.find((a: any) => a.slug === slug && (a.status === 'published' || a.status === 'coming_soon'));
+  }
+
+  if (!app) {
+    return res.status(404).json({ error: 'Not Found', message: `App "${slug}" not found or not published.` });
+  }
+
+  const paymentConfig = await getPublicPaymentSettingsConfig();
+  const sanitized = sanitizeAppForPublic(app, true, paymentConfig);
+
+  return res.json({ app: sanitized });
+};
+
+app.get('/api/v1/store/apps/public/:slug', publicStoreRateLimiter, handlePublicAppBySlug);
+app.get('/api/v1/store/public/apps/:slug', publicStoreRateLimiter, handlePublicAppBySlug);
+app.get('/api/v1/store/apps/by-slug/:slug', publicStoreRateLimiter, handlePublicAppBySlug);
+
+// 18. POST /api/v1/store/apps/:slug/get — handle app acquisition
+app.post('/api/v1/store/apps/:slug/get', publicStoreRateLimiter, async (req, res) => {
+  const { slug } = req.params;
+  const { email, name } = req.body || {};
+
+  let app: any = null;
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      const { data } = await client.from('store_apps').select('*').eq('slug', slug).maybeSingle();
+      if (data) app = data;
+    } catch {}
+  }
+
+  if (!app && localStore.store_apps) {
+    app = localStore.store_apps.find((a: any) => a.slug === slug);
+  }
+
+  if (!app || (app.status !== 'published' && app.status !== 'coming_soon')) {
+    return res.status(404).json({ error: 'Not Found', message: `App "${slug}" is not available.` });
+  }
+
+  // 1. contact -> { action: 'request' }
+  if (app.price_mode === 'contact') {
+    return res.json({ action: 'request' });
+  }
+
+  // 2. paid -> { action: 'pay', label, url, instructions, methods } and nothing else
+  if (app.price_mode === 'paid') {
+    const paymentConfig = await getPublicPaymentSettingsConfig();
+    return res.json({
+      action: 'pay',
+      label: app.payment_label || 'Direct Payment',
+      url: app.payment_url || '',
+      instructions: app.payment_instructions || paymentConfig.default_instructions || '',
+      methods: paymentConfig.methods || [],
+    });
+  }
+
+  // 3. free -> check requires_email, insert into app_downloads and create lead
+  if (app.requires_email || email) {
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return res.status(400).json({ error: 'Validation Error', message: 'A valid email address is required to access this application.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = (typeof name === 'string' && name.trim()) || cleanEmail.split('@')[0];
+
+    const dlId = crypto.randomUUID ? crypto.randomUUID() : `dl_${Date.now()}`;
+    const ipHash = crypto.createHash('sha256').update(req.ip || 'unknown').digest('hex').substring(0, 16);
+    const downloadRecord = {
+      id: dlId,
+      app_id: app.id,
+      access_link_id: null,
+      ip_hash: ipHash,
+      user_agent: req.headers['user-agent'] || '',
+      downloaded_at: new Date().toISOString(),
+      user_email: cleanEmail,
+    };
+
+    let dlRecorded = false;
+    if (adminSupabase) {
+      try {
+        const { error: dlErr } = await adminSupabase.from('app_downloads').insert([downloadRecord]);
+        if (!dlErr) dlRecorded = true;
+      } catch (e) {
+        console.warn('app_downloads insert warning:', e);
+      }
+    }
+
+    if (!dlRecorded) {
+      localStore.app_downloads = localStore.app_downloads || [];
+      localStore.app_downloads.push(downloadRecord);
+      dlRecorded = true;
+    }
+
+    const leadRecorded = await recordStoreLead(
+      cleanName,
+      cleanEmail,
+      `Downloaded free app: ${app.title}`,
+      `app_download_${app.slug}`,
+      `Acquired free application "${app.title}" (${app.slug})`
+    );
+
+    if (!dlRecorded || !leadRecorded) {
+      return res.status(500).json({ error: 'Operation Failed', message: 'Could not record download request. Please retry.' });
+    }
+  }
+
+  // Return download or open action
+  if (app.distribution_type === 'file' || (!app.external_url && app.file_path)) {
+    if (!app.file_path) {
+      return res.status(404).json({ error: 'No File', message: 'No downloadable file package has been attached to this app yet.' });
+    }
+
+    let signedUrl = '';
+    if (adminSupabase) {
+      try {
+        const { data: sData, error: sErr } = await adminSupabase.storage.from('app-files').createSignedUrl(app.file_path, 300);
+        if (!sErr && sData?.signedUrl) {
+          signedUrl = sData.signedUrl;
+        }
+      } catch (err) {
+        console.warn('createSignedUrl error:', err);
+      }
+    }
+
+    if (!signedUrl) {
+      signedUrl = `/media/store/files/${app.file_path}`;
+    }
+
+    return res.json({
+      action: 'download',
+      url: signedUrl,
+      fileName: app.file_name || `${app.slug}.zip`,
+      size: app.file_size_bytes || 0,
+      sha256: app.sha256 || null,
+    });
+  }
+
+  // web_app_url / store_link / external_url
+  return res.json({
+    action: 'open',
+    url: app.external_url || '',
+  });
+});
+
+// 19. POST /api/v1/store/apps/:slug/request — submit customer access request
+app.post('/api/v1/store/apps/:slug/request', publicStoreRateLimiter, async (req, res) => {
+  const { slug } = req.params;
+  const { name = '', email, message = '' } = req.body || {};
+
+  if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return res.status(400).json({ error: 'Validation Error', message: 'A valid email address is required.' });
+  }
+
+  let app: any = null;
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      const { data } = await client.from('store_apps').select('*').eq('slug', slug).maybeSingle();
+      if (data) app = data;
+    } catch {}
+  }
+
+  if (!app && localStore.store_apps) {
+    app = localStore.store_apps.find((a: any) => a.slug === slug);
+  }
+
+  if (!app) {
+    return res.status(404).json({ error: 'Not Found', message: `App "${slug}" not found.` });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanName = (typeof name === 'string' && name.trim()) || cleanEmail.split('@')[0];
+  const cleanMessage = typeof message === 'string' ? message.trim() : '';
+
+  const reqId = crypto.randomUUID ? crypto.randomUUID() : `req_${Date.now()}`;
+  const requestRecord = {
+    id: reqId,
+    app_id: app.id,
+    user_name: cleanName,
+    user_email: cleanEmail,
+    message: cleanMessage,
+    status: 'new',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  let reqInserted = false;
+  if (adminSupabase) {
+    try {
+      const { error: reqErr } = await adminSupabase.from('app_requests').insert([requestRecord]);
+      if (!reqErr) reqInserted = true;
+    } catch (e) {
+      console.warn('app_requests insert error:', e);
+    }
+  }
+
+  if (!reqInserted) {
+    localStore.app_requests = localStore.app_requests || [];
+    localStore.app_requests.push(requestRecord);
+    reqInserted = true;
+  }
+
+  const leadInserted = await recordStoreLead(
+    cleanName,
+    cleanEmail,
+    cleanMessage || `Request for ${app.title}`,
+    `app_request_${app.slug}`,
+    `App Store contact/order request for "${app.title}" (${app.slug})`
+  );
+
+  if (!reqInserted || !leadInserted) {
+    return res.status(500).json({ error: 'Database Error', message: 'Failed to record your request. Please retry.' });
+  }
+
+  return res.status(201).json({
+    status: 'received',
+    success: true,
+    message: 'Your request has been received. Our team will verify and provide your access link.',
+    id: reqId,
+  });
+});
+
+// 20. GET /api/v1/store/access/:token — redeem access token with security verification
+app.get('/api/v1/store/access/:token', publicStoreRateLimiter, async (req, res) => {
+  const { token } = req.params;
+
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ error: 'Missing Token', message: 'Access token is required.' });
+  }
+
+  const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
+
+  let linkRecord: any = null;
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      const { data } = await client.from('app_access_links').select('*').eq('token_hash', tokenHash).maybeSingle();
+      if (data) linkRecord = data;
+    } catch {}
+  }
+
+  if (!linkRecord && localStore.app_access_links) {
+    linkRecord = localStore.app_access_links.find((l: any) => l.token_hash === tokenHash);
+  }
+
+  if (!linkRecord) {
+    return res.status(404).json({ error: 'Invalid Link', message: 'The specified access link was not found or is invalid.' });
+  }
+
+  // Expiration check
+  const now = new Date();
+  const expiresAt = new Date(linkRecord.expires_at);
+  if (now > expiresAt) {
+    return res.status(410).json({
+      error: 'Expired Link',
+      message: `This access link expired on ${expiresAt.toUTCString()}. Please request a fresh access link.`,
+    });
+  }
+
+  // Max uses check
+  if (linkRecord.use_count >= linkRecord.max_uses) {
+    return res.status(410).json({
+      error: 'Usage Limit Reached',
+      message: `This access link has reached its maximum download limit (${linkRecord.max_uses} use${linkRecord.max_uses === 1 ? '' : 's'}).`,
+    });
+  }
+
+  // Increment usage
+  const updatedUseCount = linkRecord.use_count + 1;
+  if (adminSupabase) {
+    try {
+      await adminSupabase.from('app_access_links').update({ use_count: updatedUseCount }).eq('id', linkRecord.id);
+    } catch {}
+  }
+  linkRecord.use_count = updatedUseCount;
+
+  // Record download
+  const dlId = crypto.randomUUID ? crypto.randomUUID() : `dl_${Date.now()}`;
+  const ipHash = crypto.createHash('sha256').update(req.ip || 'unknown').digest('hex').substring(0, 16);
+  const downloadRecord = {
+    id: dlId,
+    app_id: linkRecord.app_id,
+    access_link_id: linkRecord.id,
+    ip_hash: ipHash,
+    user_agent: req.headers['user-agent'] || '',
+    downloaded_at: new Date().toISOString(),
+  };
+
+  if (adminSupabase) {
+    try {
+      await adminSupabase.from('app_downloads').insert([downloadRecord]);
+    } catch {}
+  }
+  localStore.app_downloads = localStore.app_downloads || [];
+  localStore.app_downloads.push(downloadRecord);
+
+  // Fetch app
+  let app: any = null;
+  if (client) {
+    try {
+      const { data } = await client.from('store_apps').select('*').eq('id', linkRecord.app_id).maybeSingle();
+      if (data) app = data;
+    } catch {}
+  }
+  if (!app && localStore.store_apps) {
+    app = localStore.store_apps.find((a: any) => a.id === linkRecord.app_id);
+  }
+
+  if (!app) {
+    return res.status(404).json({ error: 'App Not Found', message: 'The linked application is no longer active.' });
+  }
+
+  let signedUrl = '';
+  if (app.file_path && adminSupabase) {
+    try {
+      const { data, error } = await adminSupabase.storage.from('app-files').createSignedUrl(app.file_path, 300);
+      if (!error && data?.signedUrl) {
+        signedUrl = data.signedUrl;
+      }
+    } catch (e) {
+      console.warn('Storage access signing error:', e);
+    }
+  }
+
+  if (!signedUrl && app.file_path) {
+    signedUrl = `/media/store/files/${app.file_path}`;
+  }
+
+  if (app.distribution_type === 'file' || signedUrl) {
+    return res.json({
+      status: 'granted',
+      action: 'download',
+      download_url: signedUrl,
+      url: signedUrl,
+      fileName: app.file_name || `${app.slug}.zip`,
+      size: app.file_size_bytes || 0,
+      sha256: app.sha256 || null,
+      app: {
+        id: app.id,
+        title: app.title,
+        slug: app.slug,
+        version: app.version,
+      },
+      uses_remaining: linkRecord.max_uses - updatedUseCount,
+      expires_at: linkRecord.expires_at,
+    });
+  }
+
+  return res.json({
+    status: 'granted',
+    action: 'open',
+    url: app.external_url || '',
+    app: {
+      id: app.id,
+      title: app.title,
+      slug: app.slug,
+      version: app.version,
+    },
+    uses_remaining: linkRecord.max_uses - updatedUseCount,
+    expires_at: linkRecord.expires_at,
+  });
+});
+
+app.get('/api/v1/store/public/access/:token', publicStoreRateLimiter, async (req, res) => {
+  // Alias to main access route
+  res.redirect(`/api/v1/store/access/${encodeURIComponent(req.params.token)}`);
 });
 
 // --- PUBLIC ASK ENDPOINT ---

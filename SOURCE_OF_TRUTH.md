@@ -19478,3 +19478,43 @@ None. Verified with clean TypeScript checks and production Vite/esbuild bundle b
 ### Build Status
 PASS
 ---
+
+---
+## Session: 2026-10-09 Phase 1: App Store & Operator Engine API Routes (server.ts)
+
+### Files Changed
+server.ts
+SOURCE_OF_TRUTH.md
+
+### What Was Done
+Completed Phase 1 backend implementation for the App Store & Command Upload Path in `server.ts`:
+1. Supabase Service Role Key: Bound dedicated `adminSupabase` client strictly to `SUPABASE_SERVICE_ROLE_KEY` (never anon key) for all store database transactions and storage URL generation.
+2. Operator Endpoints (authenticated with `READ_MEDIA` / `WRITE_MEDIA`):
+   - `GET /api/v1/store/apps`, `POST /api/v1/store/apps`, `PATCH /api/v1/store/apps/:id`, `DELETE /api/v1/store/apps/:id` with strict payload validations (slug, status, price_mode, distribution_type).
+   - `POST /api/v1/store/apps/:id/upload-url`: direct browser-to-storage signed upload URL into private `app-files` bucket with filename sanitization.
+   - `POST /api/v1/store/apps/:id/file-complete`: storage folder confirmation, 50 MB ceiling enforcement, and metadata persistence (`file_path`, `file_name`, `file_size_bytes`, `sha256`).
+   - `POST /api/v1/store/apps/:id/access-links`: 24-byte cryptographically secure random token, SHA-256 hash storage, 72h default expiration, max use limits, and one-time URL creation.
+   - `GET /api/v1/store/apps/:id/access-links`: administrative list of access tokens for each app.
+   - `GET /api/v1/store/requests`, `PATCH /api/v1/store/requests/:id`: operator customer request tracker with status flags (`new`, `contacted`, `closed`).
+   - `GET/PUT /api/v1/store/settings/payment`: operator customizable global payment options (heading, instructions, currency, multi-channel methods).
+   - `GET /api/v1/store/stats`: real download and retrieval counts grouped by app from `app_downloads`.
+   - `POST /api/v1/store/check-url`: SSRF protected URL connectivity verifier (https only, loopback/private IP rejection, 5s timeout HEAD request).
+3. Public Endpoints (IP rate-limited, no key required):
+   - `GET /api/v1/store/apps/public`: only `published` and `coming_soon` statuses, sanitizing internal storage paths and stripping `app_url` for paid/contact products.
+   - `GET /api/v1/store/apps/public/:slug`: public details with attached payment instructions when `price_mode === 'paid'`.
+   - `POST /api/v1/store/apps/:slug/get`: resolves action (`request` for contact, `pay` with instructions/methods for paid, or `open` / signed 300s `download` for free apps after verified lead and download capture).
+   - `POST /api/v1/store/apps/:slug/request`: records customer access request into `app_requests` and creates corresponding entry in `leads`.
+   - `GET /api/v1/store/access/:token`: validates SHA-256 token, checks expiry and usage counters, increments usage, logs download, and issues 300s signed storage URL or redirect.
+
+### New Slots Registered
+None (Apps store uses `store_apps` table and dedicated `app-files` & `app-media` buckets).
+
+### New Components Added
+None (Phase 1: Server routes & backend architecture).
+
+### Known Limitations or Follow-up Needed
+Ready for Phase 2: Command Store Management UI and Phase 3: Public Apps Page Store Integration.
+
+### Build Status
+PASS (Verified with `npx tsc --noEmit` and `npm run build` with 0 errors).
+---
