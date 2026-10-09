@@ -238,7 +238,257 @@ const localStore: Record<string, any[]> = {
       system_prompt: 'You are CoreIQ, sovereign intelligence for CoreIQ Create.',
       updated_at: new Date().toISOString(),
     }
-  ]
+  ],
+  use_case_categories: [
+    { id: 'cat-1', slug: 'ai-agents', label: 'AI Agents', sort_order: 1 },
+    { id: 'cat-2', slug: 'automation', label: 'Automation', sort_order: 2 },
+    { id: 'cat-3', slug: 'apps', label: 'Apps', sort_order: 3 },
+    { id: 'cat-4', slug: 'voice-ai', label: 'Voice AI', sort_order: 4 },
+    { id: 'cat-5', slug: 'integrations', label: 'Integrations', sort_order: 5 }
+  ],
+  use_cases: [
+    {
+      id: 'c1000000-0000-0000-0000-000000000001',
+      category_slug: 'ai-agents',
+      title: 'Autonomous Customer Support Agent',
+      problem: 'Customer queries went unanswered after hours, leading to high churn and overwhelmed support staff during peak hours.',
+      approach: 'Deployed a multi-tiered LLM support agent grounded in the product catalog, policies, and ticketing history.',
+      outcome: '82% of first-touch tickets resolved instantly, response times dropped from 4 hours to 12 seconds, 24/7 availability.',
+      audience: 'business',
+      industry_tags: ['retail', 'e-commerce', 'technology'],
+      image_url: null,
+      image_alt: 'Customer Support AI Agent',
+      published: false,
+      sort_order: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000002',
+      category_slug: 'ai-agents',
+      title: 'Personal Deep Research Assistant',
+      problem: 'Information overload and hours lost scouring journals, whitepapers, and market feeds for actionable insights.',
+      approach: 'Crafted an autonomous research agent that synthesizes multi-source research into structured executive dossiers.',
+      outcome: 'Cut literature and market analysis time by 75% while producing citation-backed executive briefs with full provenance.',
+      audience: 'personal',
+      industry_tags: ['research', 'creative', 'education'],
+      image_url: null,
+      image_alt: 'Personal Research Assistant',
+      published: false,
+      sort_order: 2,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000003',
+      category_slug: 'ai-agents',
+      title: 'AI Lead Qualification & Triage Agent',
+      problem: 'Sales reps spent 60% of their workday filtering out tire-kickers and outdated inbound form fills.',
+      approach: 'Built an conversational qualifier that engages inbound leads within 30 seconds across web, email, and chat.',
+      outcome: 'Lead-to-pipeline conversion increased by 44%; high-intent buyers booked direct demo calls automatically.',
+      audience: 'business',
+      industry_tags: ['finance', 'real-estate', 'legal'],
+      image_url: null,
+      image_alt: 'AI Lead Qualifier',
+      published: false,
+      sort_order: 3,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000004',
+      category_slug: 'automation',
+      title: 'Intelligent Invoice Processing Pipeline',
+      problem: 'Manual data entry of supplier invoices created error rates of 6% and 14-day payment settlement delays.',
+      approach: 'Engineered optical document understanding pipelines with automated three-way matching against POs and ERP ledgers.',
+      outcome: 'Reduced processing cycle from 14 days to under 3 minutes; zero reconciliatory errors across 10,000+ monthly invoices.',
+      audience: 'business',
+      industry_tags: ['finance', 'accounting', 'logistics'],
+      image_url: null,
+      image_alt: 'Invoice Automation Pipeline',
+      published: false,
+      sort_order: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000005',
+      category_slug: 'automation',
+      title: 'Proactive Appointment Reminders & Rescheduling',
+      problem: 'Clinic and practice no-show rates hovered at 23%, bleeding operational revenue and delaying patient care.',
+      approach: 'Built intelligent SMS and WhatsApp bi-directional reminder flows that detect rescheduling intents and adjust calendar slots.',
+      outcome: 'No-shows plummeted by 68%; reclaimed an average of 18 billable consultation hours per practitioner each month.',
+      audience: 'both',
+      industry_tags: ['healthcare', 'professional-services', 'trades'],
+      image_url: null,
+      image_alt: 'Appointment Reminders Flow',
+      published: false,
+      sort_order: 2,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000006',
+      category_slug: 'automation',
+      title: 'Multi-Channel Content & Social Distribution Flow',
+      problem: 'Creating and scheduling tailored social copy across four networks took 12 hours every week for solo creators.',
+      approach: 'Constructed an automated repurposing pipeline from long-form audio/text into platform-native threads, carousel drafts, and assets.',
+      outcome: 'Weekly distribution time dropped from 12 hours to 45 minutes with a 3.2x increase in consistent publishing cadence.',
+      audience: 'both',
+      industry_tags: ['creative', 'marketing', 'media'],
+      image_url: null,
+      image_alt: 'Content Distribution Flow',
+      published: false,
+      sort_order: 3,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000007',
+      category_slug: 'apps',
+      title: 'Boutique Hotel & Venue Booking Portal',
+      problem: 'Third-party booking platforms captured 18% commission fees while delivering generic guest booking experiences.',
+      approach: 'Created a direct reservation web application featuring personalized add-on bundles, instant room holds, and Stripe checkout.',
+      outcome: 'Direct bookings rose by 53%, slashing OTA commission overhead while improving guest pre-arrival satisfaction scores.',
+      audience: 'business',
+      industry_tags: ['hospitality', 'travel', 'events'],
+      image_url: null,
+      image_alt: 'Booking Portal Application',
+      published: false,
+      sort_order: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000008',
+      category_slug: 'apps',
+      title: 'Personal Wealth & Cash-Flow Planner',
+      problem: 'Disconnected bank accounts and generic budgeting apps failed to forecast upcoming tax deadlines and cash buffer milestones.',
+      approach: 'Built a private, encrypted personal finance tracker with automated categorization and predictive runaway modeling.',
+      outcome: 'Clear 6-month forward visibility into savings, zero missed tax estimated payments, and completely self-hosted privacy.',
+      audience: 'personal',
+      industry_tags: ['finance', 'lifestyle'],
+      image_url: null,
+      image_alt: 'Personal Wealth App',
+      published: false,
+      sort_order: 2,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000009',
+      category_slug: 'apps',
+      title: 'Field Service Dispatch & Quoting Mobile App',
+      problem: 'Contractors and electricians relied on paper work orders, delaying customer invoice generation by up to two weeks.',
+      approach: 'Deployed a progressive field application enabling offline signature capture, photo attachments, and instant PDF quotes.',
+      outcome: 'On-site quote acceptance doubled; invoice collection turnaround decreased from 21 days to under 48 hours.',
+      audience: 'business',
+      industry_tags: ['trades', 'construction', 'field-services'],
+      image_url: null,
+      image_alt: 'Field Service Mobile App',
+      published: false,
+      sort_order: 3,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000010',
+      category_slug: 'voice-ai',
+      title: '24/7 After-Hours Intelligent Receptionist',
+      problem: 'Emergency plumbing, HVAC, and legal clients missed calls after 6 PM, losing prospective retainer clients to competitors.',
+      approach: 'Installed an ultra-low latency voice agent capable of emergency triage, caller intake, and urgent SMS escalation dispatch.',
+      outcome: '100% of after-hours calls answered within two rings; secured $42k in monthly revenue from previously lost calls.',
+      audience: 'business',
+      industry_tags: ['trades', 'legal', 'professional-services'],
+      image_url: null,
+      image_alt: 'Voice Receptionist',
+      published: false,
+      sort_order: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000011',
+      category_slug: 'voice-ai',
+      title: 'Voice-Activated Home & Executive Task Hub',
+      problem: 'Standard smart home voice assistants failed to handle multi-step workspace queries or execute real business API calls.',
+      approach: 'Configured a custom voice assistant bridge that links natural spoken commands to task boards, emails, and home devices.',
+      outcome: 'Hands-free voice capture of meeting notes, follow-up task dispatch, and calendar blocking in under 10 seconds.',
+      audience: 'personal',
+      industry_tags: ['productivity', 'smart-home'],
+      image_url: null,
+      image_alt: 'Voice Executive Task Hub',
+      published: false,
+      sort_order: 2,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000012',
+      category_slug: 'voice-ai',
+      title: 'Automated Dental & Medical Recall Voice Assistant',
+      problem: 'Reception staff spent 15 hours per week manually calling patients overdue for recurring hygiene checkups.',
+      approach: 'Introduced a warm, HIPAA-compliant conversational voice agent that dials overdue patients to schedule open chair times.',
+      outcome: 'Rebooked 34% of dormant patients within the first campaign wave, freeing 60 staff hours every month.',
+      audience: 'business',
+      industry_tags: ['healthcare', 'dental', 'wellness'],
+      image_url: null,
+      image_alt: 'Medical Recall Voice Assistant',
+      published: false,
+      sort_order: 3,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000013',
+      category_slug: 'integrations',
+      title: 'CRM & WhatsApp Direct Business Bridge',
+      problem: 'Sales agents conducted deals on personal WhatsApp numbers, resulting in lost client history and zero CRM tracking.',
+      approach: 'Built a secure two-way WhatsApp Business API connector that mirrors all conversations and media into HubSpot and Salesforce.',
+      outcome: '100% CRM compliance, zero lead leakage when staff transition, and real-time deal stage advancement via chat triggers.',
+      audience: 'business',
+      industry_tags: ['sales', 'retail', 'automotive'],
+      image_url: null,
+      image_alt: 'WhatsApp CRM Bridge',
+      published: false,
+      sort_order: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000014',
+      category_slug: 'integrations',
+      title: 'Accounting & Invoicing Bi-Directional Sync',
+      problem: 'Stripe transactions, recurring subscriptions, and manual bank wires were manually reconciled each month in Xero.',
+      approach: 'Constructed an automated middleware sync with tax jurisdiction mapping, fee separation, and daily batch reconciliations.',
+      outcome: 'Eliminated 25 hours of monthly manual bookkeeper reconciliation; tax audit readiness reached 100%.',
+      audience: 'business',
+      industry_tags: ['finance', 'e-commerce', 'saas'],
+      image_url: null,
+      image_alt: 'Accounting Invoicing Sync',
+      published: false,
+      sort_order: 2,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'c1000000-0000-0000-0000-000000000015',
+      category_slug: 'integrations',
+      title: 'E-Commerce Inventory & Logistics Multi-Warehouse Sync',
+      problem: 'Selling across Shopify, Amazon, and retail storefronts caused stockouts and overselling penalties.',
+      approach: 'Implemented an event-driven stock synchronization engine across 3 regional fulfillment centers and all sales channels.',
+      outcome: 'Overselling dropped to absolute zero; warehouse transfer routing optimized by 38% based on localized demand signals.',
+      audience: 'business',
+      industry_tags: ['retail', 'logistics', 'manufacturing'],
+      image_url: null,
+      image_alt: 'Inventory Logistics Sync',
+      published: false,
+      sort_order: 3,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ],
+  use_case_files: []
 };
 
 // Seed localStore with manifest placeholders
@@ -1639,6 +1889,582 @@ app.delete('/api/v1/media/slots/:slot_key/items/:id', authenticateApiKey, requir
   }
 
   localStore.media_slot_items = (localStore.media_slot_items || []).filter((i: any) => !(i.id === id && i.slot_key === slot_key));
+  return res.json({ status: 'deleted', id });
+});
+
+// -----------------------------------------------------------------------------
+// USE CASES API (PUBLIC & ADMIN)
+// -----------------------------------------------------------------------------
+
+// Helper to fetch files for use cases
+async function attachFilesToUseCases(useCases: any[]): Promise<any[]> {
+  if (!useCases || !useCases.length) return [];
+  const ids = useCases.map((u) => u.id);
+
+  let files: any[] = [];
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('use_case_files')
+        .select('*')
+        .in('use_case_id', ids)
+        .order('sort_order', { ascending: true });
+      if (!error && data) {
+        files = data;
+      }
+    } catch {}
+  }
+  if (!files.length && localStore.use_case_files) {
+    files = (localStore.use_case_files || []).filter((f: any) => ids.includes(f.use_case_id));
+  }
+
+  return useCases.map((u) => ({
+    ...u,
+    files: files.filter((f) => f.use_case_id === u.id),
+  }));
+}
+
+// GET /api/v1/use-cases/categories — list all categories with use case counts
+app.get('/api/v1/use-cases/categories', async (req, res) => {
+  let categories: any[] = [];
+  let allUseCases: any[] = [];
+
+  if (supabase) {
+    try {
+      const { data: catData } = await supabase
+        .from('use_case_categories')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      if (catData && catData.length) categories = catData;
+
+      const { data: ucData } = await supabase
+        .from('use_cases')
+        .select('id, category_slug, published');
+      if (ucData) allUseCases = ucData;
+    } catch {}
+  }
+
+  if (!categories.length) {
+    categories = localStore.use_case_categories || [];
+    allUseCases = localStore.use_cases || [];
+  }
+
+  const result = categories.map((cat) => {
+    const matching = allUseCases.filter((u) => u.category_slug === cat.slug);
+    return {
+      ...cat,
+      use_cases_count: matching.length,
+      published_count: matching.filter((u) => u.published).length,
+    };
+  });
+
+  return res.json({ count: result.length, categories: result });
+});
+
+// GET /api/v1/use-cases — list published use cases with filters
+app.get('/api/v1/use-cases', async (req, res) => {
+  const categoryFilter = req.query.category as string;
+  const audienceFilter = req.query.audience as string;
+  const industryFilter = req.query.industry as string;
+
+  let useCases: any[] = [];
+
+  if (supabase) {
+    try {
+      let query = supabase
+        .from('use_cases')
+        .select('*')
+        .eq('published', true)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+
+      if (categoryFilter && categoryFilter !== 'all') {
+        query = query.eq('category_slug', categoryFilter);
+      }
+      if (audienceFilter && audienceFilter !== 'all') {
+        query = query.or(`audience.eq.${audienceFilter},audience.eq.both`);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) {
+        useCases = data;
+      }
+    } catch {}
+  }
+
+  if (!useCases.length) {
+    useCases = (localStore.use_cases || []).filter((u: any) => u.published);
+    if (categoryFilter && categoryFilter !== 'all') {
+      useCases = useCases.filter((u: any) => u.category_slug === categoryFilter);
+    }
+    if (audienceFilter && audienceFilter !== 'all') {
+      useCases = useCases.filter((u: any) => u.audience === audienceFilter || u.audience === 'both');
+    }
+  }
+
+  // Filter by industry if requested
+  if (industryFilter && industryFilter !== 'all') {
+    const cleanInd = industryFilter.toLowerCase().trim();
+    useCases = useCases.filter((u: any) =>
+      Array.isArray(u.industry_tags) &&
+      u.industry_tags.some((t: string) => t.toLowerCase() === cleanInd)
+    );
+  }
+
+  const populated = await attachFilesToUseCases(useCases);
+  return res.json({ count: populated.length, use_cases: populated });
+});
+
+// GET /api/v1/use-cases/:id — single use case with its files
+app.get('/api/v1/use-cases/:id', async (req, res) => {
+  const { id } = req.params;
+  let useCase: any = null;
+
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from('use_cases')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (data) useCase = data;
+    } catch {}
+  }
+
+  if (!useCase) {
+    useCase = (localStore.use_cases || []).find((u: any) => u.id === id);
+  }
+
+  if (!useCase) {
+    return res.status(404).json({ error: 'Not Found', message: `Use case '${id}' not found.` });
+  }
+
+  const [populated] = await attachFilesToUseCases([useCase]);
+  return res.json({ use_case: populated });
+});
+
+// GET /api/v1/use-cases/:id/files/:fileId/download — returns signed URL (3600s) for one file
+app.get('/api/v1/use-cases/:id/files/:fileId/download', async (req, res) => {
+  const { id, fileId } = req.params;
+  let fileRecord: any = null;
+
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from('use_case_files')
+        .select('*')
+        .eq('id', fileId)
+        .eq('use_case_id', id)
+        .maybeSingle();
+      if (data) fileRecord = data;
+    } catch {}
+  }
+
+  if (!fileRecord) {
+    fileRecord = (localStore.use_case_files || []).find(
+      (f: any) => f.id === fileId && f.use_case_id === id
+    );
+  }
+
+  if (!fileRecord) {
+    return res.status(404).json({ error: 'Not Found', message: 'Use case file not found.' });
+  }
+
+  // Try creating signed Supabase storage URL
+  if (supabase && fileRecord.storage_path) {
+    try {
+      const { data, error } = await supabase.storage
+        .from('use-cases')
+        .createSignedUrl(fileRecord.storage_path, 3600);
+      if (!error && data?.signedUrl) {
+        return res.json({
+          status: 'ok',
+          filename: fileRecord.filename,
+          label: fileRecord.label,
+          download_url: data.signedUrl,
+        });
+      }
+    } catch {}
+  }
+
+  // Local filesystem fallback
+  const cleanPath = fileRecord.storage_path.replace(/^use-cases\//, '');
+  const downloadUrl = fileRecord.storage_path.startsWith('http')
+    ? fileRecord.storage_path
+    : `/media/use-cases/${cleanPath}`;
+
+  return res.json({
+    status: 'ok',
+    filename: fileRecord.filename,
+    label: fileRecord.label,
+    download_url: downloadUrl,
+  });
+});
+
+// POST /api/v1/use-cases/:id/image — upload image for a use case (authenticated)
+app.post(
+  '/api/v1/use-cases/:id/image',
+  authenticateApiKey,
+  mediaUploadMiddleware,
+  async (req, res) => {
+    const { id } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ error: 'Bad Request', message: 'No file uploaded.' });
+    }
+
+    const mime = detectMimeTypeFromBuffer(req.file.buffer) || req.file.mimetype;
+    const allowedImages = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedImages.includes(mime)) {
+      return res.status(415).json({
+        error: 'Unsupported Media Type',
+        message: 'Only WEBP, PNG, and JPEG images are allowed.',
+      });
+    }
+
+    if (req.file.buffer.length > 5 * 1024 * 1024) {
+      return res.status(413).json({
+        error: 'Payload Too Large',
+        message: 'Image exceeds maximum limit of 5MB.',
+      });
+    }
+
+    const safeFilename = `${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const storagePath = `images/${id}/${safeFilename}`;
+
+    // Write to local disk fallback
+    const localDir = path.join(process.cwd(), 'public', 'media', 'use-cases', 'images', id);
+    try {
+      await fs.promises.mkdir(localDir, { recursive: true });
+      await fs.promises.writeFile(path.join(localDir, safeFilename), req.file.buffer);
+    } catch (e) {
+      console.warn('Local disk image write warning:', e);
+    }
+
+    let imageUrl = `/media/use-cases/images/${id}/${safeFilename}`;
+
+    // Upload to Supabase Storage if available
+    if (supabase) {
+      try {
+        await supabase.storage
+          .from('use-cases')
+          .upload(storagePath, req.file.buffer, { contentType: mime, upsert: true });
+
+        const { data: pubData } = supabase.storage
+          .from('use-cases')
+          .getPublicUrl(storagePath);
+        if (pubData?.publicUrl) {
+          imageUrl = pubData.publicUrl;
+        }
+      } catch (err) {
+        console.warn('Supabase image upload warning:', err);
+      }
+    }
+
+    const alt = req.body?.alt ? String(req.body.alt).trim() : req.file.originalname;
+
+    // Update use_cases table
+    if (supabase) {
+      try {
+        await supabase
+          .from('use_cases')
+          .update({ image_url: imageUrl, image_alt: alt, updated_at: new Date().toISOString() })
+          .eq('id', id);
+      } catch {}
+    }
+
+    const localItem = (localStore.use_cases || []).find((u: any) => u.id === id);
+    if (localItem) {
+      localItem.image_url = imageUrl;
+      localItem.image_alt = alt;
+      localItem.updated_at = new Date().toISOString();
+    }
+
+    return res.json({
+      status: 'uploaded',
+      use_case_id: id,
+      image_url: imageUrl,
+      image_alt: alt,
+    });
+  }
+);
+
+// POST /api/v1/use-cases/:id/files — upload a downloadable file for a use case (authenticated)
+app.post(
+  '/api/v1/use-cases/:id/files',
+  authenticateApiKey,
+  mediaUploadMiddleware,
+  async (req, res) => {
+    const { id } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ error: 'Bad Request', message: 'No file uploaded.' });
+    }
+
+    if (req.file.buffer.length > 50 * 1024 * 1024) {
+      return res.status(413).json({
+        error: 'Payload Too Large',
+        message: 'File exceeds maximum limit of 50MB.',
+      });
+    }
+
+    const label = req.body?.label ? String(req.body.label).trim() : req.file.originalname;
+    const safeFilename = `${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const storagePath = `files/${id}/${safeFilename}`;
+    const fileExt = path.extname(req.file.originalname).replace('.', '').toLowerCase() || 'bin';
+
+    // Write to local disk fallback
+    const localDir = path.join(process.cwd(), 'public', 'media', 'use-cases', 'files', id);
+    try {
+      await fs.promises.mkdir(localDir, { recursive: true });
+      await fs.promises.writeFile(path.join(localDir, safeFilename), req.file.buffer);
+    } catch (e) {
+      console.warn('Local disk file write warning:', e);
+    }
+
+    // Upload to Supabase Storage if available
+    if (supabase) {
+      try {
+        await supabase.storage
+          .from('use-cases')
+          .upload(storagePath, req.file.buffer, {
+            contentType: req.file.mimetype || 'application/octet-stream',
+            upsert: true,
+          });
+      } catch (err) {
+        console.warn('Supabase file upload warning:', err);
+      }
+    }
+
+    const newFile = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `file_${Date.now()}`,
+      use_case_id: id,
+      filename: req.file.originalname,
+      storage_path: storagePath,
+      label,
+      file_type: fileExt,
+      sort_order: req.body?.sort_order ? parseInt(req.body.sort_order, 10) : 0,
+      created_at: new Date().toISOString(),
+    };
+
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('use_case_files')
+          .insert([newFile])
+          .select()
+          .single();
+        if (!error && data) {
+          return res.status(201).json({ status: 'created', file: data });
+        }
+      } catch {}
+    }
+
+    if (!localStore.use_case_files) localStore.use_case_files = [];
+    localStore.use_case_files.push(newFile);
+
+    return res.status(201).json({ status: 'created', file: newFile });
+  }
+);
+
+// DELETE /api/v1/use-cases/:id/files/:fileId — delete a downloadable file (authenticated)
+app.delete(
+  '/api/v1/use-cases/:id/files/:fileId',
+  authenticateApiKey,
+  async (req, res) => {
+    const { id, fileId } = req.params;
+    let fileRecord: any = null;
+
+    if (supabase) {
+      try {
+        const { data } = await supabase
+          .from('use_case_files')
+          .select('*')
+          .eq('id', fileId)
+          .eq('use_case_id', id)
+          .maybeSingle();
+        if (data) fileRecord = data;
+      } catch {}
+    }
+
+    if (!fileRecord) {
+      fileRecord = (localStore.use_case_files || []).find(
+        (f: any) => f.id === fileId && f.use_case_id === id
+      );
+    }
+
+    if (!fileRecord) {
+      return res.status(404).json({ error: 'Not Found', message: 'File not found.' });
+    }
+
+    // Remove from storage
+    if (supabase && fileRecord.storage_path) {
+      try {
+        await supabase.storage.from('use-cases').remove([fileRecord.storage_path]);
+      } catch {}
+    }
+
+    // Remove local disk file if exists
+    try {
+      const localFilePath = path.join(process.cwd(), 'public', 'media', 'use-cases', fileRecord.storage_path.replace(/^use-cases\//, ''));
+      if (fs.existsSync(localFilePath)) {
+        await fs.promises.unlink(localFilePath).catch(() => {});
+      }
+    } catch {}
+
+    // Delete DB row
+    if (supabase) {
+      try {
+        await supabase
+          .from('use_case_files')
+          .delete()
+          .eq('id', fileId)
+          .eq('use_case_id', id);
+      } catch {}
+    }
+
+    localStore.use_case_files = (localStore.use_case_files || []).filter(
+      (f: any) => !(f.id === fileId && f.use_case_id === id)
+    );
+
+    return res.json({ status: 'deleted', id: fileId });
+  }
+);
+
+// --- ADMIN USE CASE ENDPOINTS ---
+
+// GET /api/v1/admin/use-cases — list ALL use cases including unpublished
+app.get('/api/v1/admin/use-cases', authenticateApiKey, async (req, res) => {
+  let allUseCases: any[] = [];
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('use_cases')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        allUseCases = data;
+      }
+    } catch {}
+  }
+
+  if (!allUseCases.length) {
+    allUseCases = localStore.use_cases || [];
+  }
+
+  const populated = await attachFilesToUseCases(allUseCases);
+  return res.json({ count: populated.length, use_cases: populated });
+});
+
+// POST /api/v1/admin/use-cases — create a use case
+app.post('/api/v1/admin/use-cases', authenticateApiKey, async (req, res) => {
+  const {
+    category_slug,
+    title,
+    problem,
+    approach,
+    outcome,
+    audience,
+    industry_tags,
+    published,
+    sort_order,
+  } = req.body;
+
+  if (!title || !category_slug || !problem || !approach || !outcome || !audience) {
+    return res.status(400).json({
+      error: 'Bad Request',
+      message: 'category_slug, title, problem, approach, outcome, and audience are required fields.',
+    });
+  }
+
+  const newUseCase = {
+    id: crypto.randomUUID ? crypto.randomUUID() : `uc_${Date.now()}`,
+    category_slug,
+    title,
+    problem,
+    approach,
+    outcome,
+    audience,
+    industry_tags: Array.isArray(industry_tags) ? industry_tags : [],
+    image_url: null,
+    image_alt: null,
+    published: Boolean(published),
+    sort_order: sort_order ? parseInt(sort_order, 10) : 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('use_cases')
+        .insert([newUseCase])
+        .select()
+        .single();
+      if (!error && data) {
+        return res.status(201).json({ status: 'created', use_case: { ...data, files: [] } });
+      }
+    } catch (e) {
+      console.error('Supabase create use case error:', e);
+    }
+  }
+
+  if (!localStore.use_cases) localStore.use_cases = [];
+  localStore.use_cases.unshift(newUseCase);
+
+  return res.status(201).json({ status: 'created', use_case: { ...newUseCase, files: [] } });
+});
+
+// PATCH /api/v1/admin/use-cases/:id — update a use case (including toggle published)
+app.patch('/api/v1/admin/use-cases/:id', authenticateApiKey, async (req, res) => {
+  const { id } = req.params;
+  const updates = { ...req.body, updated_at: new Date().toISOString() };
+
+  let updatedRecord: any = null;
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('use_cases')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) {
+        updatedRecord = data;
+      }
+    } catch (e) {
+      console.error('Supabase update use case error:', e);
+    }
+  }
+
+  const existingLocal = (localStore.use_cases || []).find((u: any) => u.id === id);
+  if (existingLocal) {
+    Object.assign(existingLocal, updates);
+    if (!updatedRecord) updatedRecord = existingLocal;
+  }
+
+  if (!updatedRecord) {
+    return res.status(404).json({ error: 'Not Found', message: `Use case '${id}' not found.` });
+  }
+
+  const [populated] = await attachFilesToUseCases([updatedRecord]);
+  return res.json({ status: 'updated', use_case: populated });
+});
+
+// DELETE /api/v1/admin/use-cases/:id — delete a use case
+app.delete('/api/v1/admin/use-cases/:id', authenticateApiKey, async (req, res) => {
+  const { id } = req.params;
+
+  if (supabase) {
+    try {
+      await supabase.from('use_cases').delete().eq('id', id);
+    } catch {}
+  }
+
+  localStore.use_cases = (localStore.use_cases || []).filter((u: any) => u.id !== id);
+  localStore.use_case_files = (localStore.use_case_files || []).filter((f: any) => f.use_case_id !== id);
+
   return res.json({ status: 'deleted', id });
 });
 

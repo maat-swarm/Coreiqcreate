@@ -18,6 +18,7 @@ export type AppRoute =
 
 const VALID_NAV_ROUTES: readonly NavRoute[] = [
   'home',
+  'use-cases',
   'solutions',
   'apps',
   'learn',
@@ -29,6 +30,7 @@ const VALID_NAV_ROUTES: readonly NavRoute[] = [
 ];
 
 // Lazy loaded secondary page components for performance
+const UseCasesPage = React.lazy(() => import('./pages/UseCasesPage').then((m) => ({ default: m.UseCasesPage })));
 const SolutionsPage = React.lazy(() => import('./pages/SolutionsPage').then((m) => ({ default: m.SolutionsPage })));
 const AppsPage = React.lazy(() => import('./pages/AppsPage').then((m) => ({ default: m.AppsPage })));
 const LearnPage = React.lazy(() => import('./pages/LearnPage').then((m) => ({ default: m.LearnPage })));
@@ -52,7 +54,13 @@ export default function App() {
     const p = window.location.pathname.replace(/^\//, '').toLowerCase();
     if (p.startsWith('learn/')) return p as AppRoute;
     if (p === 'command' || window.location.hash === '#command') return 'command';
-    if (p === 'solutions') return 'solutions';
+    if (p === 'solutions') {
+      try {
+        window.history.replaceState({}, '', '/use-cases');
+      } catch {}
+      return 'use-cases';
+    }
+    if (p === 'use-cases') return 'use-cases';
     if (p === 'apps') return 'apps';
     if (p === 'learn') return 'learn';
     if (p === 'tools') return 'tools';
@@ -86,9 +94,10 @@ export default function App() {
   }, []);
 
   const navigateTo = (route: string, query?: string) => {
-    setCurrentRoute(route as AppRoute);
+    const targetRoute = route === 'solutions' ? 'use-cases' : route;
+    setCurrentRoute(targetRoute as AppRoute);
     if (query) setActivePrompt(query);
-    window.history.pushState({}, '', route === 'home' ? '/' : `/${route}`);
+    window.history.pushState({}, '', targetRoute === 'home' ? '/' : `/${targetRoute}`);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
@@ -148,7 +157,8 @@ export default function App() {
             className="relative z-10 w-full"
           >
             {currentRoute === 'home' && <HomePage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
-            {currentRoute === 'solutions' && <SolutionsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute === 'use-cases' && <UseCasesPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute === 'solutions' && <UseCasesPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'apps' && <AppsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'learn' && <LearnPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute.startsWith('learn/') && (

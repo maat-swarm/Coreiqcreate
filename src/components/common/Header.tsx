@@ -11,7 +11,7 @@ interface HeaderProps {
 
 const NAV_ITEMS: { id: NavRoute; label: string }[] = [
   { id: 'home', label: 'Home' },
-  { id: 'solutions', label: 'Solutions' },
+  { id: 'use-cases', label: 'Use Cases' },
   { id: 'apps', label: 'Apps' },
   { id: 'learn', label: 'Learn' },
   { id: 'tools', label: 'Tools' },

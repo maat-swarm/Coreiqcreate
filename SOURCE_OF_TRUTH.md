@@ -19440,3 +19440,41 @@ None. Verified with clean `tsc --noEmit` and production `npm run build`.
 ### Build Status
 PASS
 ---
+
+---
+## Session: 2026-10-09 Migration of Solutions to Use Cases Page (/use-cases) & Command Use Cases Management
+
+### Files Changed
+supabase/migrations/20261009_use_cases.sql
+src/types/useCases.ts
+src/types/command.ts
+src/types.ts
+server.ts
+src/components/common/Header.tsx
+src/components/common/Footer.tsx
+src/pages/UseCasesPage.tsx
+src/components/command/CommandUseCasesTab.tsx
+src/components/command/CommandNav.tsx
+src/pages/CommandDashboardPage.tsx
+src/components/command/CommandUploadTab.tsx
+src/components/environment/AtmosphericLayer.tsx
+src/components/environment/SiteVisualEnvironment.tsx
+src/App.tsx
+SOURCE_OF_TRUTH.md
+
+### What Was Done
+Created a full Use Cases system replacing `/solutions` with `/use-cases` (and automatic client-side redirection). Added PostgreSQL schema and seed migrations for `use_case_categories`, `use_cases`, and `use_case_files` with Supabase storage bucket configurations, dual-engine resilient in-memory local fallback stores, and RESTful API endpoints in `server.ts` for public and authenticated administrative operations (including signed download URL generation, image uploading, and multi-file attachments). Implemented the public `UseCasesPage` with interactive audience/category filtering, cards, detail breakdowns, and downloadable assets, alongside the `CommandUseCasesTab` operator interface for creating, editing, publishing, and managing files for use cases.
+
+### New Slots Registered
+None (Use Cases media is managed directly through the Use Case Manager table and Supabase storage). Added 'use-cases' filter tab to CommandUploadTab.
+
+### New Components Added
+- `src/pages/UseCasesPage.tsx`: Public Use Cases directory, responsive card grid, and architectural detail specs.
+- `src/components/command/CommandUseCasesTab.tsx`: Operator console for managing categories, use case records, hero images, and downloadable assets.
+
+### Known Limitations or Follow-up Needed
+None. Verified with clean TypeScript checks and production Vite/esbuild bundle builds.
+
+### Build Status
+PASS
+---

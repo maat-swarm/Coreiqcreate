@@ -30,6 +30,7 @@ import { CommandApiKeysTab } from '../components/command/CommandApiKeysTab';
 import { CommandToolsTab } from '../components/command/CommandToolsTab';
 import { CommandPlatformsTab } from '../components/command/CommandPlatformsTab';
 import { CommandContentTab } from '../components/command/CommandContentTab';
+import { CommandUseCasesTab } from '../components/command/CommandUseCasesTab';
 import { CommandUploadTab } from '../components/command/CommandUploadTab';
 import { CommandSwarmTab } from '../components/command/CommandSwarmTab';
 import { CommandAnalyticsTab } from '../components/command/CommandAnalyticsTab';
@@ -501,6 +502,10 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
             contentItems={contentItems}
             onRefresh={fetchAllData}
           />
+        )}
+
+        {activeTab === 'use_cases' && (
+          <CommandUseCasesTab />
         )}
 
         {activeTab === 'upload' && (

@@ -7,6 +7,7 @@ export type CommandTab =
   | 'tools'
   | 'platforms'
   | 'content'
+  | 'use_cases'
   | 'upload'
   | 'swarm'
   | 'analytics';

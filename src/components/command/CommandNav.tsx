@@ -11,7 +11,8 @@ import {
   Share2, 
   BarChart3,
   ArrowUpRight,
-  UploadCloud
+  UploadCloud,
+  Briefcase
 } from 'lucide-react';
 import { CommandTab } from '../../types/command';
 
@@ -32,6 +33,7 @@ export const COMMAND_TABS: { id: CommandTab; label: string; icon: React.FC<{ cla
   { id: 'tools', label: 'Tools', icon: Wrench },
   { id: 'platforms', label: 'Platforms', icon: Globe },
   { id: 'content', label: 'Content', icon: FolderKanban },
+  { id: 'use_cases', label: 'Use Cases', icon: Briefcase },
   { id: 'upload', label: 'Media Slots', icon: UploadCloud },
   { id: 'swarm', label: 'Swarm', icon: Share2 },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },

@@ -91,7 +91,7 @@ export const SiteVisualEnvironment: React.FC<SiteVisualEnvironmentProps> = ({
             <EnergyField
               isReducedMotion={isReducedMotion}
               mousePos={mousePos}
-              intensity={currentRoute === 'solutions' || currentRoute === 'ask' ? 1.2 : 1}
+              intensity={currentRoute === 'use-cases' || currentRoute === 'solutions' || currentRoute === 'ask' ? 1.2 : 1}
             />
 
             {/* LAYER 4: Living Mascot Heart Pulse, Visor Gaze & Agent Presence */}

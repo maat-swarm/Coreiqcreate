@@ -38,8 +38,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <h4 className="text-white font-semibold text-sm tracking-wide">Ecosystem</h4>
             <ul className="space-y-2.5">
               <li>
-                <button onClick={() => onNavigate('solutions')} className="hover:text-cyan-300 transition-colors">
-                  Solutions
+                <button onClick={() => onNavigate('use-cases')} className="hover:text-cyan-300 transition-colors">
+                  Use Cases
                 </button>
               </li>
               <li>
@@ -71,22 +71,22 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <h4 className="text-white font-semibold text-sm tracking-wide">Capabilities</h4>
             <ul className="space-y-2.5">
               <li>
-                <button onClick={() => onNavigate('solutions')} className="hover:text-cyan-300 transition-colors">
+                <button onClick={() => onNavigate('use-cases')} className="hover:text-cyan-300 transition-colors">
                   AI Agents
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigate('solutions')} className="hover:text-cyan-300 transition-colors">
+                <button onClick={() => onNavigate('use-cases')} className="hover:text-cyan-300 transition-colors">
                   Workflow Automation
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigate('solutions')} className="hover:text-cyan-300 transition-colors">
+                <button onClick={() => onNavigate('use-cases')} className="hover:text-cyan-300 transition-colors">
                   Web & Native Apps
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigate('solutions')} className="hover:text-cyan-300 transition-colors">
+                <button onClick={() => onNavigate('use-cases')} className="hover:text-cyan-300 transition-colors">
                   Voice AI Interfaces
                 </button>
               </li>
