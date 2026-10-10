@@ -83,6 +83,17 @@ export function getSupabase(): SupabaseClient | null {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
+          storage: {
+            getItem: (key: string) => {
+              try { return sessionStorage.getItem(key); } catch { return null; }
+            },
+            setItem: (key: string, value: string) => {
+              try { sessionStorage.setItem(key, value); } catch {}
+            },
+            removeItem: (key: string) => {
+              try { sessionStorage.removeItem(key); } catch {}
+            },
+          },
         },
         realtime: {
           params: {

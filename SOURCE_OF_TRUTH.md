@@ -19671,3 +19671,25 @@ None. Verified with TypeScript lint check and production build.
 ### Build Status
 PASS (0 warnings, 0 errors).
 ---
+
+## Session: 2026-10-10 Configure SessionStorage Auth Storage Adapter in Supabase Client
+
+### Files Changed
+src/services/supabase.ts
+
+### What Was Done
+Configured the Supabase client initialization in `src/services/supabase.ts` to use a direct `sessionStorage` adapter (`getItem`, `setItem`, `removeItem`) for session persistence and token management. This completely bypasses the browser `localStorage` storage quota limitations when processing large Supabase auth tokens during operator login to CoreIQ Command.
+
+### New Slots Registered
+None
+
+### New Components Added
+None
+
+### Known Limitations or Follow-up Needed
+None. Verified with TypeScript lint check and production build.
+
+### Build Status
+PASS (0 warnings, 0 errors).
+---
+
