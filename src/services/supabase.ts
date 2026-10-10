@@ -107,35 +107,6 @@ function getInitialCredentials() {
 }
 
 // Custom split storage adapter to handle large Supabase auth tokens across chunked keys
-const splitStorage = {
-  getItem: (key: string) => {
-    const chunks: string[] = [];
-    let i = 0;
-    while (true) {
-      const chunk = localStorage.getItem(`${key}_${i}`);
-      if (chunk === null) break;
-      chunks.push(chunk);
-      i++;
-    }
-    return chunks.length ? chunks.join('') : null;
-  },
-  setItem: (key: string, value: string) => {
-    const chunkSize = 2000;
-    let i = 0;
-    for (let start = 0; start < value.length; start += chunkSize) {
-      localStorage.setItem(`${key}_${i}`, value.slice(start, start + chunkSize));
-      i++;
-    }
-  },
-  removeItem: (key: string) => {
-    let i = 0;
-    while (localStorage.getItem(`${key}_${i}`) !== null) {
-      localStorage.removeItem(`${key}_${i}`);
-      i++;
-    }
-  },
-};
-
 // Safe clear of any partially written or corrupted auth keys before client initialises
 const clearCorruptedAuth = () => {
   try {
