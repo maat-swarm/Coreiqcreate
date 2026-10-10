@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Flame, 
   PenTool, 
@@ -32,10 +32,28 @@ interface AppsPageProps {
 export const AppsPage: React.FC<AppsPageProps> = ({ onNavigate, onAsk }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [activeAppModal, setActiveAppModal] = useState<string | null>(null);
+  const [apps, setApps] = useState<any[]>(APPS_LIST);
+  useEffect(() => {
+    let live = true;
+    fetch('/api/v1/store/apps/public')
+      .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then(d => {
+        if (!live || !Array.isArray(d.apps) || d.apps.length === 0) return;
+        setApps(d.apps.map((a: any) => ({
+          ...a,
+          id: a.slug,
+          iconName: a.icon_name || 'Sparkles',
+          accentColor: a.accent_color || '#06b6d4',
+          featured: !!a.featured,
+        })));
+      })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
 
   const filteredApps = selectedCategory === 'All'
-    ? APPS_LIST
-    : APPS_LIST.filter(app => app.category === selectedCategory || (selectedCategory === 'Productivity' && app.id === 'researchpro'));
+    ? apps
+    : apps.filter(app => app.category === selectedCategory || (selectedCategory === 'Productivity' && app.id === 'researchpro'));
 
   const appPills = [
     { label: 'Browse apps', query: 'Show me all Core IQ applications' },
