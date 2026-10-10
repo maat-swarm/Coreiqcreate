@@ -53,6 +53,41 @@ function safeRemoveStorage(key: string): void {
   } catch {}
 }
 
+const splitStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      const chunks: string[] = [];
+      let i = 0;
+      while (true) {
+        const chunk = localStorage.getItem(`${key}_chunk_${i}`);
+        if (chunk === null) break;
+        chunks.push(chunk);
+        i++;
+      }
+      return chunks.length ? chunks.join('') : null;
+    } catch { return null; }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      const chunkSize = 2000;
+      let i = 0;
+      for (let start = 0; start < value.length; start += chunkSize) {
+        localStorage.setItem(`${key}_chunk_${i}`, value.slice(start, start + chunkSize));
+        i++;
+      }
+    } catch {}
+  },
+  removeItem: (key: string): void => {
+    try {
+      let i = 0;
+      while (localStorage.getItem(`${key}_chunk_${i}`) !== null) {
+        localStorage.removeItem(`${key}_chunk_${i}`);
+        i++;
+      }
+    } catch {}
+  },
+};
+
 // Initial configuration detection
 function getInitialCredentials() {
   let envUrl = '';
@@ -135,7 +170,8 @@ export function getSupabase(): SupabaseClient | null {
           storage: splitStorage,
           persistSession: true,
           autoRefreshToken: true,
-        },
+                storage: splitStorage,
+      },
         realtime: {
           params: {
             eventsPerSecond: 10,
