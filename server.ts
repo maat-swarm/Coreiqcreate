@@ -3988,7 +3988,7 @@ const systemPrompt = buildSystemPrompt() || agentConfig?.system_prompt || 'You a
 
     // Fallback to Gemini if assistantMessage is empty and GEMINI_API_KEY is available
     if (!assistantMessage && process.env.GEMINI_API_KEY) {
-      const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-flash-latest'];
+      const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const contents = [
         ...history.slice(-6).map((h: any) => ({

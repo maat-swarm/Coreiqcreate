@@ -78,7 +78,11 @@ export const CommandAuthModal: React.FC<CommandAuthModalProps> = ({
       onCredentialsUpdated();
       onClose();
     } catch (err: any) {
-      setAuthError(err?.message || 'Authentication failed. Verify credentials in Supabase Auth.');
+      if (err?.name === 'QuotaExceededError' || err?.message?.includes('quota')) {
+        setAuthError('Session storage is full. Please clear your browser data and try again.');
+      } else {
+        setAuthError(err?.message || 'Authentication failed. Verify credentials in Supabase Auth.');
+      }
     }
   };
 

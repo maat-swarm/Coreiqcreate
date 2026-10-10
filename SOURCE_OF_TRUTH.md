@@ -19648,3 +19648,26 @@ None. Verified with TypeScript check (`npm run lint`), `npm run build`, and live
 ### Build Status
 PASS (0 warnings, 0 errors).
 ---
+
+## Session: 2026-10-10 Fix CoreIQ Command Auth Storage Quota Error
+
+### Files Changed
+src/services/supabase.ts
+src/pages/CommandLoginPage.tsx
+src/components/command/CommandAuthModal.tsx
+
+### What Was Done
+Implemented a 3-part fix for the browser localStorage quota exceeded error caused by oversized Supabase auth tokens. Configured a custom `splitStorage` adapter that chunks tokens across 2000-character segments into separate keys, added a safe `clearCorruptedAuth` routine executed once prior to Supabase client initialization to remove legacy/corrupted tokens, and wrapped operator login authentication handlers in try/catch blocks to display a user-friendly error message if storage limits are encountered.
+
+### New Slots Registered
+None
+
+### New Components Added
+None
+
+### Known Limitations or Follow-up Needed
+None. Verified with TypeScript lint check and production build.
+
+### Build Status
+PASS (0 warnings, 0 errors).
+---

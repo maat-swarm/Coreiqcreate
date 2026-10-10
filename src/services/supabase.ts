@@ -71,6 +71,53 @@ function getInitialCredentials() {
   return { url, anonKey };
 }
 
+// Custom split storage adapter to handle large Supabase auth tokens across chunked keys
+const splitStorage = {
+  getItem: (key: string) => {
+    const chunks: string[] = [];
+    let i = 0;
+    while (true) {
+      const chunk = localStorage.getItem(`${key}_${i}`);
+      if (chunk === null) break;
+      chunks.push(chunk);
+      i++;
+    }
+    return chunks.length ? chunks.join('') : null;
+  },
+  setItem: (key: string, value: string) => {
+    const chunkSize = 2000;
+    let i = 0;
+    for (let start = 0; start < value.length; start += chunkSize) {
+      localStorage.setItem(`${key}_${i}`, value.slice(start, start + chunkSize));
+      i++;
+    }
+  },
+  removeItem: (key: string) => {
+    let i = 0;
+    while (localStorage.getItem(`${key}_${i}`) !== null) {
+      localStorage.removeItem(`${key}_${i}`);
+      i++;
+    }
+  },
+};
+
+// Safe clear of any partially written or corrupted auth keys before client initialises
+const clearCorruptedAuth = () => {
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-') && key.includes('auth-token')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch (e) {
+    console.warn('Could not clear auth storage:', e);
+  }
+};
+
+let corruptedAuthCleared = false;
 let activeClient: SupabaseClient | null = null;
 let currentCredentials = getInitialCredentials();
 
@@ -79,8 +126,13 @@ export function getSupabase(): SupabaseClient | null {
 
   if (currentCredentials.url && currentCredentials.anonKey) {
     try {
+      if (!corruptedAuthCleared) {
+        clearCorruptedAuth();
+        corruptedAuthCleared = true;
+      }
       activeClient = createClient(currentCredentials.url, currentCredentials.anonKey, {
         auth: {
+          storage: splitStorage,
           persistSession: true,
           autoRefreshToken: true,
         },
@@ -1117,17 +1169,26 @@ export const CoreIQAuth = {
   async signIn(email: string, pass: string) {
     const client = getSupabase();
     if (client) {
-      const res = await client.auth.signInWithPassword({ 
-        email: email.trim(), 
-        password: pass 
-      });
-      if (res.error) {
-        throw res.error;
+      try {
+        const res = await client.auth.signInWithPassword({ 
+          email: email.trim(), 
+          password: pass 
+        });
+        if (res.error) {
+          throw res.error;
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('coreiq_auth_state_change', { detail: { session: res.data.session } }));
+        }
+        return res.data;
+      } catch (err: any) {
+        if (err?.name === 'QuotaExceededError' || err?.message?.includes('quota')) {
+          const quotaError = new Error('Session storage is full. Please clear your browser data and try again.');
+          quotaError.name = 'QuotaExceededError';
+          throw quotaError;
+        }
+        throw err;
       }
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('coreiq_auth_state_change', { detail: { session: res.data.session } }));
-      }
-      return res.data;
     }
 
     // Sovereign Local Operator Mode:

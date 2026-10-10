@@ -82,8 +82,11 @@ export const CommandLoginPage: React.FC<CommandLoginPageProps> = ({
       onLoginSuccess?.();
     } catch (err: any) {
       console.error('Operator login error:', err);
-      const msg = err?.message || 'Authentication failed. Please verify credentials.';
-      setErrorMessage(msg);
+      if (err?.name === 'QuotaExceededError' || err?.message?.includes('quota')) {
+        setErrorMessage('Session storage is full. Please clear your browser data and try again.');
+      } else {
+        setErrorMessage(err?.message || 'Authentication failed. Please verify credentials.');
+      }
     } finally {
       setIsLoading(false);
     }
