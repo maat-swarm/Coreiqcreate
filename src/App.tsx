@@ -14,7 +14,8 @@ export type AppRoute =
   | 'writing-assistant'
   | 'imageforge'
   | 'core-principles'
-  | '404';
+  | '404'
+  | `apps/${string}`;
 
 const VALID_NAV_ROUTES: readonly NavRoute[] = [
   'home',
@@ -40,6 +41,8 @@ const NewsPage = React.lazy(() => import('./pages/NewsPage').then((m) => ({ defa
 const AskPage = React.lazy(() => import('./pages/AskPage').then((m) => ({ default: m.AskPage })));
 const CommandDashboardPage = React.lazy(() => import('./pages/CommandDashboardPage').then((m) => ({ default: m.CommandDashboardPage })));
 const LearnArticlePage = React.lazy(() => import('./pages/LearnArticlePage').then((m) => ({ default: m.LearnArticlePage })));
+const AppDetailPage = React.lazy(() => import('./pages/AppDetailPage').then((m) => ({ default: m.AppDetailPage })));
+const AppAccessPage = React.lazy(() => import('./pages/AppAccessPage').then((m) => ({ default: m.AppAccessPage })));
 const ComingSoon = React.lazy(() => import('./pages/ComingSoon').then((m) => ({ default: m.ComingSoon })));
 
 function ScrollToTop({ route }: { route: string }) {
@@ -53,6 +56,8 @@ export default function App() {
   const getRoute = (): AppRoute => {
     const p = window.location.pathname.replace(/^\//, '').toLowerCase();
     if (p.startsWith('learn/')) return p as AppRoute;
+    if (p.startsWith('apps/access/')) return p as AppRoute;
+    if (p.startsWith('apps/')) return p as AppRoute;
     if (p === 'command' || window.location.hash === '#command') return 'command';
     if (p === 'solutions') {
       try {
@@ -136,9 +141,11 @@ export default function App() {
 
   const activeNavRoute: NavRoute = currentRoute.startsWith('learn/')
     ? 'learn'
-    : (VALID_NAV_ROUTES.includes(currentRoute as NavRoute)
-      ? (currentRoute as NavRoute)
-      : 'home');
+    : currentRoute.startsWith('apps/')
+      ? 'apps'
+      : (VALID_NAV_ROUTES.includes(currentRoute as NavRoute)
+        ? (currentRoute as NavRoute)
+        : 'home');
 
   return (
     <div className="min-h-screen bg-transparent text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -160,6 +167,19 @@ export default function App() {
             {currentRoute === 'use-cases' && <UseCasesPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'solutions' && <UseCasesPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'apps' && <AppsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute.startsWith('apps/access/') && (
+              <AppAccessPage
+                token={currentRoute.replace(/^apps\/access\//, '')}
+                onNavigate={navigateTo}
+              />
+            )}
+            {currentRoute.startsWith('apps/') && !currentRoute.startsWith('apps/access/') && (
+              <AppDetailPage
+                slug={currentRoute.replace(/^apps\//, '')}
+                onNavigate={navigateTo}
+                onAsk={(q) => navigateTo('ask', q)}
+              />
+            )}
             {currentRoute === 'learn' && <LearnPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute.startsWith('learn/') && (
               <LearnArticlePage

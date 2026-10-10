@@ -144,26 +144,31 @@ export function useMediaSlot(slotKey: string) {
 // OPERATOR / COMMAND API HELPERS
 // -----------------------------------------------------------------------------
 
-function getAuthHeaders(isJson = true): Record<string, string> {
+export function getAuthHeaders(isJson = true): Record<string, string> {
   const headers: Record<string, string> = {
     'x-operator-auth': 'true',
   };
   if (isJson) {
     headers['Content-Type'] = 'application/json';
   }
-  // If operator session token exists in localStorage or sessionStorage
   if (typeof window !== 'undefined') {
-    let rawDevKey = '';
+    let token = '';
     try {
-      if (window.localStorage) {
-        rawDevKey = localStorage.getItem('coreiq_api_key_master') || '';
-      }
+      token = localStorage.getItem('coreiq_api_key_master') || '';
     } catch {}
 
-    if (rawDevKey) {
-      headers['Authorization'] = `Bearer ${rawDevKey}`;
-    } else {
-      headers['Authorization'] = 'Bearer ciq_live_devmaster_00000000000000000000000000000000';
+    if (!token) {
+      try {
+        const devSessionRaw = localStorage.getItem('coreiq_dev_auth_session');
+        if (devSessionRaw) {
+          const parsed = JSON.parse(devSessionRaw);
+          token = parsed?.access_token || '';
+        }
+      } catch {}
+    }
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
   }
   return headers;

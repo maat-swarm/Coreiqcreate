@@ -719,24 +719,39 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
     rawToken = String((req.query as any).api_key).trim();
   }
 
-  // Operator session from Command or dev master
-  if (operatorHeader === 'true' || rawToken === 'operator-session' || rawToken === 'ciq_live_devmaster_00000000000000000000000000000000') {
-    (req as any).apiKey = {
-      id: 'key_operator_session',
-      name: 'CoreIQ Operator Session',
-      key_prefix: 'operator...',
-      key_hash: 'operator_hash',
-      scopes: ['*'],
-      revoked: false,
-      created_at: new Date().toISOString(),
-    };
-    return next();
+  // Check if we are running in production or if Supabase is connected
+  const isProductionOrSupabaseConfigured = process.env.NODE_ENV === 'production' || Boolean(adminSupabase || supabase);
+
+  // Reject the hardcoded dev master token in production or when Supabase is configured
+  if (rawToken === 'ciq_live_devmaster_00000000000000000000000000000000') {
+    if (isProductionOrSupabaseConfigured) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Dev master key is rejected in production or configured environments. Please sign in to Command.',
+      });
+    }
+  }
+
+  // Operator session from Command in local unconfigured dev mode only
+  if (!isProductionOrSupabaseConfigured) {
+    if ((operatorHeader === 'true' && rawToken === 'operator-session') || rawToken === 'ciq_live_devmaster_00000000000000000000000000000000') {
+      (req as any).apiKey = {
+        id: 'key_operator_session',
+        name: 'CoreIQ Local Operator Session',
+        key_prefix: 'operator...',
+        key_hash: 'operator_hash',
+        scopes: ['*'],
+        revoked: false,
+        created_at: new Date().toISOString(),
+      };
+      return next();
+    }
   }
 
   if (!rawToken) {
     return res.status(401).json({
       error: 'Missing API Key',
-      message: 'Provide an API key via "Authorization: Bearer ciq_live_..." or "x-api-key" header.',
+      message: 'Please sign in to Command again.',
       docs: '/command#api_keys'
     });
   }
@@ -787,8 +802,8 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
     }
   }
 
-  // Fallback to local store
-  if (!keyRecord) {
+  // Fallback to local store (only if not production)
+  if (!keyRecord && !isProductionOrSupabaseConfigured) {
     const found = (localStore.api_keys as ApiKeyRecord[]).find(
       (k) => k.key_hash === tokenHash && !k.revoked
     );
@@ -801,7 +816,7 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
   if (!keyRecord) {
     return res.status(401).json({
       error: 'Unauthorized',
-      message: 'Invalid or revoked API key token.',
+      message: 'Invalid or revoked API key token. Please sign in to Command again.',
     });
   }
 
@@ -810,10 +825,10 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
 }
 
 function isCallerAuthorizedForMedia(req: Request): boolean {
+  const isProductionOrSupabaseConfigured = process.env.NODE_ENV === 'production' || Boolean(adminSupabase || supabase);
   const authHeader = req.headers.authorization;
   const apiKeyHeader = req.headers['x-api-key'] as string;
   const operatorHeader = (req.headers['x-operator-auth'] as string) || (req.headers['x-operator-mode'] as string);
-  if (operatorHeader === 'true') return true;
 
   let rawToken = '';
   if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -823,8 +838,17 @@ function isCallerAuthorizedForMedia(req: Request): boolean {
   } else if ((req.query as any).api_key) {
     rawToken = String((req.query as any).api_key).trim();
   }
+
+  if (rawToken === 'ciq_live_devmaster_00000000000000000000000000000000') {
+    if (isProductionOrSupabaseConfigured) return false;
+    return true;
+  }
+
+  if (!isProductionOrSupabaseConfigured && (operatorHeader === 'true' || rawToken === 'operator-session')) {
+    return true;
+  }
+
   if (!rawToken) return false;
-  if (rawToken === 'operator-session' || rawToken === 'ciq_live_devmaster_00000000000000000000000000000000') return true;
 
   const tokenHash = hashToken(rawToken);
   const found = (localStore.api_keys as ApiKeyRecord[]).find((k) => k.key_hash === tokenHash && !k.revoked);
@@ -2639,9 +2663,9 @@ app.delete('/api/v1/admin/use-cases/:id', authenticateApiKey, async (req, res) =
 // APP STORE & COMMAND STORE ENGINE (server.ts)
 // -----------------------------------------------------------------------------
 
-const ALLOWED_STORE_STATUSES = ['draft', 'published', 'archived'] as const;
+const ALLOWED_STORE_STATUSES = ['draft', 'published', 'coming_soon', 'archived'] as const;
 const ALLOWED_PRICE_MODES = ['free', 'paid', 'contact'] as const;
-const ALLOWED_DISTRIBUTION_TYPES = ['download', 'link', 'access', 'custom'] as const;
+const ALLOWED_DISTRIBUTION_TYPES = ['download', 'link', 'access', 'custom', 'web', 'file', 'store', 'external'] as const;
 
 function validateStoreAppPayload(body: any, isPatch = false): string[] {
   const errors: string[] = [];
@@ -3073,6 +3097,10 @@ app.get('/api/v1/store/requests', authenticateApiKey, requireScope('READ_MEDIA')
 app.patch('/api/v1/store/requests/:id', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
   const { id } = req.params;
   const { status, admin_note } = req.body;
+
+  if (status && !['new', 'contacted', 'closed'].includes(status)) {
+    return res.status(400).json({ error: 'Validation Error', message: 'Status must be one of: new, contacted, closed.' });
+  }
 
   const updates: Record<string, any> = {
     updated_at: new Date().toISOString(),
@@ -3633,9 +3661,9 @@ app.post('/api/v1/store/apps/:slug/get', publicStoreRateLimiter, async (req, res
   }
 
   // Return download or open action
-  if (app.distribution_type === 'file' || (!app.external_url && app.file_path)) {
+  if (app.distribution_type === 'file' || app.distribution_type === 'download' || (!app.external_url && app.file_path)) {
     if (!app.file_path) {
-      return res.status(404).json({ error: 'No File', message: 'No downloadable file package has been attached to this app yet.' });
+      return res.status(409).json({ error: 'not_available', message: 'This app is not available to download yet.' });
     }
 
     let signedUrl = '';
@@ -3664,9 +3692,13 @@ app.post('/api/v1/store/apps/:slug/get', publicStoreRateLimiter, async (req, res
   }
 
   // web_app_url / store_link / external_url
+  if (!app.external_url || !String(app.external_url).trim()) {
+    return res.status(409).json({ error: 'not_available', message: 'This app is not available yet.' });
+  }
+
   return res.json({
     action: 'open',
-    url: app.external_url || '',
+    url: String(app.external_url).trim(),
   });
 });
 

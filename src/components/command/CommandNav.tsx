@@ -12,19 +12,22 @@ import {
   BarChart3,
   ArrowUpRight,
   UploadCloud,
-  Briefcase
+  Briefcase,
+  ShoppingBag
 } from 'lucide-react';
 import { CommandTab } from '../../types/command';
 
+export type ExtendedCommandTab = CommandTab | 'store';
+
 interface CommandNavProps {
-  activeTab: CommandTab;
-  onSelectTab: (tab: CommandTab) => void;
+  activeTab: ExtendedCommandTab;
+  onSelectTab: (tab: ExtendedCommandTab) => void;
   newInboxCount: number;
   activeTasksCount: number;
   onExitToWebsite: () => void;
 }
 
-export const COMMAND_TABS: { id: CommandTab; label: string; icon: React.FC<{ className?: string }> }[] = [
+export const COMMAND_TABS: { id: ExtendedCommandTab; label: string; icon: React.FC<{ className?: string }> }[] = [
   { id: 'inbox', label: 'Inbox', icon: Inbox },
   { id: 'tasks', label: 'Tasks', icon: CheckSquare },
   { id: 'clients', label: 'Clients', icon: Users },
@@ -34,6 +37,7 @@ export const COMMAND_TABS: { id: CommandTab; label: string; icon: React.FC<{ cla
   { id: 'platforms', label: 'Platforms', icon: Globe },
   { id: 'content', label: 'Content', icon: FolderKanban },
   { id: 'use_cases', label: 'Use Cases', icon: Briefcase },
+  { id: 'store', label: 'Store', icon: ShoppingBag },
   { id: 'upload', label: 'Media Slots', icon: UploadCloud },
   { id: 'swarm', label: 'Swarm', icon: Share2 },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },

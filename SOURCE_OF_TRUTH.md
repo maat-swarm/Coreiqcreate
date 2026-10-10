@@ -19518,3 +19518,133 @@ Ready for Phase 2: Command Store Management UI and Phase 3: Public Apps Page Sto
 ### Build Status
 PASS (Verified with `npx tsc --noEmit` and `npm run build` with 0 errors).
 ---
+
+---
+## Session: 2026-10-09 Command Store Tab & Server /get Handler Fix
+
+### Files Changed
+server.ts
+src/services/storeAdmin.ts
+src/components/command/CommandStoreTab.tsx
+src/components/command/CommandNav.tsx
+src/pages/CommandDashboardPage.tsx
+SOURCE_OF_TRUTH.md
+
+### What Was Done
+Implemented the complete mobile-first Command Store tab, API admin helper service, and fixed the server `/store/apps/:slug/get` handler:
+1. Server Fix: Updated POST `/api/v1/store/apps/:slug/get` in `server.ts` to return HTTP 409 `{ error: 'not_available', message: 'This app is not available to download yet.' }` when `distribution_type` is 'file'/'download' and no file package is attached. For web/store/external types with an empty destination URL, it returns HTTP 409 `{ error: 'not_available', message: 'This app is not available yet.' }` and never returns `{ action: 'open', url: '' }`.
+2. Created `src/services/storeAdmin.ts`: Typed admin helper functions matching `mediaSlots.ts` auth headers and API_BASE pattern, including file hashing, direct uploads, URL verification, access links, requests, and payment options.
+3. Created `src/components/command/CommandStoreTab.tsx`: Full mobile-first operator interface featuring:
+   - Apps Directory: Status chips, price chips, delivery type badges, file attachment indicators, quick publish toggles, and edit/delete actions.
+   - Stepped Add/Edit Form: (1) Delivery choice (Web app with SSRF check-url, File package, External portal), (2) App details with server-validated fields, (3) Media upload for icons and screenshots, (4) Price & access configuration.
+   - File Package Uploader: Uploads directly with signed URLs/tokens, computes browser SHA-256 checksums, and completes storage records up to 50 MB.
+   - Access Link Generator: Creates time-limited access tokens with one-time URL reveal, copy button, and warning.
+   - Requests Sub-Tab: Status workflow management for inbound app inquiries.
+   - Payment Sub-Tab: Global payment configuration and multi-channel method ordering.
+   - "Remove demo apps" button: Safely deletes seed apps (`app-seed-*`) with confirmation.
+4. Wired Store tab into `CommandNav.tsx` and `CommandDashboardPage.tsx` with responsive layout and >= 44px tap targets.
+
+### New Slots Registered
+None (Store applications are managed through the dedicated `store_apps` catalog).
+
+### New Components Added
+- `src/components/command/CommandStoreTab.tsx`: Operator Store management interface.
+- `src/services/storeAdmin.ts`: Store administration and API connector service.
+
+### Known Limitations or Follow-up Needed
+None. Verified with `npx tsc --noEmit`, `npm run build`, and live curl endpoint tests.
+
+### Build Status
+PASS
+---
+
+---
+## Session: 2026-10-09 Public Apps Page, Live Tiles, App Detail Page & Acquisition Flow
+
+### Files Changed
+src/services/storePublic.ts
+src/components/apps/AppCard.tsx
+src/components/apps/AppCategoryFilter.tsx
+src/components/apps/AppScreenshotCarousel.tsx
+src/components/apps/AppActionModal.tsx
+src/pages/AppsPage.tsx
+src/pages/AppDetailPage.tsx
+src/App.tsx
+SOURCE_OF_TRUTH.md
+
+### What Was Done
+Implemented the public-facing Apps Store experience (Part A) with live catalog tiles, single-app detail views, preview media carousel, and complete Open / Download / Buy / Request flow:
+1. `src/services/storePublic.ts`: Implemented consumer client service following the `API_BASE` and `getAuthHeaders` pattern from `mediaSlots.ts`, with typed query filters, detail fetch by slug, access resolution (`/get`), and request submissions (`/request`).
+2. `src/pages/AppsPage.tsx`: Wired live grid from the public API only (`GET /api/v1/store/apps/public`) with loading skeletons, friendly retry state on network errors, empty filter states, dynamic category filter chips derived strictly from existing items, search filtering, and tile navigation to `/apps/:slug`. Preserved Sentinel carousel and bottom Pro tier sections.
+3. `src/pages/AppDetailPage.tsx`: Implemented dedicated application detail page with responsive breadcrumb navigation, preview carousel, structured capability overview, version changelog block, technical metadata sidebar, and dynamic action buttons. Integrated with "Ask CoreIQ about this app" using `onAsk` and automated document title synchronization.
+4. `src/components/apps/AppActionModal.tsx`: Handled complete button acquisition flows via `POST /store/apps/:slug/get`:
+   - Open Action: Direct launch in new tab with `rel="noopener noreferrer"`.
+   - Download Action: Automatic signed download trigger plus verification modal showing filename, size, SHA-256 hash, and Android APK install notice.
+   - HTTP 409: Clean user notification: "This app is not available to download yet."
+   - Email gate: Modal email collector before proceeding to download/get.
+   - Buy Action: Modal displaying all active payment methods with one-click copy, links, and "I've paid / request access" intake form posting to `/store/apps/:slug/request`.
+   - Request Action: Direct spec/inquiry form for contact-tier products.
+5. `src/App.tsx`: Registered `AppDetailPage` lazy loading and route matching for `/apps/:slug` with proper scroll-to-top and header navigation highlights.
+
+### New Slots Registered
+None (public store apps are loaded from the store API).
+
+### New Components Added
+- `src/pages/AppDetailPage.tsx`: Dedicated public detail route for applications.
+- `src/components/apps/AppCard.tsx`: Public application card tile with real metadata, category chips, price badges, and direct action triggers.
+- `src/components/apps/AppCategoryFilter.tsx`: Dynamic category chips and search filter bar.
+- `src/components/apps/AppScreenshotCarousel.tsx`: Touch-swipe, dots-navigated preview carousel with aspect-video container.
+- `src/components/apps/AppActionModal.tsx`: Modal component orchestrating email collection, payment methods, download verification, and access requests.
+
+### Known Limitations or Follow-up Needed
+Ready for Part B features (user reviews or additional media embeds if requested).
+
+### Build Status
+PASS (Verified with `npx tsc --noEmit` and `npm run build` with 0 errors).
+---
+---
+## Session: 2026-10-09 Apps Page Part B+C — Secure Token Access Page, App of the Day, and Interaction Polish
+
+### Files Changed
+src/pages/AppAccessPage.tsx
+src/components/apps/AppOfTheDay.tsx
+src/components/apps/AppCard.tsx
+src/pages/AppsPage.tsx
+src/services/storePublic.ts
+src/services/storeAdmin.ts
+src/services/mediaSlots.ts
+src/App.tsx
+SOURCE_OF_TRUTH.md
+
+### What Was Done
+Implemented and verified Apps Page Part B+C features:
+1. Created `src/pages/AppAccessPage.tsx` for `/apps/access/:token`:
+   - Never redeems or calls the API on initial load to prevent premature consumption of single-use access links.
+   - Initial interactive card with a clear "Continue" button, guarded against double-submissions and React StrictMode with a ref lock.
+   - Redeems token via `GET /api/v1/store/access/:token`: launches web workspace in a new tab for 'open' actions with "Open again" secondary trigger, or triggers signed file package downloads with complete filename, size, and SHA-256 integrity display plus Android APK install guidelines.
+   - Cleanly handles HTTP 410 ("This link has expired or has been used"), HTTP 404 ("This link is not valid"), and network failures with friendly retry state.
+   - Injects `noindex, nofollow` robots metadata and strictly sanitizes page title and console outputs to never leak tokens.
+2. Created `src/components/apps/AppOfTheDay.tsx` and integrated into `src/pages/AppsPage.tsx`:
+   - Replaced only the placeholder cube graphic in the "From free to pro" progression section while keeping the three tier nodes intact.
+   - Uses live apps data already loaded in the parent component; selects first `featured: true` app by `sort_order` labelled "Featured app", or rotates by day of year (`Math.floor(Date.now() / 86400000) % count`) labelled "App of the Day".
+   - Integrates the screenshot carousel, metadata badges, direct acquisition action button flow, and "View details" link. Renders null if no published apps exist.
+3. Enhanced Live Catalog Tiles in `src/components/apps/AppCard.tsx`:
+   - Interactive pointer spotlight tracking, 2px hover lift, smooth active scale (0.97), and focus-visible keyboard navigation.
+   - Dynamically tinted accents using `accent_color` for icons, borders, and ambient glow.
+   - Dimmed state and disabled trigger for coming soon items; motion suppression under `prefers-reduced-motion`.
+4. Standardized Auth Header Service:
+   - Exported `getAuthHeaders` from `src/services/mediaSlots.ts` and reused it across `storeAdmin.ts` and `storePublic.ts` for unified operator session token handling.
+
+### New Slots Registered
+None (uses live store catalog endpoints).
+
+### New Components Added
+- `src/pages/AppAccessPage.tsx`: Secure single-use token redemption page.
+- `src/components/apps/AppOfTheDay.tsx`: Featured / rotating daily spotlight card.
+
+### Known Limitations or Follow-up Needed
+None. Verified with TypeScript check (`npm run lint`), `npm run build`, and live route inspection.
+
+### Build Status
+PASS (0 warnings, 0 errors).
+---

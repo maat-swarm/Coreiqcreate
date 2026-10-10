@@ -31,11 +31,13 @@ import { CommandToolsTab } from '../components/command/CommandToolsTab';
 import { CommandPlatformsTab } from '../components/command/CommandPlatformsTab';
 import { CommandContentTab } from '../components/command/CommandContentTab';
 import { CommandUseCasesTab } from '../components/command/CommandUseCasesTab';
+import { CommandStoreTab } from '../components/command/CommandStoreTab';
 import { CommandUploadTab } from '../components/command/CommandUploadTab';
 import { CommandSwarmTab } from '../components/command/CommandSwarmTab';
 import { CommandAnalyticsTab } from '../components/command/CommandAnalyticsTab';
 import { CommandAuthModal } from '../components/command/CommandAuthModal';
 import { CommandLoginPage } from './CommandLoginPage';
+import { ExtendedCommandTab } from '../components/command/CommandNav';
 import { 
   Cpu, 
   Database, 
@@ -61,7 +63,7 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
   const [authSession, setAuthSession] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  const [activeTab, setActiveTab] = useState<CommandTab>('inbox');
+  const [activeTab, setActiveTab] = useState<ExtendedCommandTab>('inbox');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSoundMuted, setIsSoundMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -506,6 +508,10 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
 
         {activeTab === 'use_cases' && (
           <CommandUseCasesTab />
+        )}
+
+        {activeTab === 'store' && (
+          <CommandStoreTab />
         )}
 
         {activeTab === 'upload' && (
