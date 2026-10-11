@@ -1,20 +1,6 @@
-const API_BASE = (import.meta as any).env?.VITE_API_URL ?? '';
+import { getAuthHeaders } from './supabase';
 
-function getAuthHeaders(includeContentType = true): HeadersInit {
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-  };
-  if (includeContentType) {
-    headers['Content-Type'] = 'application/json';
-  }
-  try {
-    const token = localStorage.getItem('coreiq_command_token');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-  } catch {}
-  return headers;
-}
+const API_BASE = (import.meta as any).env?.VITE_API_URL ?? '';
 
 export interface PaymentMethodConfig {
   id: string;
@@ -112,9 +98,9 @@ export async function fetchPublicApps(category?: string, search?: string): Promi
     params.set('search', search.trim());
   }
   const qs = params.toString() ? `?${params.toString()}` : '';
-
+  const headers = await getAuthHeaders(false);
   const res = await fetch(`${API_BASE}/api/v1/store/apps/public${qs}`, {
-    headers: getAuthHeaders(false),
+    headers,
   });
 
   const data = await handleJsonResponse<{ apps: PublicStoreApp[]; count: number }>(
@@ -125,8 +111,9 @@ export async function fetchPublicApps(category?: string, search?: string): Promi
 }
 
 export async function fetchPublicAppBySlug(slug: string): Promise<PublicStoreApp> {
+  const headers = await getAuthHeaders(false);
   const res = await fetch(`${API_BASE}/api/v1/store/apps/public/${encodeURIComponent(slug)}`, {
-    headers: getAuthHeaders(false),
+    headers,
   });
 
   const data = await handleJsonResponse<{ app: PublicStoreApp }>(
@@ -140,9 +127,10 @@ export async function getAppAccess(
   slug: string,
   payload?: { email?: string; name?: string }
 ): Promise<GetAppResponse> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/apps/${encodeURIComponent(slug)}/get`, {
     method: 'POST',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify(payload || {}),
   });
 
@@ -177,9 +165,10 @@ export async function submitAppRequest(
   slug: string,
   payload: { email: string; name?: string; message?: string }
 ): Promise<{ success: boolean; message: string; id?: string }> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/apps/${encodeURIComponent(slug)}/request`, {
     method: 'POST',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify(payload),
   });
 
@@ -215,8 +204,9 @@ export async function redeemAccessToken(token: string): Promise<AccessGrantRespo
 
   let res: Response;
   try {
+    const headers = await getAuthHeaders(false);
     res = await fetch(`${API_BASE}/api/v1/store/access/${encodeURIComponent(token.trim())}`, {
-      headers: getAuthHeaders(false),
+      headers,
     });
   } catch (netErr: any) {
     throw new AppApiError('Network connection failed. Please check your connection and retry.', 0, 'network_error');

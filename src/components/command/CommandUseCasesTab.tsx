@@ -22,30 +22,7 @@ import {
   Check
 } from 'lucide-react';
 import { UseCase, UseCaseCategory, UseCaseFile, UseCaseAudience } from '../../types/useCases';
-
-function getAuthHeaders(isJson = true): Record<string, string> {
-  const headers: Record<string, string> = {
-    'x-operator-auth': 'true',
-  };
-  if (isJson) {
-    headers['Content-Type'] = 'application/json';
-  }
-  if (typeof window !== 'undefined') {
-    let rawDevKey = '';
-    try {
-      if (window.localStorage) {
-        rawDevKey = localStorage.getItem('coreiq_api_key_master') || '';
-      }
-    } catch {}
-
-    if (rawDevKey) {
-      headers['Authorization'] = `Bearer ${rawDevKey}`;
-    } else {
-      headers['Authorization'] = 'Bearer ciq_live_devmaster_00000000000000000000000000000000';
-    }
-  }
-  return headers;
-}
+import { getAuthHeaders } from '../../services/mediaSlots';
 
 export const CommandUseCasesTab: React.FC = () => {
   const [useCases, setUseCases] = useState<UseCase[]>([]);
@@ -88,9 +65,10 @@ export const CommandUseCasesTab: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
+      const headers = await getAuthHeaders(true);
       const [ucRes, catRes] = await Promise.all([
-        fetch('/api/v1/admin/use-cases', { headers: getAuthHeaders(true) }),
-        fetch('/api/v1/use-cases/categories', { headers: getAuthHeaders(true) }),
+        fetch('/api/v1/admin/use-cases', { headers }),
+        fetch('/api/v1/use-cases/categories', { headers }),
       ]);
 
       if (!ucRes.ok) throw new Error('Failed to load admin use cases');
@@ -123,9 +101,10 @@ export const CommandUseCasesTab: React.FC = () => {
     );
 
     try {
+      const headers = await getAuthHeaders(true);
       const res = await fetch(`/api/v1/admin/use-cases/${uc.id}`, {
         method: 'PATCH',
-        headers: getAuthHeaders(true),
+        headers,
         body: JSON.stringify({ published: nextPublished }),
       });
       if (!res.ok) throw new Error('Failed to update published status');
@@ -153,9 +132,10 @@ export const CommandUseCasesTab: React.FC = () => {
         .map((t) => t.trim().toLowerCase())
         .filter(Boolean);
 
+      const headers = await getAuthHeaders(true);
       const res = await fetch('/api/v1/admin/use-cases', {
         method: 'POST',
-        headers: getAuthHeaders(true),
+        headers,
         body: JSON.stringify({
           category_slug: formCategory,
           title: formTitle,
@@ -197,9 +177,10 @@ export const CommandUseCasesTab: React.FC = () => {
         ? formIndustryTags.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
         : editingUseCase.industry_tags;
 
+      const headers = await getAuthHeaders(true);
       const res = await fetch(`/api/v1/admin/use-cases/${editingUseCase.id}`, {
         method: 'PATCH',
-        headers: getAuthHeaders(true),
+        headers,
         body: JSON.stringify({
           category_slug: formCategory,
           title: formTitle,
@@ -242,9 +223,10 @@ export const CommandUseCasesTab: React.FC = () => {
   // Delete use case
   const handleDeleteUseCase = async (id: string) => {
     try {
+      const headers = await getAuthHeaders(true);
       const res = await fetch(`/api/v1/admin/use-cases/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(true),
+        headers,
       });
       if (!res.ok) throw new Error('Failed to delete use case');
       setUseCases((prev) => prev.filter((item) => item.id !== id));
@@ -281,9 +263,10 @@ export const CommandUseCasesTab: React.FC = () => {
       formData.append('file', file);
       formData.append('alt', file.name.replace(/\.[^/.]+$/, ''));
 
+      const headers = await getAuthHeaders(false);
       const res = await fetch(`/api/v1/use-cases/${ucId}/image`, {
         method: 'POST',
-        headers: getAuthHeaders(false),
+        headers,
         body: formData,
       });
 
@@ -325,9 +308,10 @@ export const CommandUseCasesTab: React.FC = () => {
       formData.append('file', selectedUploadFile);
       formData.append('label', newFileLabel || selectedUploadFile.name);
 
+      const headers = await getAuthHeaders(false);
       const res = await fetch(`/api/v1/use-cases/${fileManagerUseCase.id}/files`, {
         method: 'POST',
-        headers: getAuthHeaders(false),
+        headers,
         body: formData,
       });
 
@@ -360,9 +344,10 @@ export const CommandUseCasesTab: React.FC = () => {
   const handleDeleteFile = async (fileId: string) => {
     if (!fileManagerUseCase) return;
     try {
+      const headers = await getAuthHeaders(true);
       const res = await fetch(`/api/v1/use-cases/${fileManagerUseCase.id}/files/${fileId}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(true),
+        headers,
       });
 
       if (!res.ok) throw new Error('Failed to delete file');

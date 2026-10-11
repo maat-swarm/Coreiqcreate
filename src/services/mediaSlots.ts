@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { MediaSlot, MediaSlotItem } from '../types/command';
-import { getSupabase } from './supabase';
+import { getSupabase, getAuthHeaders, authFetch } from './supabase';
+
+export { getAuthHeaders, authFetch };
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL ?? '';
 
@@ -144,39 +146,10 @@ export function useMediaSlot(slotKey: string) {
 // OPERATOR / COMMAND API HELPERS
 // -----------------------------------------------------------------------------
 
-export function getAuthHeaders(isJson = true): Record<string, string> {
-  const headers: Record<string, string> = {
-    'x-operator-auth': 'true',
-  };
-  if (isJson) {
-    headers['Content-Type'] = 'application/json';
-  }
-  if (typeof window !== 'undefined') {
-    let token = '';
-    try {
-      token = localStorage.getItem('coreiq_api_key_master') || '';
-    } catch {}
-
-    if (!token) {
-      try {
-        const devSessionRaw = localStorage.getItem('coreiq_dev_auth_session');
-        if (devSessionRaw) {
-          const parsed = JSON.parse(devSessionRaw);
-          token = parsed?.access_token || '';
-        }
-      } catch {}
-    }
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-  }
-  return headers;
-}
-
 export async function fetchCommandMediaSlots(page = 'home'): Promise<MediaSlot[]> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/media/slots?page=${encodeURIComponent(page)}`, {
-    headers: getAuthHeaders(true),
+    headers,
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -187,8 +160,9 @@ export async function fetchCommandMediaSlots(page = 'home'): Promise<MediaSlot[]
 }
 
 export async function fetchCommandMediaSlotDetail(slotKey: string): Promise<{ slot: MediaSlot; items: MediaSlotItem[] }> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}`, {
-    headers: getAuthHeaders(true),
+    headers,
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -201,7 +175,7 @@ export async function uploadMediaItem(
   slotKey: string,
   formData: FormData
 ): Promise<MediaSlotItem> {
-  const headers = getAuthHeaders(false);
+  const headers = await getAuthHeaders(false);
   const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}/items`, {
     method: 'POST',
     headers,
@@ -228,9 +202,10 @@ export async function createUrlMediaItem(
     cta_url?: string;
   }
 ): Promise<MediaSlotItem> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}/items`, {
     method: 'POST',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify(payload),
   });
 
@@ -247,9 +222,10 @@ export async function updateMediaItem(
   itemId: string,
   updates: Partial<MediaSlotItem>
 ): Promise<MediaSlotItem> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}/items/${encodeURIComponent(itemId)}`, {
     method: 'PATCH',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify(updates),
   });
 
@@ -265,9 +241,10 @@ export async function reorderMediaItems(
   slotKey: string,
   itemIds: string[]
 ): Promise<void> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}/order`, {
     method: 'PUT',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify({ item_ids: itemIds }),
   });
 
@@ -282,9 +259,10 @@ export async function deleteMediaItem(
   slotKey: string,
   itemId: string
 ): Promise<void> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}/items/${encodeURIComponent(itemId)}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(true),
+    headers,
   });
 
   if (!res.ok) {

@@ -760,10 +760,12 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
 
   let keyRecord: ApiKeyRecord | null = null;
 
+  const authClient = supabase || adminSupabase;
+
   // Check if rawToken is a Supabase Auth session token
-  if (supabase && rawToken.length > 50) {
+  if (authClient && rawToken.length > 50) {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser(rawToken);
+      const { data: { user }, error } = await authClient.auth.getUser(rawToken);
       if (!error && user) {
         keyRecord = {
           id: `operator_${user.id}`,
@@ -779,9 +781,9 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
   }
 
   // Try fetching from Supabase
-  if (!keyRecord && supabase) {
+  if (!keyRecord && authClient) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await authClient
         .from('api_keys')
         .select('*')
         .eq('key_hash', tokenHash)
@@ -791,7 +793,7 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
       if (!error && data) {
         keyRecord = data as ApiKeyRecord;
         // Update last_used_at non-blockingly
-        supabase
+        authClient
           .from('api_keys')
           .update({ last_used_at: new Date().toISOString() })
           .eq('id', keyRecord.id)
@@ -824,7 +826,7 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
   next();
 }
 
-function isCallerAuthorizedForMedia(req: Request): boolean {
+async function isCallerAuthorizedForMedia(req: Request): Promise<boolean> {
   const isProductionOrSupabaseConfigured = process.env.NODE_ENV === 'production' || Boolean(adminSupabase || supabase);
   const authHeader = req.headers.authorization;
   const apiKeyHeader = req.headers['x-api-key'] as string;
@@ -839,21 +841,51 @@ function isCallerAuthorizedForMedia(req: Request): boolean {
     rawToken = String((req.query as any).api_key).trim();
   }
 
+  // Reject the hardcoded dev master token in production or when Supabase is configured
   if (rawToken === 'ciq_live_devmaster_00000000000000000000000000000000') {
     if (isProductionOrSupabaseConfigured) return false;
     return true;
   }
 
+  // Operator session in local unconfigured dev mode only
   if (!isProductionOrSupabaseConfigured && (operatorHeader === 'true' || rawToken === 'operator-session')) {
     return true;
   }
 
   if (!rawToken) return false;
 
+  // 1. Validate Supabase Auth session token
+  const authClient = supabase || adminSupabase;
+  if (authClient && rawToken.length > 50) {
+    try {
+      const { data: { user }, error } = await authClient.auth.getUser(rawToken);
+      if (!error && user) {
+        return true;
+      }
+    } catch {}
+  }
+
+  // 2. Validate API key against Supabase or localStore
   const tokenHash = hashToken(rawToken);
+  if (authClient) {
+    try {
+      const { data, error } = await authClient
+        .from('api_keys')
+        .select('*')
+        .eq('key_hash', tokenHash)
+        .eq('revoked', false)
+        .maybeSingle();
+
+      if (!error && data) {
+        const scopes: string[] = data.scopes || [];
+        return scopes.some((s) => s === '*' || s === 'ADMIN' || s === 'admin' || s === 'READ_MEDIA' || s === 'read_media');
+      }
+    } catch {}
+  }
+
   const found = (localStore.api_keys as ApiKeyRecord[]).find((k) => k.key_hash === tokenHash && !k.revoked);
   if (found) {
-    return found.scopes.some((s) => s === '*' || s === 'ADMIN' || s === 'READ_MEDIA');
+    return found.scopes.some((s) => s === '*' || s === 'ADMIN' || s === 'admin' || s === 'READ_MEDIA' || s === 'read_media');
   }
   return false;
 }
@@ -1687,7 +1719,7 @@ app.get('/api/v1/media/slots', authenticateApiKey, requireScope('READ_MEDIA'), a
 // GET /api/v1/media/slots/:slot_key (Anon sees published items only; Operator sees all)
 app.get('/api/v1/media/slots/:slot_key', async (req, res) => {
   const { slot_key } = req.params;
-  const isOperator = isCallerAuthorizedForMedia(req);
+  const isOperator = await isCallerAuthorizedForMedia(req);
 
   let slot: any = null;
   let items: any[] = [];

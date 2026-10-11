@@ -1179,6 +1179,69 @@ export const CoreIQAuth = {
   },
 };
 
+/**
+ * Shared Command / Operator Auth Headers
+ * Awaits Supabase session token on every request (auto-refreshing via client).
+ * Falls back to legacy manual localStorage API key only if no session exists.
+ * Never includes hardcoded dev keys.
+ */
+export async function getAuthHeaders(isJson = true): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    'x-operator-auth': 'true',
+  };
+  if (isJson) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  let token = '';
+
+  // 1. Check active Supabase session (refreshes if needed)
+  try {
+    const session = await CoreIQAuth.getSession();
+    if (session?.access_token) {
+      token = session.access_token;
+    }
+  } catch (e) {
+    console.warn('[CoreIQ Auth] Failed to retrieve session token:', e);
+  }
+
+  // 2. Legacy fallback to manual API key stored in localStorage (only when no session exists)
+  if (!token && typeof window !== 'undefined') {
+    try {
+      token = localStorage.getItem('coreiq_api_key_master') || '';
+    } catch {}
+
+    if (!token) {
+      try {
+        token = localStorage.getItem('coreiq_command_token') || '';
+      } catch {}
+    }
+  }
+
+  // Attach Authorization header if a token is present
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return headers;
+}
+
+export async function authFetch(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  isJson = true
+): Promise<Response> {
+  const authHeaders = await getAuthHeaders(isJson);
+  const existingHeaders = (init.headers as Record<string, string>) || {};
+  return fetch(input, {
+    ...init,
+    headers: {
+      ...authHeaders,
+      ...existingHeaders,
+    },
+  });
+}
+
 // ==========================================
 // READY-TO-RUN SUPABASE SQL SCHEMA GENERATOR
 // ==========================================

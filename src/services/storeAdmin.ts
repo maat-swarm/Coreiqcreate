@@ -107,17 +107,19 @@ export async function fetchStoreApps(status?: string, category?: string): Promis
   if (category && category !== 'all' && category !== 'All') params.set('category', category);
 
   const qs = params.toString() ? `?${params.toString()}` : '';
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/apps${qs}`, {
-    headers: getAuthHeaders(true),
+    headers,
   });
   const data = await parseResponse<{ apps: StoreApp[]; total: number }>(res, 'Fetch apps');
   return data.apps || [];
 }
 
 export async function createStoreApp(payload: Partial<StoreApp>): Promise<StoreApp> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/apps`, {
     method: 'POST',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify(payload),
   });
   const data = await parseResponse<{ status: string; app: StoreApp }>(res, 'Create app');
@@ -125,9 +127,10 @@ export async function createStoreApp(payload: Partial<StoreApp>): Promise<StoreA
 }
 
 export async function updateStoreApp(id: string, updates: Partial<StoreApp>): Promise<StoreApp> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/apps/${encodeURIComponent(id)}`, {
     method: 'PATCH',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify(updates),
   });
   const data = await parseResponse<{ status: string; app: StoreApp }>(res, 'Update app');
@@ -135,9 +138,10 @@ export async function updateStoreApp(id: string, updates: Partial<StoreApp>): Pr
 }
 
 export async function deleteStoreApp(id: string): Promise<void> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/apps/${encodeURIComponent(id)}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(true),
+    headers,
   });
   await parseResponse<{ status: string; id: string }>(res, 'Delete app');
 }
@@ -146,9 +150,10 @@ export async function getUploadUrl(
   id: string,
   filename?: string
 ): Promise<{ path: string; token: string; signedUrl: string }> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/apps/${encodeURIComponent(id)}/upload-url`, {
     method: 'POST',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify({ filename }),
   });
   return parseResponse<{ path: string; token: string; signedUrl: string }>(res, 'Get upload URL');
@@ -158,9 +163,10 @@ export async function completeFileUpload(
   id: string,
   payload: { path: string; name?: string; size: number; sha256?: string }
 ): Promise<StoreApp> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/apps/${encodeURIComponent(id)}/file-complete`, {
     method: 'POST',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify(payload),
   });
   const data = await parseResponse<{ status: string; app: StoreApp }>(res, 'Complete file upload');
@@ -174,9 +180,10 @@ export async function uploadAppMedia(
   const formData = new FormData();
   formData.append('file', file);
 
+  const headers = await getAuthHeaders(false);
   const res = await fetch(`${API_BASE}/api/v1/store/apps/${encodeURIComponent(appId)}/media-upload`, {
     method: 'POST',
-    headers: getAuthHeaders(false),
+    headers,
     body: formData,
   });
   const data = await parseResponse<{ status: string; url: string; filename: string }>(res, 'Upload media');
@@ -187,9 +194,10 @@ export async function createAccessLink(
   id: string,
   payload: { note?: string; hours?: number; max_uses?: number }
 ): Promise<{ id: string; url: string; token: string; expires_at: string; max_uses: number; note: string }> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/apps/${encodeURIComponent(id)}/access-links`, {
     method: 'POST',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify(payload),
   });
   return parseResponse<{ id: string; url: string; token: string; expires_at: string; max_uses: number; note: string }>(
@@ -199,8 +207,9 @@ export async function createAccessLink(
 }
 
 export async function fetchAccessLinks(id: string): Promise<StoreAccessLink[]> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/apps/${encodeURIComponent(id)}/access-links`, {
-    headers: getAuthHeaders(true),
+    headers,
   });
   const data = await parseResponse<{ links: StoreAccessLink[] }>(res, 'Fetch access links');
   return data.links || [];
@@ -212,8 +221,9 @@ export async function fetchStoreRequests(app_id?: string, status?: string): Prom
   if (status && status !== 'all') params.set('status', status);
 
   const qs = params.toString() ? `?${params.toString()}` : '';
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/requests${qs}`, {
-    headers: getAuthHeaders(true),
+    headers,
   });
   const data = await parseResponse<{ requests: StoreRequest[]; total: number }>(res, 'Fetch requests');
   return data.requests || [];
@@ -223,9 +233,10 @@ export async function updateStoreRequest(
   id: string,
   updates: { status?: string; admin_note?: string }
 ): Promise<StoreRequest> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/requests/${encodeURIComponent(id)}`, {
     method: 'PATCH',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify(updates),
   });
   const data = await parseResponse<{ status: string; request: StoreRequest }>(res, 'Update request');
@@ -233,17 +244,19 @@ export async function updateStoreRequest(
 }
 
 export async function fetchStoreSettings(key: string): Promise<PaymentSettingsConfig | null> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/settings/${encodeURIComponent(key)}`, {
-    headers: getAuthHeaders(true),
+    headers,
   });
   const data = await parseResponse<{ key: string; value: PaymentSettingsConfig | null }>(res, 'Fetch settings');
   return data.value;
 }
 
 export async function saveStoreSettings(key: string, value: any): Promise<void> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/settings/${encodeURIComponent(key)}`, {
     method: 'PUT',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify({ value }),
   });
   await parseResponse<{ status: string; key: string; value: any }>(res, 'Save settings');
@@ -252,9 +265,10 @@ export async function saveStoreSettings(key: string, value: any): Promise<void> 
 export async function checkStoreUrl(
   url: string
 ): Promise<{ reachable: boolean; status: number | null; error?: string }> {
+  const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/check-url`, {
     method: 'POST',
-    headers: getAuthHeaders(true),
+    headers,
     body: JSON.stringify({ url }),
   });
   return parseResponse<{ reachable: boolean; status: number | null; error?: string }>(res, 'Check URL');
