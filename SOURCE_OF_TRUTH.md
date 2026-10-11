@@ -19732,3 +19732,51 @@ PASS (0 warnings, 0 errors).
 ### Build Status
 PASS (0 lint errors, production build verified).
 ---
+
+## Session: 2026-10-11 News Page Visual Rebuild (Editorial News Layout)
+
+### News Page Layout
+
+#### Component List
+- `src/pages/NewsPage.tsx`: Primary page container rendering the masthead, category tabs, lead story, also-this-week story list, sidebar archive/newsletter, and closing strip. Handles SEO title, meta description, and 4 discrete view states (loading, empty, error, ready).
+- `src/components/news/news.css`: Scoped editorial stylesheet applying system serif (`Georgia, 'Times New Roman', serif`) for headlines, system monospace for datelines/kickers/bylines, 1px rules, no-scrollbar tab navigation, and reduced-motion compliance.
+- `src/components/news/newsAdapter.ts`: Normalization module translating both new-style feed fields and legacy article records into canonical `NormalizedNewsItem` structures, UTC Friday grouping (`getFridayOnOrBeforeUTC`), domain extraction, and single-lead enforcement.
+- `src/components/news/useNews.ts`: Dedicated data hook querying `GET /api/v1/news?issue=latest` with `cache: 'no-store'`, tab refocus refetching (`window.focus` & `visibilitychange`), state machine (`loading` | `ready` | `empty` | `error`), and search param synchronization (`?issue=YYYY-MM-DD`, `?cat=slug`).
+- `src/components/news/NewsMasthead.tsx`: Editorial masthead with top 3px solid rule, serif title clamp(32px, 9vw, 64px), mascot media slot (`news.mascot`) with fallback SVG newsroom icon, mono dateline row (`ISSUE No. {n} . {FRIDAY 16 OCTOBER 2026} . {n} STORIES`), and native styled `<select>` issue archive picker.
+- `src/components/news/NewsCategoryTabs.tsx`: 44px tall accessible text tabs with 2px underline, 8px category color markers, horizontal scrolling with hidden scrollbar, and `role="tablist"` / `role="tab"` ARIA semantics.
+- `src/components/news/NewsTopStory.tsx`: Featured lead story presentation (16:9 edge-to-edge on mobile, 60/40 two-column on tablet/desktop), 3px category left rule, 8px square marker, serif headline, dek summary (max 3 lines on mobile), mono byline, solid primary button (`Read at {source} ↗`), and direct text link to `/ask`.
+- `src/components/news/NewsAlsoThisWeek.tsx`: Numbered `<ol>` story list with two-digit mono numerals (`01, 02...`), 19px serif headline, dek summary (hidden on mobile, 2 lines on tablet+), mono byline, 72x72 px rounded thumbnails, and 1px separator rules.
+- `src/components/news/NewsSidebar.tsx`: Desktop 320px column (renders below list on mobile) featuring previous issue list (up to 8 recent issues) and newsletter signup container.
+- `src/components/news/NewsNewsletter.tsx`: Flat 1px-bordered newsletter subscription box with exact form submission handler.
+- `src/components/news/NewsClosingStrip.tsx`: Editorial footer strip linking to `/ask` ("Want this kind of intelligence working inside your business? Talk to CoreIQ ->").
+- `src/components/news/NewsIcons.tsx`: Inline SVG newsroom press icon, external link arrow, and directional arrows.
+- `src/components/news/NewsImage.tsx`: Zero-CLS image wrapper with lazy loading, no-referrer policy, and graceful fallback to mascot image or newsroom SVG block on `#0d1220`.
+
+#### Field Mapping Table
+| Page Element | New Feed Field | Legacy Fallback |
+| :--- | :--- | :--- |
+| headline | `title` | `title` |
+| dek (summary) | `summary` | `summary` |
+| category (3 slugs) | `category` (`models-releases`, `tools-launches`, `business-policy`) | Maps: `Frontier Models`, `Autonomous Agents`, `Breakthroughs` -> `models-releases`; `Tools & Protocols` -> `tools-launches`; anything else -> `business-policy` |
+| byline source name | `source_name` | `source`, `author`, fallback 'CoreIQ Dispatch' |
+| byline domain | `source_domain` | Hostname parsed from `source_url` (strips `www.`) |
+| outbound link | `source_url` | `/news/{slug}` if route exists, else unlinked row/button |
+| image | `image_url` | `hero_image` |
+| issue grouping | `issue_date` | `published_at`, else `created_at` (snapped to Friday on or before in UTC) |
+| order | `rank` (asc) | `sort_order` (asc), default 100 |
+| top story | `is_lead` | `featured` (if multiple leads in one issue, lowest rank wins and others demoted) |
+| time shown | `published_at` | `created_at` (formatted as relative or UTC date) |
+| visibility | `published only` | `published only` (drafts strictly excluded) |
+
+#### Visual Rules
+- **Anti-Slop Discipline:** Strict exclusion of glass/blur cards, purple/neon glow, gradient borders, shimmer sweeps, hover lift/translate effects, floating animations, pill chips, and rounded-2xl containers.
+- **Palette:** Opaque background `#06080d`, text `#f4f1ea`, muted secondary `#9aa3b2`, separator rules `rgba(255,255,255,0.14)`, primary action `#19d9ff`.
+- **Category Indicators:** 8px square indicators and 3px lead left rules: Models & Releases `#19d9ff`, Tools & Launches `#ffb020`, Business & Policy `#a78bfa`.
+- **Typography:** Headlines strictly use system serif stack (`Georgia, 'Times New Roman', serif`). Datelines, kickers, numerals, and bylines strictly use system monospace stack (`uppercase, letter-spacing .12em, 11px`). Body copy uses site sans font.
+- **Layout:** Contained within max-width 1120px, fully responsive across 360px, 390px, 430px, 768px, and 1280px viewports without horizontal page overflow.
+
+#### Known Limits
+- Ingest and publishing actions require operator credentials through CoreIQ Command.
+- The public route displays published records only; draft items are invisible.
+- Client-side issue grouping operates across the published article set returned from `/api/v1/news` when `/api/v1/news/issues` returns 404.
+---

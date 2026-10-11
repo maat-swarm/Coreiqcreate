@@ -1,0 +1,65 @@
+/* Editorial News Layout Stylesheet — The CoreIQ Weekly */
+
+.news-root {
+  background-color: #06080d !important;
+  color: #f4f1ea;
+  font-family: inherit;
+  min-height: 100vh;
+}
+
+/* System serif stack for headlines */
+.news-serif {
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+/* System monospace stack for datelines, kickers, and bylines */
+.news-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Editorial rule lines */
+.news-rule {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.news-rule-top {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.news-rule-bottom {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* Hide scrollbar for horizontally scrollable category tabs */
+.news-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.news-no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Focus ring for accessibility */
+.news-focus:focus-visible {
+  outline: 2px solid #19d9ff;
+  outline-offset: 2px;
+}
+
+/* Instant color changes on active without transition animation */
+.news-interactive:active {
+  color: #19d9ff;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
