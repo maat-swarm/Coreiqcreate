@@ -144,6 +144,22 @@ export function useMediaSlot(slotKey: string) {
 // OPERATOR / COMMAND API HELPERS
 // -----------------------------------------------------------------------------
 
+let cachedSessionToken = '';
+let sessionCacheStarted = false;
+function getCachedSessionToken(): string {
+  if (typeof window === 'undefined') return '';
+  if (!sessionCacheStarted) {
+    sessionCacheStarted = true;
+    const client = getSupabase();
+    if (client) {
+      client.auth.getSession().then(({ data }) => { cachedSessionToken = data.session?.access_token || ''; }).catch(() => {});
+      client.auth.onAuthStateChange((_e, session) => { cachedSessionToken = session?.access_token || ''; });
+    }
+  }
+  return cachedSessionToken;
+}
+if (typeof window !== 'undefined') getCachedSessionToken();
+
 export function getAuthHeaders(isJson = true): Record<string, string> {
   const headers: Record<string, string> = {
     'x-operator-auth': 'true',
@@ -152,9 +168,9 @@ export function getAuthHeaders(isJson = true): Record<string, string> {
     headers['Content-Type'] = 'application/json';
   }
   if (typeof window !== 'undefined') {
-    let token = '';
+    let token = getCachedSessionToken();
     try {
-      token = localStorage.getItem('coreiq_api_key_master') || '';
+      if (!token) token = localStorage.getItem('coreiq_api_key_master') || '';
     } catch {}
 
     if (!token) {
