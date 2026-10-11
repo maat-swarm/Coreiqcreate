@@ -1,0 +1,844 @@
+{
+  "timestamp": "2026-10-11T19:51:28.922Z",
+  "git": {
+    "repo": "maat-swarm/Coreiqcreate",
+    "branch": "main",
+    "commit": "06ffbce9903c4a786e1e8d460c730fe71f7cfda0",
+    "status": "clean"
+  },
+  "tables": {
+    "use_case_categories": {
+      "count": 5,
+      "categories": [
+        {
+          "id": "7869f7ca-fc14-40f3-bbf7-60cbacfb48e2",
+          "slug": "ai-agents",
+          "label": "AI Agents",
+          "sort_order": 1,
+          "created_at": "2026-10-10T21:37:03.6227+00:00",
+          "use_cases_count": 3,
+          "published_count": 0
+        },
+        {
+          "id": "055c1bb6-7cde-47c2-a74c-de047f2fbde5",
+          "slug": "automation",
+          "label": "Automation",
+          "sort_order": 2,
+          "created_at": "2026-10-10T21:37:03.6227+00:00",
+          "use_cases_count": 3,
+          "published_count": 1
+        },
+        {
+          "id": "30a380f1-c98e-4ab1-af31-423cbfeff56c",
+          "slug": "apps",
+          "label": "Apps",
+          "sort_order": 3,
+          "created_at": "2026-10-10T21:37:03.6227+00:00",
+          "use_cases_count": 3,
+          "published_count": 0
+        },
+        {
+          "id": "8459c578-9b23-4a23-a7a5-1224c2f7123c",
+          "slug": "voice-ai",
+          "label": "Voice AI",
+          "sort_order": 4,
+          "created_at": "2026-10-10T21:37:03.6227+00:00",
+          "use_cases_count": 3,
+          "published_count": 0
+        },
+        {
+          "id": "3d90aa22-64f3-4d46-b65c-ff3c61f57d82",
+          "slug": "integrations",
+          "label": "Integrations",
+          "sort_order": 5,
+          "created_at": "2026-10-10T21:37:03.6227+00:00",
+          "use_cases_count": 3,
+          "published_count": 0
+        }
+      ]
+    },
+    "use_cases_published": {
+      "count": 1,
+      "use_cases": [
+        {
+          "id": "c1000000-0000-0000-0000-000000000004",
+          "category_slug": "automation",
+          "title": "Intelligent Invoice Processing Pipeline",
+          "problem": "Manual data entry of supplier invoices created error rates of 6% and 14-day payment settlement delays.",
+          "approach": "Engineered optical document understanding pipelines with automated three-way matching against POs and ERP ledgers.",
+          "outcome": "Reduced processing cycle from 14 days to under 3 minutes; zero reconciliatory errors across 10,000+ monthly invoices.",
+          "audience": "business",
+          "industry_tags": [
+            "finance",
+            "accounting",
+            "logistics"
+          ],
+          "image_url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/use-cases/images/c1000000-0000-0000-0000-000000000004/1791693145455_1000043881.jpg",
+          "image_alt": "1000043881",
+          "published": true,
+          "sort_order": 1,
+          "created_at": "2026-10-10T21:39:01.58686+00:00",
+          "updated_at": "2026-10-11T04:36:54.951+00:00",
+          "files": [
+            {
+              "id": "b88b6fed-e352-44cf-8780-7c3b379aaccd",
+              "use_case_id": "c1000000-0000-0000-0000-000000000004",
+              "filename": "main (1).pdf",
+              "storage_path": "files/c1000000-0000-0000-0000-000000000004/1791693341906_main__1_.pdf",
+              "label": "AUTO",
+              "file_type": "pdf",
+              "sort_order": 0,
+              "created_at": "2026-10-11T04:35:42.549+00:00"
+            }
+          ]
+        }
+      ]
+    },
+    "store_apps": {
+      "apps": [
+        {
+          "id": "app-seed-imageforge",
+          "slug": "imageforge",
+          "title": "ImageForge",
+          "tagline": "Create and edit stunning images with AI.",
+          "description": "ImageForge is a neural creative engine designed for high-resolution asset generation, prompt refining, and real-time canvas editing.",
+          "category": "Creative",
+          "status": "published",
+          "price_mode": "free",
+          "price_amount": 0,
+          "currency": "USD",
+          "price_note": "Free & Open Community Tier",
+          "payment_label": "",
+          "payment_url": "",
+          "payment_instructions": "",
+          "distribution_type": "download",
+          "requires_email": false,
+          "has_file": false,
+          "icon_url": null,
+          "icon_name": "Flame",
+          "accent_color": "#ec4899",
+          "screenshots": [],
+          "version": "1.0.0",
+          "changelog": "Initial public release.",
+          "sort_order": 1,
+          "featured": true,
+          "updated_at": "2026-10-11T19:22:37.328Z",
+          "external_url": "",
+          "app_url": ""
+        },
+        {
+          "id": "app-seed-writepro",
+          "slug": "writepro",
+          "title": "WritePro",
+          "tagline": "Generate, refine and improve your writing.",
+          "description": "WritePro structures enterprise briefs, documents, and marketing copy with automated clarity checks and tone modulation.",
+          "category": "Productivity",
+          "status": "published",
+          "price_mode": "free",
+          "price_amount": 0,
+          "currency": "USD",
+          "price_note": "Free Utility Tier",
+          "payment_label": "",
+          "payment_url": "",
+          "payment_instructions": "",
+          "distribution_type": "download",
+          "requires_email": false,
+          "has_file": false,
+          "icon_url": null,
+          "icon_name": "PenTool",
+          "accent_color": "#06b6d4",
+          "screenshots": [],
+          "version": "1.0.0",
+          "changelog": "Initial release.",
+          "sort_order": 2,
+          "featured": false,
+          "updated_at": "2026-10-11T19:22:37.328Z",
+          "external_url": "",
+          "app_url": ""
+        },
+        {
+          "id": "app-seed-datamind",
+          "slug": "datamind",
+          "title": "DataMind",
+          "tagline": "Turn your data into insights with AI.",
+          "description": "Enterprise data exploration bridge that ingests raw CSVs, databases, and logs into automated executive dashboards.",
+          "category": "Data",
+          "status": "published",
+          "price_mode": "contact",
+          "price_amount": null,
+          "currency": "USD",
+          "price_note": "Custom Integration License",
+          "payment_label": "Request Access & Architecture Session",
+          "payment_url": "",
+          "payment_instructions": "Submit a deployment request. Our engineering team reviews specifications and issues private repository access.",
+          "distribution_type": "custom",
+          "requires_email": false,
+          "has_file": false,
+          "icon_url": null,
+          "icon_name": "Database",
+          "accent_color": "#8b5cf6",
+          "screenshots": [],
+          "version": "1.2.0",
+          "changelog": "Multi-schema query federation.",
+          "sort_order": 3,
+          "featured": false,
+          "updated_at": "2026-10-11T19:22:37.328Z"
+        },
+        {
+          "id": "app-seed-flowbuilder",
+          "slug": "flowbuilder",
+          "title": "FlowBuilder",
+          "tagline": "Automate your workflows without code.",
+          "description": "Node-based visual orchestrator for building automated pipelines, microservice integrations, and autonomous workers.",
+          "category": "Automation",
+          "status": "published",
+          "price_mode": "paid",
+          "price_amount": 49,
+          "currency": "USD",
+          "price_note": "One-Time License with Full Source",
+          "payment_label": "Purchase License",
+          "payment_url": "https://paypal.me/coreiqcreate",
+          "payment_instructions": "Pay $49 USD via PayPal or international bank wire. After payment, request an access link with your transaction ID.",
+          "distribution_type": "download",
+          "requires_email": false,
+          "has_file": false,
+          "icon_url": null,
+          "icon_name": "GitMerge",
+          "accent_color": "#3b82f6",
+          "screenshots": [],
+          "version": "2.1.0",
+          "changelog": "Introduced webhook re-try queues.",
+          "sort_order": 4,
+          "featured": false,
+          "updated_at": "2026-10-11T19:22:37.328Z"
+        }
+      ],
+      "count": 4
+    },
+    "media_slots": {
+      "home.showcase": {
+        "slot": {
+          "slot_key": "home.showcase",
+          "page": "home",
+          "label": "Home showcase carousel",
+          "allowed_types": [
+            "image",
+            "video"
+          ],
+          "max_items": 6,
+          "max_bytes": 52428800,
+          "aspect": "16:9",
+          "created_at": "2026-10-02T21:35:28.166951+00:00",
+          "updated_at": "2026-10-03T08:32:47.618089+00:00",
+          "item_count": 5,
+          "status": "filled"
+        },
+        "items": [
+          {
+            "id": "174d588d-b878-4f9b-88f0-e937eefe8882",
+            "slot_key": "home.showcase",
+            "type": "image",
+            "storage_path": "media/home.showcase/174d588d-b878-4f9b-88f0-e937eefe8882.jpg",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/home.showcase/174d588d-b878-4f9b-88f0-e937eefe8882.jpg",
+            "alt": "Professional websites built with Shopify, WordPress, WooCommerce, Stripe, PayPal, Square, GoDaddy, AWS and Squarespace, shown in 3 steps: we plan it with you, we design and build it, your site goes live as a store or web app.",
+            "title": "Apps & Websites",
+            "caption": "Professional websites for your business. Business sites, online stores and web apps.",
+            "cta_label": "Explore Apps & Websites",
+            "cta_url": "/apps",
+            "sort_order": 9,
+            "published": true,
+            "created_at": "2026-10-05T23:14:54.233+00:00",
+            "updated_at": "2026-10-05T23:15:00.75+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          },
+          {
+            "id": "4406e5b9-c1f2-408b-b7d1-b36c742fd7eb",
+            "slot_key": "home.showcase",
+            "type": "video",
+            "storage_path": "media/home.showcase/4406e5b9-c1f2-408b-b7d1-b36c742fd7eb.mp4",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/home.showcase/4406e5b9-c1f2-408b-b7d1-b36c742fd7eb.mp4",
+            "alt": "Video: AI agents handling sales, research and operations across Salesforce, Gmail, Slack, Notion and HubSpot.",
+            "title": "AI Agents",
+            "caption": "Agents that handle sales, research and operations work across your tools.",
+            "cta_label": "Explore AI Agents",
+            "cta_url": "/solutions",
+            "sort_order": 14,
+            "published": true,
+            "created_at": "2026-10-09T01:39:17.311+00:00",
+            "updated_at": "2026-10-09T01:44:26.545+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          },
+          {
+            "id": "7573bc84-99bb-4ed0-8593-187c66660eae",
+            "slot_key": "home.showcase",
+            "type": "image",
+            "storage_path": "media/home.showcase/7573bc84-99bb-4ed0-8593-187c66660eae.jpg",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/home.showcase/7573bc84-99bb-4ed0-8593-187c66660eae.jpg",
+            "alt": "Automation agents connecting Gmail, Slack, Google Calendar, Zapier, Outlook, Notion and HubSpot to run workflows automatically.",
+            "title": "Automation",
+            "caption": "Turn repetitive work into workflows that run on their own.",
+            "cta_label": "Explore Automation",
+            "cta_url": "/solutions",
+            "sort_order": 15,
+            "published": true,
+            "created_at": "2026-10-09T06:27:51.921+00:00",
+            "updated_at": "2026-10-09T06:28:00.874+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          },
+          {
+            "id": "ec256b1e-3d1d-417d-bcf9-7d33053179c5",
+            "slot_key": "home.showcase",
+            "type": "image",
+            "storage_path": "media/home.showcase/ec256b1e-3d1d-417d-bcf9-7d33053179c5.jpg",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/home.showcase/ec256b1e-3d1d-417d-bcf9-7d33053179c5.jpg",
+            "alt": "Voice and WhatsApp AI agents answering calls and messages, booking meetings through WhatsApp, Twilio and Google Calendar.",
+            "title": "Voice & WhatsApp",
+            "caption": "Answer calls and WhatsApp messages automatically, and book the meeting.",
+            "cta_label": "Explore Voice & WhatsApp",
+            "cta_url": "/solutions",
+            "sort_order": 16,
+            "published": true,
+            "created_at": "2026-10-09T06:36:15.607+00:00",
+            "updated_at": "2026-10-09T06:36:20.562+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          },
+          {
+            "id": "55a11ffa-0d0f-428e-abc5-3bbe5fb5e690",
+            "slot_key": "home.showcase",
+            "type": "image",
+            "storage_path": "media/home.showcase/55a11ffa-0d0f-428e-abc5-3bbe5fb5e690.jpg",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/home.showcase/55a11ffa-0d0f-428e-abc5-3bbe5fb5e690.jpg",
+            "alt": "Integrations connecting Gmail, Slack, Google Drive, Excel, Salesforce, Zoom, Outlook, Asana and Dropbox into one system.",
+            "title": "Integrations",
+            "caption": "Your apps share data automatically, so you stop copying between them.",
+            "cta_label": "Explore Integrations",
+            "cta_url": "/solutions",
+            "sort_order": 17,
+            "published": true,
+            "created_at": "2026-10-09T06:39:41.619+00:00",
+            "updated_at": "2026-10-09T06:39:48.215+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          }
+        ]
+      },
+      "home.intro_video": {
+        "slot": {
+          "slot_key": "home.intro_video",
+          "page": "home",
+          "label": "Home intro video",
+          "allowed_types": [
+            "video",
+            "url"
+          ],
+          "max_items": 1,
+          "max_bytes": 52428800,
+          "aspect": "16:9",
+          "created_at": "2026-10-02T21:35:28.166951+00:00",
+          "updated_at": "2026-10-02T21:35:28.166951+00:00",
+          "item_count": 1,
+          "status": "filled"
+        },
+        "items": [
+          {
+            "id": "393feb14-9a89-4f40-a530-6e10b89e3daf",
+            "slot_key": "home.intro_video",
+            "type": "video",
+            "storage_path": "media/home.intro_video/393feb14-9a89-4f40-a530-6e10b89e3daf.mp4",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/home.intro_video/393feb14-9a89-4f40-a530-6e10b89e3daf.mp4",
+            "alt": "Swarmhive",
+            "title": "Swarmhive",
+            "caption": null,
+            "cta_label": null,
+            "cta_url": null,
+            "sort_order": 0,
+            "published": true,
+            "created_at": "2026-10-09T00:55:40.095+00:00",
+            "updated_at": "2026-10-09T00:55:54.681+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          }
+        ]
+      },
+      "home.intro_poster": {
+        "slot": {
+          "slot_key": "home.intro_poster",
+          "page": "home",
+          "label": "Home intro video poster",
+          "allowed_types": [
+            "image"
+          ],
+          "max_items": 1,
+          "max_bytes": 5242880,
+          "aspect": "16:9",
+          "created_at": "2026-10-02T21:35:28.166951+00:00",
+          "updated_at": "2026-10-03T08:32:47.618089+00:00",
+          "item_count": 1,
+          "status": "filled"
+        },
+        "items": [
+          {
+            "id": "8a3837a0-bc3c-4e09-ae6c-8d3f67251190",
+            "slot_key": "home.intro_poster",
+            "type": "image",
+            "storage_path": "media/home.intro_poster/8a3837a0-bc3c-4e09-ae6c-8d3f67251190.jpg",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/home.intro_poster/8a3837a0-bc3c-4e09-ae6c-8d3f67251190.jpg",
+            "alt": "Swarmhive",
+            "title": null,
+            "caption": null,
+            "cta_label": null,
+            "cta_url": null,
+            "sort_order": 0,
+            "published": true,
+            "created_at": "2026-10-06T06:36:20.539+00:00",
+            "updated_at": "2026-10-06T06:36:26.462+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          }
+        ]
+      },
+      "apps.showcase": {
+        "slot": {
+          "slot_key": "apps.showcase",
+          "page": "apps",
+          "label": "Apps showcase carousel",
+          "allowed_types": [
+            "image",
+            "video"
+          ],
+          "max_items": 6,
+          "max_bytes": 52428800,
+          "aspect": "16:9",
+          "created_at": "2026-10-02T21:35:28.166951+00:00",
+          "updated_at": "2026-10-02T21:35:28.166951+00:00",
+          "item_count": 2,
+          "status": "filled"
+        },
+        "items": [
+          {
+            "id": "bc893d84-5307-4332-b23a-744c9f51e3dd",
+            "slot_key": "apps.showcase",
+            "type": "video",
+            "storage_path": "media/apps.showcase/bc893d84-5307-4332-b23a-744c9f51e3dd.mp4",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/apps.showcase/bc893d84-5307-4332-b23a-744c9f51e3dd.mp4",
+            "alt": "Create. Without limits.",
+            "title": "Create. Without limits.",
+            "caption": "Describe what you want built. CoreIQ designs, builds and connects it.",
+            "cta_label": "Explore solutions",
+            "cta_url": "/solutions",
+            "sort_order": 0,
+            "published": true,
+            "created_at": "2026-10-09T23:43:20.023+00:00",
+            "updated_at": "2026-10-09T23:43:29.108+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          },
+          {
+            "id": "d0f885c1-8f18-4752-a365-6b36740d8c49",
+            "slot_key": "apps.showcase",
+            "type": "image",
+            "storage_path": "media/apps.showcase/d0f885c1-8f18-4752-a365-6b36740d8c49.jpg",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/apps.showcase/d0f885c1-8f18-4752-a365-6b36740d8c49.jpg",
+            "alt": "Flowbuilder workflow diagram: two guardian characters connecting email, chat, files and CRM apps through an automated flow, with the line \"Automate. Connect. Done.\"",
+            "title": "Build the workflow once.",
+            "caption": "Connect your tools, set the steps, and let the flow run itself.",
+            "cta_label": "See the tools",
+            "cta_url": "/tools",
+            "sort_order": 1,
+            "published": true,
+            "created_at": "2026-10-09T23:48:10.809+00:00",
+            "updated_at": "2026-10-09T23:48:17.478+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          }
+        ]
+      },
+      "learn.showcase": {
+        "slot": {
+          "slot_key": "learn.showcase",
+          "page": "learn",
+          "label": "Learn showcase carousel",
+          "allowed_types": [
+            "image",
+            "video"
+          ],
+          "max_items": 6,
+          "max_bytes": 52428800,
+          "aspect": "16:9",
+          "created_at": "2026-10-02T21:35:28.166951+00:00",
+          "updated_at": "2026-10-02T21:35:28.166951+00:00",
+          "item_count": 1,
+          "status": "filled"
+        },
+        "items": [
+          {
+            "id": "8be5e38d-7b0a-41c4-bbe5-69db3643f632",
+            "slot_key": "learn.showcase",
+            "type": "image",
+            "storage_path": "media/learn.showcase/8be5e38d-7b0a-41c4-bbe5-69db3643f632.jpg",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/learn.showcase/8be5e38d-7b0a-41c4-bbe5-69db3643f632.jpg",
+            "alt": "Learn",
+            "title": null,
+            "caption": null,
+            "cta_label": null,
+            "cta_url": null,
+            "sort_order": 0,
+            "published": true,
+            "created_at": "2026-10-06T00:36:06.29+00:00",
+            "updated_at": "2026-10-06T00:36:11.676+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          }
+        ]
+      },
+      "tools.showcase": {
+        "slot": {
+          "slot_key": "tools.showcase",
+          "page": "tools",
+          "label": "Tools showcase carousel",
+          "allowed_types": [
+            "image",
+            "video"
+          ],
+          "max_items": 6,
+          "max_bytes": 52428800,
+          "aspect": "16:9",
+          "created_at": "2026-10-02T21:35:28.166951+00:00",
+          "updated_at": "2026-10-02T21:35:28.166951+00:00",
+          "item_count": 1,
+          "status": "filled"
+        },
+        "items": [
+          {
+            "id": "c25b4ed8-6110-46f1-838f-0700f86c04ba",
+            "slot_key": "tools.showcase",
+            "type": "image",
+            "storage_path": "media/tools.showcase/c25b4ed8-6110-46f1-838f-0700f86c04ba.jpg",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/tools.showcase/c25b4ed8-6110-46f1-838f-0700f86c04ba.jpg",
+            "alt": "Tools",
+            "title": null,
+            "caption": null,
+            "cta_label": null,
+            "cta_url": null,
+            "sort_order": 0,
+            "published": true,
+            "created_at": "2026-10-05T09:57:22.44+00:00",
+            "updated_at": "2026-10-05T09:57:29.621+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          }
+        ]
+      },
+      "about.showcase": {
+        "slot": {
+          "slot_key": "about.showcase",
+          "page": "about",
+          "label": "About showcase carousel",
+          "allowed_types": [
+            "image",
+            "video"
+          ],
+          "max_items": 6,
+          "max_bytes": 52428800,
+          "aspect": "16:9",
+          "created_at": "2026-10-02T21:35:28.166951+00:00",
+          "updated_at": "2026-10-02T21:35:28.166951+00:00",
+          "item_count": 0,
+          "status": "empty"
+        },
+        "items": []
+      },
+      "news.showcase": {
+        "slot": {
+          "slot_key": "news.showcase",
+          "page": "news",
+          "label": "News showcase carousel",
+          "allowed_types": [
+            "image",
+            "video"
+          ],
+          "max_items": 6,
+          "max_bytes": 52428800,
+          "aspect": null,
+          "created_at": "2026-10-08T22:48:25.975933+00:00",
+          "updated_at": "2026-10-08T22:48:25.975933+00:00",
+          "item_count": 0,
+          "status": "empty"
+        },
+        "items": []
+      },
+      "solutions.showcase": {
+        "slot": {
+          "slot_key": "solutions.showcase",
+          "page": "solutions",
+          "label": "Solutions showcase carousel",
+          "allowed_types": [
+            "image",
+            "video"
+          ],
+          "max_items": 6,
+          "max_bytes": 52428800,
+          "aspect": "16:9",
+          "created_at": "2026-10-02T21:35:28.166951+00:00",
+          "updated_at": "2026-10-02T21:35:28.166951+00:00",
+          "item_count": 0,
+          "status": "empty"
+        },
+        "items": []
+      },
+      "site.background": {
+        "slot": {
+          "slot_key": "site.background",
+          "page": "site",
+          "label": "Site global background video",
+          "allowed_types": [
+            "video",
+            "url"
+          ],
+          "max_items": 1,
+          "max_bytes": 52428800,
+          "aspect": "16:9",
+          "created_at": "2026-10-02T21:35:28.166951+00:00",
+          "updated_at": "2026-10-02T21:35:28.166951+00:00",
+          "item_count": 1,
+          "status": "filled"
+        },
+        "items": [
+          {
+            "id": "2aa03d40-a0c1-4840-8b3b-1620b7d46704",
+            "slot_key": "site.background",
+            "type": "video",
+            "storage_path": "media/site.background/2aa03d40-a0c1-4840-8b3b-1620b7d46704.mp4",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/site.background/2aa03d40-a0c1-4840-8b3b-1620b7d46704.mp4",
+            "alt": null,
+            "title": null,
+            "caption": null,
+            "cta_label": null,
+            "cta_url": null,
+            "sort_order": 0,
+            "published": true,
+            "created_at": "2026-10-06T06:38:09.769+00:00",
+            "updated_at": "2026-10-06T06:38:15.438+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          }
+        ]
+      },
+      "site.background_poster": {
+        "slot": {
+          "slot_key": "site.background_poster",
+          "page": "site",
+          "label": "Site global background poster",
+          "allowed_types": [
+            "image"
+          ],
+          "max_items": 1,
+          "max_bytes": 5242880,
+          "aspect": "16:9",
+          "created_at": "2026-10-02T21:35:28.166951+00:00",
+          "updated_at": "2026-10-02T21:35:28.166951+00:00",
+          "item_count": 1,
+          "status": "filled"
+        },
+        "items": [
+          {
+            "id": "d1a46022-3a1e-426d-a535-0cb6ef88ab0b",
+            "slot_key": "site.background_poster",
+            "type": "image",
+            "storage_path": "media/site.background_poster/d1a46022-3a1e-426d-a535-0cb6ef88ab0b.jpg",
+            "url": "https://irrpqqxetyfbafjpjtpt.supabase.co/storage/v1/object/public/media/site.background_poster/d1a46022-3a1e-426d-a535-0cb6ef88ab0b.jpg",
+            "alt": "Coreiqcreate",
+            "title": null,
+            "caption": null,
+            "cta_label": null,
+            "cta_url": null,
+            "sort_order": 0,
+            "published": true,
+            "created_at": "2026-10-03T08:46:22.179+00:00",
+            "updated_at": "2026-10-03T08:46:35.294+00:00",
+            "status": "draft",
+            "published_at": null,
+            "poster_url": null
+          }
+        ]
+      }
+    },
+    "tools": {
+      "status": "ok",
+      "total_tools": 16,
+      "tools": [
+        {
+          "name": "content_health",
+          "description": "Returns published/placeholder counts for all manifest keys.",
+          "inputSchema": {}
+        },
+        {
+          "name": "get_content",
+          "description": "Fetch a single content item by manifest key.",
+          "inputSchema": {
+            "content_key": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "name": "resolve_content",
+          "description": "Resolve a content key the same way the frontend does.",
+          "inputSchema": {
+            "content_key": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "name": "verify_content",
+          "description": "Check if a content key exists and its status.",
+          "inputSchema": {
+            "content_key": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "name": "list_placeholders",
+          "description": "Return all keys still in PLACEHOLDER status for a given page.",
+          "inputSchema": {
+            "page": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "name": "get_all_content",
+          "description": "Return all content items in the store.",
+          "inputSchema": {}
+        },
+        {
+          "name": "get_content_health",
+          "description": "Full health report with per-page breakdown.",
+          "inputSchema": {}
+        },
+        {
+          "name": "search_content",
+          "description": "Search content by keyword.",
+          "inputSchema": {
+            "query": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "name": "patch_content",
+          "description": "Update or create a content item by key (body, summary, title, status, etc.).",
+          "inputSchema": {
+            "key": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "string"
+            },
+            "body": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "dry_run": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "name": "publish_content",
+          "description": "Publish a content item by key.",
+          "inputSchema": {
+            "key": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "name": "ask_coreiq",
+          "description": "Send a message to the live CoreIQ agent brain and return its response.",
+          "inputSchema": {
+            "message": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "name": "list_leads",
+          "description": "List recent website leads/inquiries.",
+          "inputSchema": {
+            "limit": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "name": "create_lead",
+          "description": "Create a new client lead/inquiry.",
+          "inputSchema": {
+            "client_name": {
+              "type": "string"
+            },
+            "client_contact": {
+              "type": "string"
+            },
+            "client_message": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "name": "list_tasks",
+          "description": "List operator tasks in CoreIQ Command.",
+          "inputSchema": {
+            "limit": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "name": "create_task",
+          "description": "Create an operator task in CoreIQ Command.",
+          "inputSchema": {
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "name": "get_agent_config",
+          "description": "Read CoreIQ's current provider/model/system prompt (API key redacted).",
+          "inputSchema": {}
+        }
+      ]
+    }
+  }
+}

@@ -35,7 +35,7 @@ The system is partitioned into three functional tiers that communicate through S
 2. **CoreIQ Command (`/command` and `/command/login`):**
    - The central operational cockpit for operators, strategists, and automated agents.
    - Gated behind Supabase Auth (`CommandLoginPage.tsx`). Unauthorized users are rejected and cannot access operational telemetry.
-   - Contains 11 specialized operational sub-consoles:
+   - Contains 14 specialized operational sub-consoles:
      - **Inbox Tab:** Real-time ingestion of website leads and social webhooks (Meta, X, LinkedIn, WhatsApp) with instant audio chime alerts.
      - **Tasks Tab:** Kanban and status pipeline (`not_started`, `in_progress`, `review`, `completed`) linked to specific leads or clients.
      - **Clients Tab:** Unified client relationship registry, contacts, notes, and activity history.
@@ -44,6 +44,9 @@ The system is partitioned into three functional tiers that communicate through S
      - **Tools Tab:** Dynamic registry of external tool connectors, API endpoints, and execution states.
      - **Platforms Tab:** Inventory of deployed websites, apps, and digital properties managed by CoreIQ.
      - **Content Tab:** Headless CMS management with dual Copy/Media tabs, manifest synchronization, and live health evaluation across all 94 content keys.
+     - **Use Cases Tab:** Enterprise and personal use case portfolio manager with category classification, live status toggle (Draft / Published), and media assets.
+     - **News Tab:** Dynamic editorial console for publishing, editing, and managing breaking AI frontier articles, takeaways, tags, and hero imagery.
+     - **Store Tab:** Application store distribution console for managing applications, licensing tiers (free, paid, contact), and download assets.
      - **Upload Tab (Media Slots Gateway):** Operational asset management system allowing operators to upload, configure, reorder, and publish images, videos, and external media into typed and bounded slots without redeploying code. Connected directly to the single source of truth placement map (`src/config/mediaPlacements.ts`).
      - **Swarm Tab:** Inter-agent telemetry node viewer tracking autonomous node heartbeats and inter-agent messages.
      - **Analytics Tab:** Pipeline health, conversion metrics, and system throughput.
@@ -56,8 +59,8 @@ The system is partitioned into three functional tiers that communicate through S
 ### 1.3 How the System Connects to Supabase
 Supabase serves as the **Single Unified Brain** of CoreIQ Create.
 - **Project URL:** `https://irrpqqxetyfbafjpjtpt.supabase.co`
-- **Tables (12 Total):** `leads`, `social_messages`, `tasks`, `clients`, `agent_config`, `agent_tools`, `platforms`, `content`, `swarm_comms`, `api_keys`, `media_slots`, `media_slot_items`.
-- **Public Interaction:** Anon users can INSERT into `leads` and `social_messages`, and SELECT from `agent_config`, `platforms`, and published `content`. All other tables require authenticated operator access.
+- **Tables (Core & Features):** `leads`, `social_messages`, `tasks`, `clients`, `agent_config`, `agent_tools`, `platforms`, `content`, `swarm_comms`, `api_keys`, `media_slots`, `media_slot_items`, `use_case_categories`, `use_cases`, `use_case_files`, `store_apps`, `app_requests`, `app_access_links`, `app_downloads`, `store_settings`, `news_articles`.
+- **Public Interaction:** Anon users can INSERT into `leads` and `social_messages`, and SELECT from `agent_config`, `platforms`, published `content`, published `use_cases`, published `store_apps`, and published `news_articles`. All management operations require authenticated operator access.
 - **Dual-Engine Resilience (Local Reactive Mode vs. Remote Supabase):**
   - The client codebase (`src/services/supabase.ts`) and the server gateway (`server.ts`) implement an automated resilient dual-layer architecture.
   - If remote Supabase credentials are missing, or if the database tables have not yet been created via `supabase/schema.sql`, the application automatically falls back to an in-memory reactive data layer with local event broadcast (`coreiq_storage_event`).
@@ -19693,3 +19696,39 @@ None. Verified with TypeScript lint check and production build.
 PASS (0 warnings, 0 errors).
 ---
 
+## Session: 2026-10-11 System Audit & Flagged Issues Remediation + News Engine Architecture
+
+### Mode & Safety Check (Step 0)
+- **Database Backup:** Full database snapshot exported to `/backups/supabase_snapshot_2026-10-11T19-51-28-921Z.json` (30.7 KB JSON dump containing all live tables and records).
+- **Environment & Drift:** Audited deployment configurations, repository state, and verified zero unintended drift.
+
+### Storage & Media Fixes (Step 1 & Step 2)
+- **Use-Cases Bucket Migration:** Generated `supabase/migrations/20261011_use_cases_storage.sql` to ensure public read access on `storage.objects` for bucket `use-cases`.
+- **Hero Image Fallback:** Placed verified image asset `1791693145455_1000043881.jpg` in `public/media/use-cases/images/c1000000-0000-0000-0000-000000000004/` resolving HTTP 400 errors.
+- **Card Image Error Boundary:** Added `onError` handler to `src/pages/UseCasesPage.tsx` using `failedImages` state to automatically swap failed or 404 image URLs into a styled gradient placeholder card with zero broken image icons.
+
+### Use Cases Status (Step 3)
+- **Publication Sync:** Transitioned all 15 use cases from Draft to Published status across `localStore` and backend routes, unlocking the complete portfolio across AI Agents, Automation, Apps, Voice AI, and Integrations.
+
+### Free App Downloads (Step 4)
+- **Resolution of HTTP 409 Conflict:** Seed apps `ImageForge` and `WritePro` previously returned HTTP 409 due to missing physical files. Created downloadable starter kits (`imageforge-community-kit.zip` and `writepro-starter-package.zip`) under `public/media/store/files/` and bound `file_path`, `file_name`, and `file_size_bytes` metadata in `localStore.store_apps`. Clicking download now resolves directly to a clean download payload.
+
+### Vercel Routing Configuration (Step 5)
+- **Health Proxy Rewrite:** Updated `vercel.json` with an explicit rewrite for `/api/health` routing directly to the backend (`https://coreiqcreate.onrender.com/api/health`) matching the proxy rules for `/api/v1/:path*` and preventing fallthrough to `index.html`.
+
+### Dynamic News Engine (Step 6)
+- **Schema & Migration:** Created `supabase/migrations/20261011_news_articles.sql` with table `news_articles` (slug, title, summary, body, category, author, read_time, badge, featured, tags, takeaways, source, accent_color, published, sort_order) and RLS policies for public read and authenticated management.
+- **Backend API Gateway (`server.ts`):** Implemented public and authenticated routes:
+  - `GET /api/v1/news`: List published news articles with category filtering.
+  - `GET /api/v1/news/:slug`: Fetch single article by slug.
+  - `GET /api/v1/admin/news`: Fetch all articles (drafts & published) for operator review.
+  - `POST /api/v1/admin/news`: Create news article.
+  - `PATCH /api/v1/admin/news/:id` & `PUT /api/v1/admin/news/:id`: Update article or toggle published status.
+  - `DELETE /api/v1/admin/news/:id`: Remove article.
+  - `POST /api/v1/admin/news/:id/image`: Upload hero image with Supabase Storage and disk fallback.
+- **Operator Command Console:** Created `src/components/command/CommandNewsTab.tsx` and mounted it into `src/components/command/CommandNav.tsx` and `src/pages/CommandDashboardPage.tsx`. Provides full CRUD modal, tag editing, image upload, status toggles, and live search.
+- **Public Surface (`src/pages/NewsPage.tsx`):** Connected live data fetching from `/api/v1/news` with smooth fallback to static dataset.
+
+### Build Status
+PASS (0 lint errors, production build verified).
+---

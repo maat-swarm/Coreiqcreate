@@ -1,8 +1,16 @@
 {
   "rewrites": [
     {
+      "source": "/api/health",
+      "destination": "https://coreiqcreate.onrender.com/api/health"
+    },
+    {
       "source": "/api/v1/:path*",
       "destination": "https://coreiqcreate.onrender.com/api/v1/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://coreiqcreate.onrender.com/api/:path*"
     },
     {
       "source": "/mcp",

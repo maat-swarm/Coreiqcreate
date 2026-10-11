@@ -14,6 +14,7 @@ export interface NewsArticle {
   takeaways: string[];
   source?: string;
   accentColor: string;
+  heroImage?: string | null;
 }
 
 export const NEWS_CATEGORIES = [

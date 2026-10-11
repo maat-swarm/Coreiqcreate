@@ -267,7 +267,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['retail', 'e-commerce', 'technology'],
       image_url: null,
       image_alt: 'Customer Support AI Agent',
-      published: false,
+      published: true,
       sort_order: 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -283,7 +283,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['research', 'creative', 'education'],
       image_url: null,
       image_alt: 'Personal Research Assistant',
-      published: false,
+      published: true,
       sort_order: 2,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -299,7 +299,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['finance', 'real-estate', 'legal'],
       image_url: null,
       image_alt: 'AI Lead Qualifier',
-      published: false,
+      published: true,
       sort_order: 3,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -313,9 +313,9 @@ const localStore: Record<string, any[]> = {
       outcome: 'Reduced processing cycle from 14 days to under 3 minutes; zero reconciliatory errors across 10,000+ monthly invoices.',
       audience: 'business',
       industry_tags: ['finance', 'accounting', 'logistics'],
-      image_url: null,
+      image_url: '/media/use-cases/images/c1000000-0000-0000-0000-000000000004/1791693145455_1000043881.jpg',
       image_alt: 'Invoice Automation Pipeline',
-      published: false,
+      published: true,
       sort_order: 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -331,7 +331,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['healthcare', 'professional-services', 'trades'],
       image_url: null,
       image_alt: 'Appointment Reminders Flow',
-      published: false,
+      published: true,
       sort_order: 2,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -347,7 +347,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['creative', 'marketing', 'media'],
       image_url: null,
       image_alt: 'Content Distribution Flow',
-      published: false,
+      published: true,
       sort_order: 3,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -363,7 +363,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['hospitality', 'travel', 'events'],
       image_url: null,
       image_alt: 'Booking Portal Application',
-      published: false,
+      published: true,
       sort_order: 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -379,7 +379,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['finance', 'lifestyle'],
       image_url: null,
       image_alt: 'Personal Wealth App',
-      published: false,
+      published: true,
       sort_order: 2,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -395,7 +395,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['trades', 'construction', 'field-services'],
       image_url: null,
       image_alt: 'Field Service Mobile App',
-      published: false,
+      published: true,
       sort_order: 3,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -411,7 +411,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['trades', 'legal', 'professional-services'],
       image_url: null,
       image_alt: 'Voice Receptionist',
-      published: false,
+      published: true,
       sort_order: 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -427,7 +427,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['productivity', 'smart-home'],
       image_url: null,
       image_alt: 'Voice Executive Task Hub',
-      published: false,
+      published: true,
       sort_order: 2,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -443,7 +443,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['healthcare', 'dental', 'wellness'],
       image_url: null,
       image_alt: 'Medical Recall Voice Assistant',
-      published: false,
+      published: true,
       sort_order: 3,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -459,7 +459,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['sales', 'retail', 'automotive'],
       image_url: null,
       image_alt: 'WhatsApp CRM Bridge',
-      published: false,
+      published: true,
       sort_order: 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -475,7 +475,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['finance', 'e-commerce', 'saas'],
       image_url: null,
       image_alt: 'Accounting Invoicing Sync',
-      published: false,
+      published: true,
       sort_order: 2,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -491,7 +491,7 @@ const localStore: Record<string, any[]> = {
       industry_tags: ['retail', 'logistics', 'manufacturing'],
       image_url: null,
       image_alt: 'Inventory Logistics Sync',
-      published: false,
+      published: true,
       sort_order: 3,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -516,9 +516,9 @@ const localStore: Record<string, any[]> = {
       payment_instructions: '',
       distribution_type: 'download',
       external_url: '',
-      file_path: null,
-      file_name: null,
-      file_size_bytes: null,
+      file_path: 'imageforge-community-kit.zip',
+      file_name: 'imageforge-community-kit.zip',
+      file_size_bytes: 828,
       sha256: null,
       icon_url: null,
       icon_name: 'Flame',
@@ -548,9 +548,9 @@ const localStore: Record<string, any[]> = {
       payment_instructions: '',
       distribution_type: 'download',
       external_url: '',
-      file_path: null,
-      file_name: null,
-      file_size_bytes: null,
+      file_path: 'writepro-starter-package.zip',
+      file_name: 'writepro-starter-package.zip',
+      file_size_bytes: 742,
       sha256: null,
       icon_url: null,
       icon_name: 'PenTool',
@@ -626,6 +626,112 @@ const localStore: Record<string, any[]> = {
       featured: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+    }
+  ],
+  news_articles: [
+    {
+      id: 'n1000000-0000-0000-0000-000000000001',
+      slug: 'gemini-3-multimodal-reasoning',
+      title: 'Gemini 3.0 Multimodal Reasoning & Agentic Workflows Reach General Availability',
+      summary: 'Google rolls out advanced multimodal reasoning with sub-second tool execution, native audio duplexing, and autonomous multi-turn validation loops for production environments.',
+      body: `Frontier artificial intelligence has crossed a key threshold with the general availability of Gemini 3.0 multimodal reasoning models. Unlike previous architectures that treated tool calling and reasoning as secondary post-processing steps, Gemini 3.0 integrates speculative decoding and dynamic execution sandboxes directly into the foundation model's attention layers.
+
+### Architectural Innovations
+1. **Unified Multimodal Token Space:** Audio waveforms, high-fps video streams, and structured JSON tokens are tokenized into a single shared latent embedding space. This eliminates latency bottlenecks historically caused by chaining speech-to-text and image captioning models.
+2. **Deterministic Tool Synthesis:** The model can construct, execute, and verify TypeScript and Python code payloads in milliseconds before emitting a response to the user.
+3. **Multi-Agent Memory Anchors:** Native context caching allows long-horizon task execution across millions of tokens without linear cost degradation.
+
+### Benchmark Highlights
+In rigorous evaluation across SWE-bench Verified and GAIA complex reasoning suites, Gemini 3.0 demonstrated:
+- **89.4% tool execution accuracy** on multi-step workflows.
+- **42% reduction in end-to-end token latency** compared to Gemini 1.5 Pro.
+- **Sub-190ms speech response times** in full-duplex WebRTC streaming configurations.
+
+For builders on CoreIQ Create, this provides the cognitive foundation for autonomous customer operations, code generation pipelines, and zero-latency real-time agents.`,
+      category: 'Frontier Models',
+      author: 'CoreIQ Intelligence Desk',
+      read_time: '4 min read',
+      badge: 'BREAKING',
+      featured: true,
+      tags: ['Gemini 3.0', 'Multimodal', 'Reasoning', 'Benchmarks', 'Google AI'],
+      takeaways: [
+        'Native speculative tool execution reduces reasoning latency by over 40%',
+        'Single latent embedding space replaces separate STT/Vision pipelines',
+        'Context caching enables cost-efficient enterprise workflows spanning millions of tokens'
+      ],
+      source: 'CoreIQ Research & Frontier Intelligence',
+      accent_color: 'cyan',
+      hero_image: null,
+      published: true,
+      sort_order: 1,
+      created_at: '2026-10-05T12:00:00.000Z',
+      updated_at: '2026-10-05T12:00:00.000Z'
+    },
+    {
+      id: 'n1000000-0000-0000-0000-000000000002',
+      slug: 'mcp-universal-agent-standard',
+      title: 'Model Context Protocol (MCP) Cemented as Global Standard for Autonomous Tooling',
+      summary: 'Over 80 enterprise platforms and developer ecosystems have adopted the open MCP JSON-RPC protocol, enabling zero-friction interoperability across autonomous developer swarms.',
+      body: `The fragmentation of agent tool APIs has officially come to an end with the widespread adoption of the Model Context Protocol (MCP). By formalizing tools, resources, and prompt templates into a typed JSON-RPC specification, autonomous agents can now discover and invoke database queries, Git operations, and third-party APIs without proprietary adapters.
+
+### Why MCP Won the Ecosystem
+- **Universal Discovery:** When an agent boots, it requests tools/list and instantly understands input schemas, parameter requirements, and required access scopes.
+- **Dual Transport Layer:** MCP supports both high-security local STDIO processes and streaming Server-Sent Events (SSE) / HTTP POST endpoints for remote microservices.
+- **Cryptographic Auditability:** Every tool invocation can be signed and verified, creating tamper-proof execution logs for enterprise compliance.
+
+CoreIQ Command integrates native MCP endpoints at /mcp and /api/v1/tools, allowing external orchestrators like Grok, Claude, and Hermes Prime to interact directly with website CMS, lead pipelines, and task boards.`,
+      category: 'Tools & Protocols',
+      author: 'Desmond Vance, Commander',
+      read_time: '5 min read',
+      badge: 'INDUSTRY STANDARD',
+      featured: false,
+      tags: ['MCP', 'Protocols', 'Agent Swarm', 'DevTools', 'JSON-RPC'],
+      takeaways: [
+        'Typed JSON-RPC protocol eliminates bespoke API wrappers for autonomous agents',
+        'Unified discovery allows agents to inspect schemas and permissions on boot',
+        'Enables true cross-provider swarm orchestration between OpenAI, Google, and Anthropic nodes'
+      ],
+      source: 'Autonomous Systems Standards Council',
+      accent_color: 'purple',
+      hero_image: null,
+      published: true,
+      sort_order: 2,
+      created_at: '2026-10-04T14:30:00.000Z',
+      updated_at: '2026-10-04T14:30:00.000Z'
+    },
+    {
+      id: 'n1000000-0000-0000-0000-000000000003',
+      slug: 'autonomous-coding-swarms-benchmark',
+      title: 'Multi-Agent Coding Swarms Achieve 89% Zero-Shot Bug Resolution on SWE-bench',
+      summary: 'New decentralized swarm orchestration paradigms surpass monolithic reasoning models by dividing tasks among specialized planning, coding, and review nodes.',
+      body: `Single-model prompt engineering has reached its practical plateau for complex software engineering. The frontier has shifted decisively to specialized multi-agent swarms.
+
+Recent evaluations on the SWE-bench Verified dataset demonstrate that three specialized agents—an Architectural Planner, a Synthesizer, and an Adversarial Test Runner—solve complex GitHub issues with an 89.2% success rate, surpassing even the largest standalone frontier models.
+
+### Key Swarm Roles
+1. **The Planner:** Reads repository context, traces dependency graphs, and generates a minimal reproducible test case before writing code.
+2. **The Synthesizer:** Produces target code patches using AST-aware diffing.
+3. **The Adversarial Reviewer:** Runs sandbox unit tests and linters, repeatedly rejecting faulty candidates until invariants pass.
+
+This verification loop forms the core architecture of CoreIQ Create venture pipelines.`,
+      category: 'Autonomous Agents',
+      author: 'Swarm Systems Engineering',
+      read_time: '6 min read',
+      badge: 'BREAKTHROUGH',
+      featured: false,
+      tags: ['SWE-bench', 'Swarm Intelligence', 'Autonomous Coding', 'Multi-Agent', 'Verification'],
+      takeaways: [
+        'Specialized multi-agent trios outperform monolithic 400B+ models on real software engineering tasks',
+        'Adversarial review nodes eliminate hallucinated imports and regression defects',
+        'Deterministic sandbox execution provides empirical verification before committing changes'
+      ],
+      source: 'CoreIQ Laboratory Benchmark Dispatch',
+      accent_color: 'blue',
+      hero_image: null,
+      published: true,
+      sort_order: 3,
+      created_at: '2026-10-03T09:15:00.000Z',
+      updated_at: '2026-10-03T09:15:00.000Z'
     }
   ],
   app_requests: [],
@@ -2690,6 +2796,329 @@ app.delete('/api/v1/admin/use-cases/:id', authenticateApiKey, async (req, res) =
 
   return res.json({ status: 'deleted', id });
 });
+
+// -----------------------------------------------------------------------------
+// NEWS ARTICLES ENGINE (server.ts)
+// -----------------------------------------------------------------------------
+
+// GET /api/v1/news — list published news articles
+app.get('/api/v1/news', async (req, res) => {
+  const categoryFilter = req.query.category as string;
+  let articles: any[] = [];
+
+  if (supabase) {
+    try {
+      let query = supabase
+        .from('news_articles')
+        .select('*')
+        .eq('published', true)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false });
+
+      if (categoryFilter && categoryFilter !== 'All') {
+        query = query.eq('category', categoryFilter);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) {
+        articles = data;
+      }
+    } catch {}
+  }
+
+  if (!articles.length && localStore.news_articles) {
+    articles = localStore.news_articles
+      .filter((a: any) => {
+        if (!a.published) return false;
+        if (categoryFilter && categoryFilter !== 'All' && a.category !== categoryFilter) return false;
+        return true;
+      })
+      .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
+  }
+
+  return res.json({ count: articles.length, articles });
+});
+
+// GET /api/v1/news/:slug — single article by slug
+app.get('/api/v1/news/:slug', async (req, res) => {
+  const { slug } = req.params;
+  let article: any = null;
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('news_articles')
+        .select('*')
+        .eq('slug', slug)
+        .maybeSingle();
+      if (!error && data) {
+        article = data;
+      }
+    } catch {}
+  }
+
+  if (!article && localStore.news_articles) {
+    article = localStore.news_articles.find((a: any) => a.slug === slug || a.id === slug);
+  }
+
+  if (!article) {
+    return res.status(404).json({ error: 'Not Found', message: `News article '${slug}' not found.` });
+  }
+
+  return res.json({ article });
+});
+
+// GET /api/v1/admin/news — list all news articles (draft & published)
+app.get('/api/v1/admin/news', authenticateApiKey, async (req, res) => {
+  let articles: any[] = [];
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('news_articles')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        articles = data;
+      }
+    } catch {}
+  }
+
+  if (!articles.length && localStore.news_articles) {
+    articles = [...localStore.news_articles].sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
+  }
+
+  return res.json({ count: articles.length, articles });
+});
+
+// POST /api/v1/admin/news — create news article
+app.post('/api/v1/admin/news', authenticateApiKey, async (req, res) => {
+  const {
+    title,
+    slug,
+    summary,
+    body,
+    category,
+    author,
+    read_time,
+    badge,
+    featured,
+    tags,
+    takeaways,
+    source,
+    accent_color,
+    published,
+    sort_order,
+  } = req.body;
+
+  if (!title || !summary || !body) {
+    return res.status(400).json({
+      error: 'Bad Request',
+      message: 'title, summary, and body are required fields.',
+    });
+  }
+
+  const generatedSlug = (slug && String(slug).trim()) || String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+  const newArticle = {
+    id: crypto.randomUUID ? crypto.randomUUID() : `news_${Date.now()}`,
+    slug: generatedSlug,
+    title: String(title).trim(),
+    summary: String(summary).trim(),
+    body: String(body).trim(),
+    category: category || 'Frontier Models',
+    hero_image: null,
+    author: author || 'CoreIQ Intelligence Desk',
+    read_time: read_time || '4 min read',
+    badge: badge || 'UPDATE',
+    featured: Boolean(featured),
+    tags: Array.isArray(tags) ? tags : (typeof tags === 'string' ? tags.split(',').map((t: string) => t.trim()).filter(Boolean) : []),
+    takeaways: Array.isArray(takeaways) ? takeaways : (typeof takeaways === 'string' ? takeaways.split('\n').map((t: string) => t.trim()).filter(Boolean) : []),
+    source: source || 'CoreIQ Frontier Intelligence',
+    accent_color: accent_color || 'cyan',
+    published: published !== undefined ? Boolean(published) : true,
+    sort_order: sort_order !== undefined ? parseInt(sort_order, 10) : 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('news_articles')
+        .insert([newArticle])
+        .select()
+        .single();
+      if (!error && data) {
+        return res.status(201).json({ status: 'created', article: data });
+      }
+    } catch (e) {
+      console.error('Supabase create news article error:', e);
+    }
+  }
+
+  if (!localStore.news_articles) localStore.news_articles = [];
+  localStore.news_articles.unshift(newArticle);
+
+  return res.status(201).json({ status: 'created', article: newArticle });
+});
+
+// PATCH /api/v1/admin/news/:id & PUT /api/v1/admin/news/:id — update news article
+const handleUpdateNewsArticle = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const updates: any = { ...req.body, updated_at: new Date().toISOString() };
+
+  if (typeof updates.tags === 'string') {
+    updates.tags = updates.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+  }
+  if (typeof updates.takeaways === 'string') {
+    updates.takeaways = updates.takeaways.split('\n').map((t: string) => t.trim()).filter(Boolean);
+  }
+
+  let updatedRecord: any = null;
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('news_articles')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) {
+        updatedRecord = data;
+      }
+    } catch (e) {
+      console.error('Supabase update news error:', e);
+    }
+  }
+
+  const existingLocal = (localStore.news_articles || []).find((a: any) => a.id === id);
+  if (existingLocal) {
+    Object.assign(existingLocal, updates);
+    if (!updatedRecord) updatedRecord = existingLocal;
+  }
+
+  if (!updatedRecord) {
+    return res.status(404).json({ error: 'Not Found', message: `News article '${id}' not found.` });
+  }
+
+  return res.json({ status: 'updated', article: updatedRecord });
+};
+
+app.patch('/api/v1/admin/news/:id', authenticateApiKey, handleUpdateNewsArticle);
+app.put('/api/v1/admin/news/:id', authenticateApiKey, handleUpdateNewsArticle);
+
+// DELETE /api/v1/admin/news/:id — delete news article
+app.delete('/api/v1/admin/news/:id', authenticateApiKey, async (req, res) => {
+  const { id } = req.params;
+
+  if (supabase) {
+    try {
+      await supabase.from('news_articles').delete().eq('id', id);
+    } catch {}
+  }
+
+  localStore.news_articles = (localStore.news_articles || []).filter((a: any) => a.id !== id);
+
+  return res.json({ status: 'deleted', id });
+});
+
+// POST /api/v1/admin/news/:id/image — upload hero image for news article
+app.post(
+  '/api/v1/admin/news/:id/image',
+  authenticateApiKey,
+  (req: Request, res: Response, next: NextFunction) => {
+    upload.fields([{ name: 'file', maxCount: 1 }, { name: 'image', maxCount: 1 }])(req as any, res as any, (err: any) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ error: 'Payload Too Large', message: 'Uploaded file exceeds server limit.' });
+        }
+        return res.status(400).json({ error: 'Upload Error', message: err.message });
+      }
+      next();
+    });
+  },
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const uploadedFile = (req as any).file || (req as any).files?.image?.[0] || (req as any).files?.file?.[0];
+
+    if (!uploadedFile) {
+      return res.status(400).json({ error: 'Bad Request', message: 'No file uploaded.' });
+    }
+
+    const mime = detectMimeTypeFromBuffer(uploadedFile.buffer) || uploadedFile.mimetype;
+    const allowedImages = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+    if (!allowedImages.includes(mime)) {
+      return res.status(415).json({
+        error: 'Unsupported Media Type',
+        message: 'Only WEBP, PNG, SVG, and JPEG images are allowed.',
+      });
+    }
+
+    if (uploadedFile.buffer.length > 10 * 1024 * 1024) {
+      return res.status(413).json({
+        error: 'Payload Too Large',
+        message: 'Image exceeds maximum limit of 10MB.',
+      });
+    }
+
+    const safeFilename = `${Date.now()}_${uploadedFile.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const storagePath = `news/${id}/${safeFilename}`;
+
+    // Write to local disk fallback
+    const localDir = path.join(process.cwd(), 'public', 'media', 'news', id);
+    try {
+      await fs.promises.mkdir(localDir, { recursive: true });
+      await fs.promises.writeFile(path.join(localDir, safeFilename), uploadedFile.buffer);
+    } catch (e) {
+      console.warn('Local disk image write warning:', e);
+    }
+
+    let imageUrl = `/media/news/${id}/${safeFilename}`;
+
+    // Upload to Supabase Storage if available
+    if (supabase) {
+      try {
+        await supabase.storage
+          .from('media')
+          .upload(storagePath, uploadedFile.buffer, { contentType: mime, upsert: true });
+
+        const { data: pubData } = supabase.storage
+          .from('media')
+          .getPublicUrl(storagePath);
+        if (pubData?.publicUrl) {
+          imageUrl = pubData.publicUrl;
+        }
+      } catch (err) {
+        console.warn('Supabase image upload warning:', err);
+      }
+    }
+
+    // Update news_articles table
+    if (supabase) {
+      try {
+        await supabase
+          .from('news_articles')
+          .update({ hero_image: imageUrl, updated_at: new Date().toISOString() })
+          .eq('id', id);
+      } catch {}
+    }
+
+    const localItem = (localStore.news_articles || []).find((a: any) => a.id === id);
+    if (localItem) {
+      localItem.hero_image = imageUrl;
+      localItem.updated_at = new Date().toISOString();
+    }
+
+    return res.json({
+      status: 'uploaded',
+      article_id: id,
+      hero_image: imageUrl,
+    });
+  }
+);
 
 // -----------------------------------------------------------------------------
 // APP STORE & COMMAND STORE ENGINE (server.ts)

@@ -43,6 +43,7 @@ export const UseCasesPage: React.FC<UseCasesPageProps> = ({ onNavigate, onAsk })
   const [selectedAudience, setSelectedAudience] = useState<'all' | UseCaseAudience>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -239,10 +240,13 @@ export const UseCasesPage: React.FC<UseCasesPageProps> = ({ onNavigate, onAsk })
                   {/* Card Visual / Thumbnail */}
                   <div className="space-y-4">
                     <div className="w-full aspect-[16/10] rounded-xl overflow-hidden bg-slate-950 border border-slate-800 relative">
-                      {uc.image_url ? (
+                      {uc.image_url && !failedImages[uc.id] ? (
                         <img
                           src={uc.image_url}
                           alt={uc.image_alt || uc.title}
+                          onError={() => {
+                            setFailedImages((prev) => ({ ...prev, [uc.id]: true }));
+                          }}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           loading="lazy"
                         />
@@ -370,10 +374,13 @@ export const UseCasesPage: React.FC<UseCasesPageProps> = ({ onNavigate, onAsk })
                   {/* Left Column: Image & Download Assets (40% desktop) */}
                   <div className="lg:col-span-5 space-y-6">
                     <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 relative">
-                      {uc.image_url ? (
+                      {uc.image_url && !failedImages[uc.id] ? (
                         <img
                           src={uc.image_url}
                           alt={uc.image_alt || uc.title}
+                          onError={() => {
+                            setFailedImages((prev) => ({ ...prev, [uc.id]: true }));
+                          }}
                           className="w-full h-full object-cover"
                         />
                       ) : (

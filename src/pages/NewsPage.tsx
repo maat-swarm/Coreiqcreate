@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Sparkles, 
   Search, 
@@ -39,6 +39,51 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onNavigate, onAsk }) => {
   const [emailSubscribed, setEmailSubscribed] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [articles, setArticles] = useState<NewsArticle[]>(NEWS_ARTICLES);
+  const [isLoadingArticles, setIsLoadingArticles] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    setIsLoadingArticles(true);
+    fetch('/api/v1/news')
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load news');
+        return res.json();
+      })
+      .then((data) => {
+        if (mounted && data.articles && data.articles.length > 0) {
+          const mapped: NewsArticle[] = data.articles.map((a: any) => ({
+            id: a.id,
+            slug: a.slug,
+            title: a.title,
+            summary: a.summary,
+            body: a.body,
+            category: a.category,
+            date: new Date(a.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+            readTime: a.read_time || '4 min read',
+            author: a.author || 'CoreIQ Intelligence Desk',
+            badge: a.badge || 'UPDATE',
+            featured: Boolean(a.featured),
+            tags: a.tags || [],
+            takeaways: a.takeaways || [],
+            source: a.source || 'CoreIQ Frontier Intelligence',
+            accentColor: a.accent_color || 'cyan',
+            heroImage: a.hero_image || null,
+          }));
+          setArticles(mapped);
+        }
+      })
+      .catch((err) => {
+        console.warn('Using static news articles fallback:', err);
+      })
+      .finally(() => {
+        if (mounted) setIsLoadingArticles(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const newsPills = [
     { label: 'Gemini 3.0', query: 'What are the key technical upgrades in Gemini 3.0 reasoning?' },
@@ -48,11 +93,11 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onNavigate, onAsk }) => {
   ];
 
   const featuredArticle = useMemo(() => {
-    return NEWS_ARTICLES.find((a) => a.featured) || NEWS_ARTICLES[0];
-  }, []);
+    return articles.find((a) => a.featured) || articles[0];
+  }, [articles]);
 
   const filteredArticles = useMemo(() => {
-    return NEWS_ARTICLES.filter((article) => {
+    return articles.filter((article) => {
       const matchesCategory =
         selectedCategory === 'All' || article.category === selectedCategory;
       const matchesSearch =
@@ -62,7 +107,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onNavigate, onAsk }) => {
         article.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesCategory && matchesSearch;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, articles]);
 
   const handleShare = (article: NewsArticle, e: React.MouseEvent) => {
     e.stopPropagation();

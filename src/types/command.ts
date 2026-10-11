@@ -8,9 +8,33 @@ export type CommandTab =
   | 'platforms'
   | 'content'
   | 'use_cases'
+  | 'news'
+  | 'store'
   | 'upload'
   | 'swarm'
   | 'analytics';
+
+export interface NewsArticleItem {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  body: string;
+  category: string;
+  hero_image?: string | null;
+  author: string;
+  read_time: string;
+  badge?: string | null;
+  featured: boolean;
+  tags: string[];
+  takeaways: string[];
+  source?: string | null;
+  accent_color: string;
+  published: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
 
 export type ApiScope =
   | 'READ_LEADS'

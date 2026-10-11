@@ -13,11 +13,12 @@ import {
   ArrowUpRight,
   UploadCloud,
   Briefcase,
-  ShoppingBag
+  ShoppingBag,
+  Newspaper
 } from 'lucide-react';
 import { CommandTab } from '../../types/command';
 
-export type ExtendedCommandTab = CommandTab | 'store';
+export type ExtendedCommandTab = CommandTab;
 
 interface CommandNavProps {
   activeTab: ExtendedCommandTab;
@@ -37,6 +38,7 @@ export const COMMAND_TABS: { id: ExtendedCommandTab; label: string; icon: React.
   { id: 'platforms', label: 'Platforms', icon: Globe },
   { id: 'content', label: 'Content', icon: FolderKanban },
   { id: 'use_cases', label: 'Use Cases', icon: Briefcase },
+  { id: 'news', label: 'News', icon: Newspaper },
   { id: 'store', label: 'Store', icon: ShoppingBag },
   { id: 'upload', label: 'Media Slots', icon: UploadCloud },
   { id: 'swarm', label: 'Swarm', icon: Share2 },
