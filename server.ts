@@ -3274,17 +3274,21 @@ app.post('/api/v1/store/apps', authenticateApiKey, requireScope('WRITE_MEDIA'), 
   if (adminSupabase) {
     try {
       const { data, error } = await adminSupabase.from('store_apps').insert([newApp]).select().single();
-      if (!error && data) {
-        localStore.store_apps = localStore.store_apps || [];
-        localStore.store_apps.push(data);
-        return res.status(201).json({ status: 'created', app: data });
+      if (error) {
+        console.error('[store_apps INSERT FAILED]', error.message, error.code);
+        return res.status(500).json({ error: 'Database insert failed', detail: error.message });
       }
-    } catch {}
+      localStore.store_apps = localStore.store_apps || [];
+      localStore.store_apps.push(data);
+      return res.status(201).json({ status: 'created', app: data });
+    } catch (e: any) {
+      console.error('[store_apps INSERT EXCEPTION]', e?.message || e);
+      return res.status(500).json({ error: 'Database insert exception', detail: e?.message });
+    }
   }
 
-  localStore.store_apps = localStore.store_apps || [];
-  localStore.store_apps.push(newApp);
-  return res.status(201).json({ status: 'created', app: newApp });
+  console.error('[store_apps] adminSupabase not initialised - check SUPABASE_SERVICE_ROLE_KEY');
+  return res.status(500).json({ error: 'Server not configured for database writes' });
 });
 
 // 3. PATCH /api/v1/store/apps/:id — operator updates an app
