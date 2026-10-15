@@ -464,7 +464,7 @@ function LockedCurriculumSection() {
 // -----------------------------------------------------------------------------
 // MAIN LEARN PAGE COMPONENT
 // -----------------------------------------------------------------------------
-export const LearnPage: React.FC<LearnPageProps> = () => {
+export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onAsk }) => {
   const [lockedTooltip, setLockedTooltip] = useState<string | null>(null);
 
   const handleLockedClick = (tier: string) => {

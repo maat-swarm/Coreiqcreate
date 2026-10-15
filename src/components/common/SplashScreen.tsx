@@ -10,6 +10,9 @@ export function SplashScreen({ onComplete }: Props) {
   const finish = () => {
     if (finishedRef.current) return;
     finishedRef.current = true;
+    try {
+      sessionStorage.setItem('coreiq_splash_seen', 'true');
+    } catch {}
     setExiting(true);
     setTimeout(() => {
       onComplete();

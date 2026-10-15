@@ -81,7 +81,16 @@ export default function App() {
 
   const [currentRoute, setCurrentRoute] = useState<AppRoute>(getRoute);
   const [activePrompt, setActivePrompt] = useState('');
-  const [showSplash, setShowSplash] = React.useState(true);
+  const [showSplash, setShowSplash] = React.useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const p = window.location.pathname.replace(/^\//, '').toLowerCase();
+        if (p && p !== 'home') return false;
+        return !sessionStorage.getItem('coreiq_splash_seen');
+      }
+    } catch {}
+    return false;
+  });
 
   useScrollReveal();
 

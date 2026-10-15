@@ -203,6 +203,83 @@ const localStore: Record<string, any[]> = {
       updated_at: new Date().toISOString(),
     },
     {
+      slot_key: 'learn.lesson_of_week',
+      page: 'learn',
+      label: 'Lesson of the Week',
+      allowed_types: ['video', 'url'],
+      max_items: 1,
+      max_bytes: 209715200,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'learn.step1.video',
+      page: 'learn',
+      label: 'Step 1 Video',
+      allowed_types: ['video'],
+      max_items: 1,
+      max_bytes: 209715200,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'learn.step2.video',
+      page: 'learn',
+      label: 'Step 2 Video',
+      allowed_types: ['video'],
+      max_items: 1,
+      max_bytes: 209715200,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'learn.step3.video',
+      page: 'learn',
+      label: 'Step 3 Video',
+      allowed_types: ['video'],
+      max_items: 1,
+      max_bytes: 209715200,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'learn.step1.pdf',
+      page: 'learn',
+      label: 'Step 1 PDF Guide',
+      allowed_types: ['file'],
+      max_items: 1,
+      max_bytes: 20971520,
+      aspect: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'learn.step2.pdf',
+      page: 'learn',
+      label: 'Step 2 PDF Guide',
+      allowed_types: ['file'],
+      max_items: 1,
+      max_bytes: 20971520,
+      aspect: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'learn.step3.pdf',
+      page: 'learn',
+      label: 'Step 3 PDF Guide',
+      allowed_types: ['file'],
+      max_items: 1,
+      max_bytes: 20971520,
+      aspect: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
       slot_key: 'tools.showcase',
       page: 'tools',
       label: 'Tools showcase carousel',
@@ -1677,6 +1754,10 @@ function detectMimeTypeFromBuffer(buffer: Buffer): string | null {
   if (buffer[0] === 0x1A && buffer[1] === 0x45 && buffer[2] === 0xDF && buffer[3] === 0xA3) {
     return 'video/webm';
   }
+  // PDF: %PDF
+  if (buffer.toString('ascii', 0, 4) === '%PDF') {
+    return 'application/pdf';
+  }
   return null;
 }
 
@@ -1911,6 +1992,7 @@ app.post(
 
     if (!type && req.file) {
       if (req.file.mimetype.startsWith('video/')) type = 'video';
+      else if (req.file.mimetype === 'application/pdf' || req.file.originalname?.toLowerCase().endsWith('.pdf')) type = 'file';
       else type = 'image';
     }
 
@@ -1937,7 +2019,7 @@ app.post(
         return res.status(400).json({ error: 'Invalid URL', message: urlCheck.error });
       }
     } else {
-      // File upload required for image / video
+      // File upload required for image / video / file
       if (!req.file) {
         return res.status(400).json({ error: 'Missing File', message: `A file upload is required for media type '${type}'.` });
       }
@@ -1952,12 +2034,12 @@ app.post(
 
       // Check MIME by inspecting magic bytes
       detectedMime = detectMimeTypeFromBuffer(req.file.buffer);
-      const allowlistMimes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'];
+      const allowlistMimes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm', 'application/pdf'];
 
       if (!detectedMime || !allowlistMimes.includes(detectedMime)) {
         return res.status(415).json({
           error: 'Unsupported Media Type',
-          message: 'File content must be a valid image/jpeg, image/png, image/webp, video/mp4, or video/webm based on magic bytes inspection.',
+          message: 'File content must be a valid image/jpeg, image/png, image/webp, video/mp4, video/webm, or application/pdf based on magic bytes inspection.',
         });
       }
 
@@ -1967,6 +2049,10 @@ app.post(
 
       if (type === 'video' && !detectedMime.startsWith('video/')) {
         return res.status(415).json({ error: 'Unsupported Media Type', message: 'Video slot requires a video file.' });
+      }
+
+      if (type === 'file' && detectedMime !== 'application/pdf') {
+        return res.status(415).json({ error: 'Unsupported Media Type', message: 'File slot requires a valid PDF file.' });
       }
 
       // Alt text required for image items
@@ -2015,7 +2101,9 @@ app.post(
       const ext = detectedMime === 'image/jpeg' ? 'jpg' : (
         detectedMime === 'image/png' ? 'png' : (
           detectedMime === 'image/webp' ? 'webp' : (
-            detectedMime === 'video/mp4' ? 'mp4' : 'webm'
+            detectedMime === 'video/mp4' ? 'mp4' : (
+              detectedMime === 'application/pdf' ? 'pdf' : 'webm'
+            )
           )
         )
       );
