@@ -7,13 +7,15 @@ export type SlotPlacement = {
   wired: boolean;
   label?: string;
   type?: string;
-  allowedTypes?: ('image' | 'video' | 'url')[];
+  allowedTypes?: ('image' | 'video' | 'url' | 'file')[];
   capacity?: number;
   maxSize?: number;
   imageMaxBytes?: number;
   videoMaxBytes?: number;
+  fileMaxBytes?: number;
   aspectRatio?: string;
   placement?: string;
+  fields?: string[];
 };
 
 export const HERO_ANCHOR =
@@ -97,6 +99,109 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     route: '/learn',
     label: 'Learn showcase carousel',
     ...SHARED_CAROUSEL_CONFIG,
+  },
+  'learn.lesson_of_week': {
+    slotKey: 'learn.lesson_of_week',
+    page: 'learn',
+    route: '/learn',
+    component: 'LessonOfTheWeekCard',
+    position: 'Hero zone: Lesson of the Week large video card with click-to-load facade',
+    wired: true,
+    label: 'Lesson of the Week',
+    type: 'VIDEO or URL',
+    allowedTypes: ['video', 'url'],
+    capacity: 1,
+    maxSize: 209715200, // 200 MB raised cap for Learn
+    videoMaxBytes: 209715200,
+    aspectRatio: '16:9',
+    fields: ['alt', 'title', 'caption', 'cta_label', 'cta_url'],
+  },
+  'learn.step1.video': {
+    slotKey: 'learn.step1.video',
+    page: 'learn',
+    route: '/learn',
+    component: 'StepCard',
+    position: 'Step 1: Video player with click-to-load facade',
+    wired: true,
+    label: 'Step 1 Video',
+    type: 'VIDEO',
+    allowedTypes: ['video'],
+    capacity: 1,
+    maxSize: 209715200, // 200 MB
+    videoMaxBytes: 209715200,
+    aspectRatio: '16:9',
+  },
+  'learn.step2.video': {
+    slotKey: 'learn.step2.video',
+    page: 'learn',
+    route: '/learn',
+    component: 'StepCard',
+    position: 'Step 2: Video player with click-to-load facade',
+    wired: true,
+    label: 'Step 2 Video',
+    type: 'VIDEO',
+    allowedTypes: ['video'],
+    capacity: 1,
+    maxSize: 209715200, // 200 MB
+    videoMaxBytes: 209715200,
+    aspectRatio: '16:9',
+  },
+  'learn.step3.video': {
+    slotKey: 'learn.step3.video',
+    page: 'learn',
+    route: '/learn',
+    component: 'StepCard',
+    position: 'Step 3: Video player with click-to-load facade',
+    wired: true,
+    label: 'Step 3 Video',
+    type: 'VIDEO',
+    allowedTypes: ['video'],
+    capacity: 1,
+    maxSize: 209715200, // 200 MB
+    videoMaxBytes: 209715200,
+    aspectRatio: '16:9',
+  },
+  'learn.step1.pdf': {
+    slotKey: 'learn.step1.pdf',
+    page: 'learn',
+    route: '/learn',
+    component: 'StepCard',
+    position: 'Step 1: Download PDF button',
+    wired: true,
+    label: 'Step 1 PDF Guide',
+    type: 'FILE (PDF)',
+    allowedTypes: ['file'],
+    capacity: 1,
+    maxSize: 20971520, // 20 MB
+    fields: ['title', 'file'],
+  },
+  'learn.step2.pdf': {
+    slotKey: 'learn.step2.pdf',
+    page: 'learn',
+    route: '/learn',
+    component: 'StepCard',
+    position: 'Step 2: Download PDF button',
+    wired: true,
+    label: 'Step 2 PDF Guide',
+    type: 'FILE (PDF)',
+    allowedTypes: ['file'],
+    capacity: 1,
+    maxSize: 20971520, // 20 MB
+    fields: ['title', 'file'],
+  },
+  'learn.step3.pdf': {
+    slotKey: 'learn.step3.pdf',
+    page: 'learn',
+    route: '/learn',
+    component: 'StepCard',
+    position: 'Step 3: Download PDF button',
+    wired: true,
+    label: 'Step 3 PDF Guide',
+    type: 'FILE (PDF)',
+    allowedTypes: ['file'],
+    capacity: 1,
+    maxSize: 20971520, // 20 MB
+    fields: ['title', 'file'],
   },
   'tools.showcase': {
     slotKey: 'tools.showcase',
