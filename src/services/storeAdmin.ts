@@ -92,9 +92,11 @@ async function parseResponse<T>(res: Response, fallbackActionName: string): Prom
 
   if (!res.ok) {
     const errorMsg =
-      data?.message ||
-      data?.error ||
-      (Array.isArray(data?.messages) ? data.messages.join('; ') : `${fallbackActionName} failed (${res.status})`);
+      data?.detail
+        ? `${data.error || fallbackActionName}: ${data.detail}`
+        : data?.message ||
+          data?.error ||
+          (Array.isArray(data?.messages) ? data.messages.join('; ') : `${fallbackActionName} failed (${res.status})`);
     throw new Error(errorMsg);
   }
 

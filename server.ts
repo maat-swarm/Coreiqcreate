@@ -3258,12 +3258,24 @@ app.get('/api/v1/store/apps', authenticateApiKey, requireScope('READ_MEDIA'), as
   const client = adminSupabase || supabase;
   if (client) {
     try {
-      let q = client.from('store_apps').select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false });
+      let q = client.from('store_apps').select('*').order('sort_order', { ascending: true });
+      try {
+        q = q.order('created_at', { ascending: false });
+      } catch {}
       if (status && status !== 'all') q = q.eq('status', status);
       if (category && category !== 'all' && category !== 'All') q = q.eq('category', category);
       const { data, error } = await q;
       if (!error && Array.isArray(data)) {
         apps = data;
+      } else if (error) {
+        // Fallback query if created_at column is missing on un-migrated table
+        let fallbackQ = client.from('store_apps').select('*').order('sort_order', { ascending: true });
+        if (status && status !== 'all') fallbackQ = fallbackQ.eq('status', status);
+        if (category && category !== 'all' && category !== 'All') fallbackQ = fallbackQ.eq('category', category);
+        const fallbackRes = await fallbackQ;
+        if (!fallbackRes.error && Array.isArray(fallbackRes.data)) {
+          apps = fallbackRes.data;
+        }
       }
     } catch {}
   }
@@ -3326,7 +3338,9 @@ app.post('/api/v1/store/apps', authenticateApiKey, requireScope('WRITE_MEDIA'), 
     return res.status(409).json({ error: 'Conflict', message: `An app with slug "${slug}" already exists.` });
   }
 
-  const newApp = {
+  const cleanExternalUrl = external_url.trim();
+
+  const newApp: Record<string, any> = {
     id: crypto.randomUUID ? crypto.randomUUID() : `app_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     slug: slug.trim().toLowerCase(),
     title: title.trim(),
@@ -3342,7 +3356,10 @@ app.post('/api/v1/store/apps', authenticateApiKey, requireScope('WRITE_MEDIA'), 
     payment_url: payment_url.trim(),
     payment_instructions: payment_instructions.trim(),
     distribution_type,
-    external_url: external_url.trim(),
+    external_url: cleanExternalUrl,
+    app_url: cleanExternalUrl,
+    requires_email: Boolean(req.body.requires_email ?? false),
+    has_file: Boolean(req.body.has_file ?? (distribution_type === 'download' || distribution_type === 'file')),
     file_path: null,
     file_name: null,
     file_size_bytes: null,
@@ -3361,11 +3378,33 @@ app.post('/api/v1/store/apps', authenticateApiKey, requireScope('WRITE_MEDIA'), 
 
   if (adminSupabase) {
     try {
-      const { data, error } = await adminSupabase.from('store_apps').insert([newApp]).select().single();
+      let insertResult = await adminSupabase.from('store_apps').insert([newApp]).select().single();
+      let data = insertResult.data;
+      let error = insertResult.error;
+
+      // Schema compatibility retry: if Supabase error is caused by missing columns in un-migrated DB
+      if (error && (error.message?.includes('column') || error.code === 'PGRST204' || error.message?.includes('schema cache'))) {
+        console.warn('[store_apps] Retrying insert with legacy baseline schema...', error.message);
+        const legacyApp = { ...newApp };
+        delete legacyApp.file_path;
+        delete legacyApp.file_name;
+        delete legacyApp.file_size_bytes;
+        delete legacyApp.sha256;
+        delete legacyApp.created_at;
+        const retryResult = await adminSupabase.from('store_apps').insert([legacyApp]).select().single();
+        if (!retryResult.error && retryResult.data) {
+          data = retryResult.data;
+          error = null;
+        } else if (retryResult.error) {
+          error = retryResult.error;
+        }
+      }
+
       if (error) {
         console.error('[store_apps INSERT FAILED]', error.message, error.code);
-        return res.status(500).json({ error: 'Database insert failed', detail: error.message });
+        return res.status(500).json({ error: 'Database insert failed', detail: error.message, code: error.code });
       }
+
       localStore.store_apps = localStore.store_apps || [];
       localStore.store_apps.push(data);
       return res.status(201).json({ status: 'created', app: data });
@@ -3413,7 +3452,14 @@ app.patch('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_MEDI
   };
   delete updates.id;
   delete updates.created_at;
+  delete updates.deliveryChoice; // Frontend helper
 
+  if (updates.external_url !== undefined) {
+    updates.app_url = updates.external_url;
+  }
+  if (updates.distribution_type !== undefined) {
+    updates.has_file = updates.distribution_type === 'download' || updates.distribution_type === 'file';
+  }
   if (updates.price_amount !== undefined && updates.price_amount !== null) {
     updates.price_amount = Number(updates.price_amount);
   }
@@ -3421,11 +3467,36 @@ app.patch('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_MEDI
   let updatedApp: any = null;
   if (adminSupabase) {
     try {
-      const { data, error } = await adminSupabase.from('store_apps').update(updates).eq('id', id).select().single();
-      if (!error && data) {
+      let updateResult = await adminSupabase.from('store_apps').update(updates).eq('id', id).select().single();
+      let data = updateResult.data;
+      let error = updateResult.error;
+
+      if (error && (error.message?.includes('column') || error.code === 'PGRST204' || error.message?.includes('schema cache'))) {
+        console.warn('[store_apps] Retrying update without missing schema columns...', error.message);
+        const legacyUpdates = { ...updates };
+        delete legacyUpdates.file_path;
+        delete legacyUpdates.file_name;
+        delete legacyUpdates.file_size_bytes;
+        delete legacyUpdates.sha256;
+        const retryResult = await adminSupabase.from('store_apps').update(legacyUpdates).eq('id', id).select().single();
+        if (!retryResult.error && retryResult.data) {
+          data = retryResult.data;
+          error = null;
+        }
+      }
+
+      if (error) {
+        console.error('[store_apps UPDATE FAILED]', error.message, error.code);
+        return res.status(500).json({ error: 'Database update failed', detail: error.message, code: error.code });
+      }
+
+      if (data) {
         updatedApp = data;
       }
-    } catch {}
+    } catch (e: any) {
+      console.error('[store_apps UPDATE EXCEPTION]', e?.message || e);
+      return res.status(500).json({ error: 'Database update exception', detail: e?.message });
+    }
   }
 
   const localIdx = (localStore.store_apps || []).findIndex((a: any) => a.id === id);
@@ -3447,8 +3518,20 @@ app.delete('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_MED
 
   if (adminSupabase) {
     try {
-      await adminSupabase.from('store_apps').delete().eq('id', id);
-    } catch {}
+      try {
+        await adminSupabase.from('app_access_links').delete().eq('app_id', id);
+        await adminSupabase.from('app_downloads').delete().eq('app_id', id);
+      } catch {}
+
+      const { error } = await adminSupabase.from('store_apps').delete().eq('id', id);
+      if (error) {
+        console.error('[store_apps DELETE FAILED]', error.message, error.code);
+        return res.status(500).json({ error: 'Database delete failed', detail: error.message, code: error.code });
+      }
+    } catch (e: any) {
+      console.error('[store_apps DELETE EXCEPTION]', e?.message || e);
+      return res.status(500).json({ error: 'Database delete exception', detail: e?.message });
+    }
   }
 
   localStore.store_apps = (localStore.store_apps || []).filter((a: any) => a.id !== id);
