@@ -3586,13 +3586,10 @@ app.post('/api/v1/store/apps/:id/file-complete', authenticateApiKey, requireScop
     updated_at: new Date().toISOString(),
   };
 
-  let updatedApp: any = null;
-  if (adminSupabase) {
-    try {
-      const { data } = await adminSupabase.from('store_apps').update(updates).eq('id', id).select().single();
-      if (data) updatedApp = data;
-    } catch {}
-  }
+  if (!adminSupabase) return res.status(500).json({ error: 'Server not configured for database writes' });
+  const { data: updatedApp, error: fcErr } = await adminSupabase.from('store_apps').update(updates).eq('id', id).select().maybeSingle();
+  if (fcErr) return res.status(500).json({ error: 'Database update failed', detail: fcErr.message });
+  if (!updatedApp) return res.status(404).json({ error: 'Not Found', message: `Store app "${id}" not found.` });
 
   return res.json({ status: 'completed', app: updatedApp });
 });
