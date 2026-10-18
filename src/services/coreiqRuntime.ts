@@ -97,7 +97,44 @@ class RemoteCoreIQRuntime implements ICoreIQRuntime {
         }
       }
 
-      this.history.push({ role: 'user', content: prompt });
+  
+    // ##BRIEF## handler — parse handoff block, create task, notify Desmond
+    const briefMatch = assistantMessage.match(/##BRIEF##([\s\S]*?)##END##/);
+    if (briefMatch) {
+      try {
+        const brief = JSON.parse(briefMatch[1].trim());
+        // Strip the block from the client-facing message
+        assistantMessage = assistantMessage.replace(/##BRIEF##[\s\S]*?##END##/, '').trim();
+
+        // 1. Create task in CoreIQ Command
+        fetch(`${API_BASE}/api/v1/tasks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'ciq_live_c1a94e231553048a8dc3d7653a9315e73ab18c90b757823e'
+          },
+          body: JSON.stringify({
+            title: `New Lead: ${brief.client_name || 'Unknown'} — ${brief.company || 'Unknown Company'}`,
+            client_name: brief.client_name || '',
+            client_contact: brief.contact || '',
+            client_message: JSON.stringify(brief),
+            intent_type: brief.priority || 'P2'
+          })
+        }).catch(e => console.error('Task creation failed:', e));
+
+        // 2. Notify Desmond via NTFY
+        fetch('https://ntfy.sh/maat-atlas-wake', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: `CoreIQ Lead: ${brief.client_name || 'Unknown'} | ${brief.company || ''} | ${brief.priority} | ${brief.problem?.slice(0, 80) || ''}`
+        }).catch(e => console.error('NTFY failed:', e));
+
+      } catch (e) {
+        console.error('Brief parse error:', e);
+      }
+    }
+
+    this.history.push({ role: 'user', content: prompt });
       this.history.push({ role: 'assistant', content: assistantMessage });
       if (this.history.length > 12) this.history = this.history.slice(-12);
 
