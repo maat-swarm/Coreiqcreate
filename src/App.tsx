@@ -120,28 +120,7 @@ export default function App() {
 
   if (showSplash) return <SplashScreen onComplete={() => setShowSplash(false)} />;
 
-  const suspenseFallback = (
-    <div
-      style={{
-        minHeight: '100svh',
-        background: '#080808',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: '50%',
-          border: '2px solid transparent',
-          borderTopColor: '#00e676',
-          animation: 'spin 0.8s linear infinite',
-        }}
-      />
-    </div>
-  );
+  const suspenseFallback = <div className="min-h-screen bg-black" />;
 
   if (currentRoute === 'command') {
     return (

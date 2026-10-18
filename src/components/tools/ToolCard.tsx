@@ -86,7 +86,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({
         return;
       }
       const cleanPath = url.replace(/^\//, '');
-      const knownRoutes = ['home', 'use-cases', 'solutions', 'apps', 'learn', 'tools', 'about', 'news', 'ask', 'command', 'maatverse'];
+      const knownRoutes = ['home', 'use-cases', 'apps', 'learn', 'tools', 'about', 'news', 'ask', 'command', 'maatverse'];
       if (knownRoutes.includes(cleanPath)) {
         e.preventDefault();
         onNavigate(cleanPath as NavRoute);

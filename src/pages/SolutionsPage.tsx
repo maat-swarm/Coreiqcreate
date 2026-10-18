@@ -125,7 +125,7 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
               {/* Sentinel moved to be directly below AskCoreIQ */}
               <div className="pt-2">
                 <CoreIQSentinel
-                  page="solutions"
+                  page="home"
                   onAsk={onAsk}
                   onNavigate={onNavigate}
                 />

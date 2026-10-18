@@ -46,7 +46,7 @@ export const MaatverseStage: React.FC<MaatverseStageProps> = ({ onNavigate }) =>
     }
 
     const cleanPath = target.replace(/^\//, '');
-    const knownRoutes = ['home', 'use-cases', 'solutions', 'apps', 'learn', 'tools', 'about', 'news', 'ask', 'command', 'maatverse'];
+    const knownRoutes = ['home', 'use-cases', 'apps', 'learn', 'tools', 'about', 'news', 'ask', 'command', 'maatverse'];
     if (knownRoutes.includes(cleanPath)) {
       onNavigate(cleanPath as NavRoute);
       return;

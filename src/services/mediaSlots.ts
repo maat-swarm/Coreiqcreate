@@ -14,13 +14,16 @@ interface CacheEntry {
 }
 
 const slotCache: Record<string, CacheEntry> = {};
+const inFlightRequests: Record<string, Promise<{ slot: MediaSlot | null; items: MediaSlotItem[] }>> = {};
 const CACHE_TTL_MS = 30000; // 30 seconds cache TTL
 
 export function invalidateSlotCache(slotKey?: string) {
   if (slotKey) {
     delete slotCache[slotKey];
+    delete inFlightRequests[slotKey];
   } else {
     Object.keys(slotCache).forEach((k) => delete slotCache[k]);
+    Object.keys(inFlightRequests).forEach((k) => delete inFlightRequests[k]);
   }
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('coreiq_media_updated', { detail: { slotKey } }));
@@ -30,6 +33,7 @@ export function invalidateSlotCache(slotKey?: string) {
 /**
  * Fetch a single slot and its published items.
  * Tries Supabase anon first (if configured), then falls back to /api/v1/media/slots/:slot_key.
+ * Concurrent requests for the same slot key reuse the active in-flight Promise.
  */
 export async function getMediaSlotPublished(
   slotKey: string,
@@ -40,55 +44,85 @@ export async function getMediaSlotPublished(
     return { slot: slotCache[slotKey].slot, items: slotCache[slotKey].items };
   }
 
-  // 1. Try Supabase anon direct query if configured
-  const supabase = getSupabase();
-  if (supabase) {
-    try {
-      const [slotRes, itemsRes] = await Promise.all([
-        supabase.from('media_slots').select('*').eq('slot_key', slotKey).maybeSingle(),
-        supabase
-          .from('media_slot_items')
-          .select('*')
-          .eq('slot_key', slotKey)
-          .eq('published', true)
-          .order('sort_order', { ascending: true }),
-      ]);
-
-      if (!slotRes.error && slotRes.data) {
-        const result = {
-          slot: slotRes.data as MediaSlot,
-          items: (itemsRes.data || []) as MediaSlotItem[],
-        };
-        slotCache[slotKey] = { ...result, timestamp: now };
-        return result;
-      }
-    } catch {
-      // Fall through to backend API
-    }
+  if (!bypassCache && inFlightRequests[slotKey]) {
+    return inFlightRequests[slotKey];
   }
 
-  // 2. Fetch from Express API
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}`, {
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+  const fetchPromise = (async () => {
+    // 1. Try Supabase anon direct query if configured
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        const [slotRes, itemsRes] = await Promise.all([
+          supabase.from('media_slots').select('*').eq('slot_key', slotKey).maybeSingle(),
+          supabase
+            .from('media_slot_items')
+            .select('*')
+            .eq('slot_key', slotKey)
+            .eq('published', true)
+            .order('sort_order', { ascending: true }),
+        ]);
 
-    if (!res.ok) {
+        if (!slotRes.error && slotRes.data) {
+          const result = {
+            slot: slotRes.data as MediaSlot,
+            items: (itemsRes.data || []) as MediaSlotItem[],
+          };
+          slotCache[slotKey] = { ...result, timestamp: Date.now() };
+          return result;
+        }
+      } catch {
+        // Fall through to backend API
+      }
+    }
+
+    // 2. Fetch from Express API
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/media/slots/${encodeURIComponent(slotKey)}`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      if (!res.ok) {
+        return { slot: null, items: [] };
+      }
+
+      const data = await res.json();
+      const result = {
+        slot: data.slot || null,
+        items: (data.items || []).filter((i: MediaSlotItem) => i.published),
+      };
+      slotCache[slotKey] = { ...result, timestamp: Date.now() };
+      return result;
+    } catch {
       return { slot: null, items: [] };
     }
+  })();
 
-    const data = await res.json();
-    const result = {
-      slot: data.slot || null,
-      items: (data.items || []).filter((i: MediaSlotItem) => i.published),
-    };
-    slotCache[slotKey] = { ...result, timestamp: now };
-    return result;
-  } catch {
-    return { slot: null, items: [] };
+  inFlightRequests[slotKey] = fetchPromise;
+
+  try {
+    return await fetchPromise;
+  } finally {
+    delete inFlightRequests[slotKey];
   }
+}
+
+/**
+ * Fetch multiple slots concurrently using Promise.all to prevent sequential request waterfalls.
+ */
+export async function getMultipleMediaSlotsPublished(
+  slotKeys: string[],
+  bypassCache = false
+): Promise<Record<string, { slot: MediaSlot | null; items: MediaSlotItem[] }>> {
+  const results = await Promise.all(
+    slotKeys.map(async (slotKey) => {
+      const data = await getMediaSlotPublished(slotKey, bypassCache);
+      return [slotKey, data] as const;
+    })
+  );
+  return Object.fromEntries(results);
 }
 
 /**

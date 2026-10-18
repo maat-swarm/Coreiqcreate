@@ -5,7 +5,7 @@ import { NavRoute } from '../../types';
 import { ASSETS } from '../../assets/images';
 
 export interface CoreIQSentinelProps {
-  page?: 'home' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' | 'news';
+  page?: 'home' | 'apps' | 'learn' | 'tools' | 'about' | 'news';
   onAsk?: (query: string) => void;
   onNavigate?: (route: NavRoute) => void;
   className?: string;
@@ -32,7 +32,7 @@ const DEFAULT_PAGE_SHOWCASES: Record<string, Array<{
       title: 'Autonomous Multi-Agent Synthesis',
       caption: 'Self-orchestrating intelligence swarms coordinating tasks in real time across your ecosystem.',
       cta_label: 'Explore Solutions',
-      cta_url: '/solutions',
+      cta_url: '/use-cases',
       published: true,
       sort_order: 1,
     },
@@ -43,7 +43,7 @@ const DEFAULT_PAGE_SHOWCASES: Record<string, Array<{
       title: 'Neural Action Engine',
       caption: 'Seamless reasoning loops connecting tools, APIs, and business automation workflows.',
       cta_label: 'View AI Agents',
-      cta_url: '/solutions',
+      cta_url: '/use-cases',
       published: true,
       sort_order: 2,
     },
@@ -57,30 +57,6 @@ const DEFAULT_PAGE_SHOWCASES: Record<string, Array<{
       cta_url: '/apps',
       published: true,
       sort_order: 3,
-    },
-  ],
-  solutions: [
-    {
-      id: 'default-sol-1',
-      url: ASSETS.agentHead,
-      alt: 'Autonomous Operations',
-      title: 'Enterprise AI Workforce',
-      caption: 'Deploy specialized AI agents that autonomously monitor, reason, and act across business domains.',
-      cta_label: 'Configure Agents',
-      cta_url: '/solutions',
-      published: true,
-      sort_order: 1,
-    },
-    {
-      id: 'default-sol-2',
-      url: ASSETS.energyCore,
-      alt: 'Integration Core',
-      title: 'Universal API Pipeline',
-      caption: 'Bridge legacy infrastructure and modern LLMs with zero-latency streaming pipelines.',
-      cta_label: 'View Integrations',
-      cta_url: '/solutions',
-      published: true,
-      sort_order: 2,
     },
   ],
   apps: [
@@ -162,11 +138,10 @@ const DEFAULT_PAGE_SHOWCASES: Record<string, Array<{
 };
 
 // Helper to derive page matching the existing App.tsx routing mechanism
-function getDerivedPage(): 'home' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' | 'news' {
+function getDerivedPage(): 'home' | 'apps' | 'learn' | 'tools' | 'about' | 'news' {
   if (typeof window === 'undefined') return 'home';
   const p = window.location.pathname.replace(/^\//, '').toLowerCase();
   if (p.startsWith('learn/')) return 'learn';
-  if (p === 'solutions') return 'solutions';
   if (p === 'apps') return 'apps';
   if (p === 'learn') return 'learn';
   if (p === 'tools') return 'tools';
@@ -184,7 +159,14 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
 }) => {
   const activePage = pageProp || getDerivedPage();
   const slotKey = `${activePage}.showcase`;
-  const { items } = useMediaSlot(slotKey);
+  const { items, loading } = useMediaSlot(slotKey);
+  const [isLoadingSlot, setIsLoadingSlot] = useState(true);
+
+  useEffect(() => {
+    if (!loading) {
+      setIsLoadingSlot(false);
+    }
+  }, [loading]);
 
   // Filter and sort published items from database, or fallback to default high-res showcase
   const dbPublishedItems = (items || [])
@@ -354,6 +336,10 @@ export const CoreIQSentinel: React.FC<CoreIQSentinelProps> = ({
       }
     }
   };
+
+  if (isLoadingSlot) {
+    return <div className="w-full aspect-video bg-black animate-pulse rounded-lg" />;
+  }
 
   return (
     <div

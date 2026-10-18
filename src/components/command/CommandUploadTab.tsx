@@ -40,7 +40,6 @@ import {
 const AVAILABLE_PAGES = [
   { id: 'home', label: 'Home Page' },
   { id: 'use-cases', label: 'Use Cases' },
-  { id: 'solutions', label: 'Solutions' },
   { id: 'apps', label: 'Apps & Websites' },
   { id: 'learn', label: 'Learn & Education' },
   { id: 'tools', label: 'Tools' },
@@ -454,8 +453,7 @@ export const CommandUploadTab: React.FC = () => {
 
       setActionSuccess(`New item successfully created in ${slot.label}. Remember to Publish it when ready!`);
       resetForm();
-      await loadSlotDetail(slot.slot_key);
-      await loadSlots();
+      await Promise.all([loadSlotDetail(slot.slot_key), loadSlots()]);
     } catch (err: any) {
       setFormError(err.message || 'Failed to add item to slot.');
     } finally {
@@ -469,8 +467,7 @@ export const CommandUploadTab: React.FC = () => {
       const nextPublished = !item.published;
       await updateMediaItem(item.slot_key, item.id, { published: nextPublished });
       setActionSuccess(`Item ${nextPublished ? 'published to live site' : 'unpublished (hidden from site)'}.`);
-      await loadSlotDetail(item.slot_key);
-      await loadSlots();
+      await Promise.all([loadSlotDetail(item.slot_key), loadSlots()]);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to update publish state.');
     }
@@ -537,8 +534,7 @@ export const CommandUploadTab: React.FC = () => {
       await deleteMediaItem(item.slot_key, item.id);
       setConfirmDeleteId(null);
       setActionSuccess('Item removed and storage object purged.');
-      await loadSlotDetail(item.slot_key);
-      await loadSlots();
+      await Promise.all([loadSlotDetail(item.slot_key), loadSlots()]);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to delete item.');
     }
@@ -550,12 +546,9 @@ export const CommandUploadTab: React.FC = () => {
     if (!window.confirm(`Are you sure you want to clear the asset in ${slot.label}?`)) return;
 
     try {
-      for (const item of selectedSlotDetail.items) {
-        await deleteMediaItem(slot.slot_key, item.id);
-      }
+      await Promise.all(selectedSlotDetail.items.map((item) => deleteMediaItem(slot.slot_key, item.id)));
       setActionSuccess(`Slot ${slot.label} cleared.`);
-      await loadSlotDetail(slot.slot_key);
-      await loadSlots();
+      await Promise.all([loadSlotDetail(slot.slot_key), loadSlots()]);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to clear slot.');
     }

@@ -79,13 +79,6 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     wired: true,
     allowedTypes: ['image'],
   },
-  'solutions.showcase': {
-    slotKey: 'solutions.showcase',
-    page: 'solutions',
-    route: '/solutions',
-    label: 'Solutions showcase carousel',
-    ...SHARED_CAROUSEL_CONFIG,
-  },
   'apps.showcase': {
     slotKey: 'apps.showcase',
     page: 'apps',
