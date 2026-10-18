@@ -25,7 +25,7 @@
 ### 1.2 The Three Interlocking Layers of the System
 The system is partitioned into three functional tiers that communicate through Supabase and an Express API gateway:
 
-1. **The Public Surface (`/`, `/solutions`, `/apps`, `/tools`, `/learn`, `/about`, `/ask`):**
+1. **The Public Surface (`/`, `/use-cases`, `/apps`, `/tools`, `/learn`, `/about`, `/news`, `/ask`):**
    - A cinematic, dark-matter styled client application rendered with React 19, Tailwind CSS, and Framer Motion (`motion/react`).
    - Presents CoreIQ's capabilities, interactive tool directories, live apps showcase, and learning content.
    - Houses the **Ask CoreIQ** conversational discovery interface (`/ask`), where potential clients or autonomous systems describe a business objective, and the CoreIQ agent converts it into a structured technical blueprint (Intent, Technology Stack, Milestones, Estimated Timelines, and System Capabilities).
@@ -96,7 +96,7 @@ The application implements a structured content layer:
 ### 1.5 Media Slots Operational Gateway & Dynamic Placement Architecture
 The application features a production-grade **Media Slots** management system allowing operators to upload, swap, configure, and reorder public media assets on demand without code deployments:
 - **Single Source of Truth Placement Map (`src/config/mediaPlacements.ts`):**
-  - Declares all operational slots (`home.showcase`, `home.intro_video`, `home.intro_poster`, `site.background`, `site.background_poster`, `solutions.showcase`, `apps.showcase`, `learn.showcase`, `tools.showcase`, `about.showcase`).
+  - Declares all operational slots (`home.showcase`, `home.intro_video`, `home.intro_poster`, `site.background`, `site.background_poster`, `apps.showcase`, `learn.showcase`, `tools.showcase`, `about.showcase`, `news.showcase`).
   - Exports typed `SlotPlacement` records defining the exact page route, target component (`CoreIQSentinel`, `CoreIQRuntimeCard`, `VideoBackground`), placement anchor, and live wiring state.
 - **Hero Zone & `CoreIQSentinel` Carousel (`src/components/common/CoreIQSentinel.tsx`):**
   - Renders directly in the Hero Zone below the Ask CoreIQ bar and above the capability strip.
@@ -19780,3 +19780,43 @@ PASS (0 lint errors, production build verified).
 - The public route displays published records only; draft items are invisible.
 - Client-side issue grouping operates across the published article set returned from `/api/v1/news` when `/api/v1/news/issues` returns 404.
 ---
+
+## Session: 2026-10-18 Performance Optimization, Carousel Loading & Solutions Deprecation Cleanup
+
+### 1. Code Splitting & Vendor Chunking (vite.config.ts)
+- Configured Rollup `manualChunks` in `vite.config.ts` under `build.rollupOptions.output` separating vendor dependencies:
+  - `vendor-react`: `['react', 'react-dom']`
+  - `vendor-router`: `['@tanstack/react-router']` (mapped via alias for seamless resolution without package alterations)
+  - `vendor-supabase`: `['@supabase/supabase-js']`
+  - `vendor-motion`: `['motion']`
+  - `vendor-ui`: `['lucide-react']`
+- Result: Eliminates monolithic client bundles, reduces initial load times, and isolates cache invalidation between application code and framework libraries.
+
+### 2. Route-Level Code Splitting & Lazy Loading (src/App.tsx)
+- `HomePage` remains eagerly loaded in the main bundle for immediate First Contentful Paint.
+- All non-home pages (`UseCasesPage`, `AppsPage`, `LearnPage`, `ToolsPage`, `AboutPage`, `NewsPage`, `AskPage`, `CommandDashboardPage`, `LearnArticlePage`, `AppDetailPage`, `AppAccessPage`, `MaatversePage`, `ComingSoon`) are loaded on-demand via `React.lazy()` dynamic imports.
+- Standardized `Suspense` boundary with a zero-layout-shift fallback: `<div className="min-h-screen bg-black" />`.
+- Preserved legacy redirect from `/solutions` to `/use-cases`.
+
+### 3. Carousel Placeholder Flash Remediation (src/components/common/CoreIQSentinel.tsx)
+- Added `isLoadingSlot` state initialized to `true`.
+- Resolves to `false` only after the active media slot query finishes (on either success or failure).
+- While loading, renders an accessible, minimal placeholder skeleton: `<div className="w-full aspect-video bg-black animate-pulse rounded-lg" />` without premature fallback HUD text or buttons, eliminating the 30-second placeholder flash while services warm up.
+
+### 4. Media Slot Fetch Optimization & Deduplication (src/services/mediaSlots.ts & src/components/command/CommandUploadTab.tsx)
+- Added an in-flight Promise registry (`inFlightRequests`) to deduplicate concurrent requests for identical slot keys across mounted components.
+- Introduced `getMultipleMediaSlotsPublished()` utilizing `Promise.all` to parallelize multi-slot operations and eliminate sequential request waterfalls.
+- Parallelized sequential `loadSlotDetail` and `loadSlots` refreshes and multi-item clearance routines in `CommandUploadTab.tsx` with `Promise.all`.
+
+### 5. Solutions Reference Deprecation & Route Cleanups
+- **Command Upload Tab (`src/components/command/CommandUploadTab.tsx`):** Removed dead `{ id: 'solutions', label: 'Solutions' }` entry from `AVAILABLE_PAGES`.
+- **Media Placements (`src/config/mediaPlacements.ts`):** Removed dead `solutions.showcase` slot definition.
+- **CoreIQSentinel (`src/components/common/CoreIQSentinel.tsx`):** Removed `'solutions'` from `page` props, pruned `solutions` entries from `DEFAULT_PAGE_SHOWCASES`, removed `'solutions'` from `getDerivedPage()`, and updated CTA destinations pointing to `/solutions` to `/use-cases`.
+- **Known Routes (`src/components/tools/MaatverseStage.tsx` & `src/components/tools/ToolCard.tsx`):** Removed `'solutions'` from internal `knownRoutes` arrays.
+- **Legacy Solutions Page (`src/pages/SolutionsPage.tsx`):** Realigned `CoreIQSentinel` invocation to `page="home"`.
+
+### Build & Verification Status
+- `npm run lint` (`tsc --noEmit`): PASS (0 errors)
+- `npm run build`: PASS (All vendor and page chunks generated successfully)
+---
+
