@@ -1,4 +1,4 @@
-export type NavRoute = 'home' | 'use-cases' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' | 'news' | 'ask' | 'command' | `learn/${string}`;
+export type NavRoute = 'home' | 'use-cases' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' | 'news' | 'ask' | 'command' | 'maatverse' | `learn/${string}`;
 
 export interface NavItem {
   id: NavRoute;
@@ -32,7 +32,7 @@ export interface ToolItem {
   title: string;
   description: string;
   iconName: string;
-  category: 'Writing' | 'Documents' | 'Images' | 'Presentations' | 'Research' | 'Productivity' | 'AI' | 'Code' | 'Voice' | 'Business' | 'Data' | 'Automation';
+  category: 'Writing' | 'Documents' | 'Images' | 'Presentations' | 'Research' | 'Productivity' | 'AI' | 'Code' | 'Voice' | 'Audio' | 'Business' | 'Data' | 'Automation';
   gradient: string;
 }
 

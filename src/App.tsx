@@ -28,6 +28,7 @@ const VALID_NAV_ROUTES: readonly NavRoute[] = [
   'news',
   'ask',
   'command',
+  'maatverse',
 ];
 
 // Lazy loaded secondary page components for performance
@@ -43,6 +44,7 @@ const CommandDashboardPage = React.lazy(() => import('./pages/CommandDashboardPa
 const LearnArticlePage = React.lazy(() => import('./pages/LearnArticlePage').then((m) => ({ default: m.LearnArticlePage })));
 const AppDetailPage = React.lazy(() => import('./pages/AppDetailPage').then((m) => ({ default: m.AppDetailPage })));
 const AppAccessPage = React.lazy(() => import('./pages/AppAccessPage').then((m) => ({ default: m.AppAccessPage })));
+const MaatversePage = React.lazy(() => import('./pages/MaatversePage').then((m) => ({ default: m.MaatversePage })));
 const ComingSoon = React.lazy(() => import('./pages/ComingSoon').then((m) => ({ default: m.ComingSoon })));
 
 function ScrollToTop({ route }: { route: string }) {
@@ -72,6 +74,7 @@ export default function App() {
     if (p === 'about') return 'about';
     if (p === 'news') return 'news';
     if (p === 'ask') return 'ask';
+    if (p === 'maatverse') return 'maatverse';
     if (p === 'writing-assistant') return 'writing-assistant';
     if (p === 'imageforge') return 'imageforge';
     if (p === 'core-principles') return 'core-principles';
@@ -198,6 +201,7 @@ export default function App() {
               />
             )}
             {currentRoute === 'tools' && <ToolsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute === 'maatverse' && <MaatversePage onNavigate={navigateTo} />}
             {currentRoute === 'about' && <AboutPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'news' && <NewsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'ask' && <AskPage initialPrompt={activePrompt} onNavigate={navigateTo} />}

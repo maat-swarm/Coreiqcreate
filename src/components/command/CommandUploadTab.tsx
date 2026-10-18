@@ -44,6 +44,7 @@ const AVAILABLE_PAGES = [
   { id: 'apps', label: 'Apps & Websites' },
   { id: 'learn', label: 'Learn & Education' },
   { id: 'tools', label: 'Tools' },
+  { id: 'maatverse', label: "Ma'atverse" },
   { id: 'about', label: 'About' },
   { id: 'news', label: 'News' },
   { id: 'site', label: 'Site (Global Background)' },

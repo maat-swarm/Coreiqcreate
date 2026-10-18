@@ -22,6 +22,7 @@ import {
 import { buildOpenApiSpec } from './src/mcp/openApiSpec';
 import { CONTENT_MANIFEST, evaluateContentHealth } from './src/data/contentManifest';
 import { GoogleGenAI } from '@google/genai';
+import { registerSiteToolsRoutes } from './src/server/siteToolsRoutes';
 
 const MEM0_API_KEY = process.env.MEM0_API_KEY || '';
 const MEM0_USER_ID = process.env.MEM0_USER_ID || 'maat-builder-shared';
@@ -4509,6 +4510,8 @@ app.get('/api/v1/store/public/access/:token', publicStoreRateLimiter, async (req
   // Alias to main access route
   res.redirect(`/api/v1/store/access/${encodeURIComponent(req.params.token)}`);
 });
+
+registerSiteToolsRoutes(app, { authenticateApiKey, requireScope, adminSupabase, publicRateLimiter: publicStoreRateLimiter });
 
 // --- PUBLIC ASK ENDPOINT ---
 app.post('/api/ask', async (req, res) => {
