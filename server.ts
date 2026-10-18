@@ -1674,6 +1674,7 @@ app.post('/api/v1/content/:key/publish', authenticateApiKey, requireScope('conte
 
 // --- AGENT CONFIG ---
 app.get('/api/v1/config', authenticateApiKey, requireScope('READ_CONFIG'), async (req, res) => {
+  const mask = (c: any) => { if (!c) return c; const { api_key, ...rest } = c; return { ...rest, has_api_key: !!api_key }; };
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -1682,13 +1683,13 @@ app.get('/api/v1/config', authenticateApiKey, requireScope('READ_CONFIG'), async
         .limit(1)
         .maybeSingle();
       if (!error && data) {
-        return res.json({ config: data });
+        return res.json({ config: mask(data) });
       }
     } catch (e) {
       console.error('API get config error:', e);
     }
   }
-  res.json({ config: localStore.agent_config[0] });
+  res.json({ config: mask(localStore.agent_config[0]) });
 });
 
 app.post('/api/v1/config', authenticateApiKey, requireScope('WRITE_CONFIG'), async (req, res) => {
