@@ -3280,12 +3280,6 @@ app.get('/api/v1/store/apps', authenticateApiKey, requireScope('READ_MEDIA'), as
     } catch {}
   }
 
-  if (apps.length === 0 && localStore.store_apps) {
-    apps = [...localStore.store_apps];
-    if (status && status !== 'all') apps = apps.filter((a) => a.status === status);
-    if (category && category !== 'all' && category !== 'All') apps = apps.filter((a) => a.category === category);
-    apps.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  }
 
   return res.json({ apps, total: apps.length });
 });
@@ -3333,9 +3327,6 @@ app.post('/api/v1/store/apps', authenticateApiKey, requireScope('WRITE_MEDIA'), 
         return res.status(409).json({ error: 'Conflict', message: `An app with slug "${slug}" already exists.` });
       }
     } catch {}
-  }
-  if ((localStore.store_apps || []).some((a: any) => a.slug === slug)) {
-    return res.status(409).json({ error: 'Conflict', message: `An app with slug "${slug}" already exists.` });
   }
 
   const cleanExternalUrl = external_url.trim();
@@ -3404,9 +3395,6 @@ app.post('/api/v1/store/apps', authenticateApiKey, requireScope('WRITE_MEDIA'), 
         console.error('[store_apps INSERT FAILED]', error.message, error.code);
         return res.status(500).json({ error: 'Database insert failed', detail: error.message, code: error.code });
       }
-
-      localStore.store_apps = localStore.store_apps || [];
-      localStore.store_apps.push(data);
       return res.status(201).json({ status: 'created', app: data });
     } catch (e: any) {
       console.error('[store_apps INSERT EXCEPTION]', e?.message || e);
@@ -3438,10 +3426,6 @@ app.patch('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_MEDI
           return res.status(409).json({ error: 'Conflict', message: `An app with slug "${nextSlug}" already exists.` });
         }
       } catch {}
-    }
-    const localExisting = (localStore.store_apps || []).find((a: any) => a.slug === nextSlug && a.id !== id);
-    if (localExisting) {
-      return res.status(409).json({ error: 'Conflict', message: `An app with slug "${nextSlug}" already exists.` });
     }
     req.body.slug = nextSlug;
   }
@@ -3499,12 +3483,6 @@ app.patch('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_MEDI
     }
   }
 
-  const localIdx = (localStore.store_apps || []).findIndex((a: any) => a.id === id);
-  if (localIdx >= 0) {
-    localStore.store_apps[localIdx] = { ...localStore.store_apps[localIdx], ...updates };
-    if (!updatedApp) updatedApp = localStore.store_apps[localIdx];
-  }
-
   if (!updatedApp) {
     return res.status(404).json({ error: 'Not Found', message: `Store app "${id}" not found.` });
   }
@@ -3533,8 +3511,6 @@ app.delete('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_MED
       return res.status(500).json({ error: 'Database delete exception', detail: e?.message });
     }
   }
-
-  localStore.store_apps = (localStore.store_apps || []).filter((a: any) => a.id !== id);
   return res.json({ status: 'deleted', id });
 });
 
@@ -3616,12 +3592,6 @@ app.post('/api/v1/store/apps/:id/file-complete', authenticateApiKey, requireScop
       const { data } = await adminSupabase.from('store_apps').update(updates).eq('id', id).select().single();
       if (data) updatedApp = data;
     } catch {}
-  }
-
-  const localIdx = (localStore.store_apps || []).findIndex((a: any) => a.id === id);
-  if (localIdx >= 0) {
-    localStore.store_apps[localIdx] = { ...localStore.store_apps[localIdx], ...updates };
-    if (!updatedApp) updatedApp = localStore.store_apps[localIdx];
   }
 
   return res.json({ status: 'completed', app: updatedApp });
@@ -4143,13 +4113,6 @@ const handlePublicAppsList = async (req: Request, res: Response) => {
     }
   }
 
-  if (apps.length === 0 && localStore.store_apps) {
-    apps = localStore.store_apps.filter((a) => a.status === 'published' || a.status === 'coming_soon');
-    if (category && category !== 'All' && category !== 'all') {
-      apps = apps.filter((a) => a.category === category);
-    }
-    apps.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  }
 
   if (search && typeof search === 'string' && search.trim()) {
     const s = search.trim().toLowerCase();
@@ -4189,9 +4152,6 @@ const handlePublicAppBySlug = async (req: Request, res: Response) => {
     } catch {}
   }
 
-  if (!app && localStore.store_apps) {
-    app = localStore.store_apps.find((a: any) => a.slug === slug && (a.status === 'published' || a.status === 'coming_soon'));
-  }
 
   if (!app) {
     return res.status(404).json({ error: 'Not Found', message: `App "${slug}" not found or not published.` });
@@ -4221,9 +4181,6 @@ app.post('/api/v1/store/apps/:slug/get', publicStoreRateLimiter, async (req, res
     } catch {}
   }
 
-  if (!app && localStore.store_apps) {
-    app = localStore.store_apps.find((a: any) => a.slug === slug);
-  }
 
   if (!app || (app.status !== 'published' && app.status !== 'coming_soon')) {
     return res.status(404).json({ error: 'Not Found', message: `App "${slug}" is not available.` });
@@ -4356,9 +4313,6 @@ app.post('/api/v1/store/apps/:slug/request', publicStoreRateLimiter, async (req,
     } catch {}
   }
 
-  if (!app && localStore.store_apps) {
-    app = localStore.store_apps.find((a: any) => a.slug === slug);
-  }
 
   if (!app) {
     return res.status(404).json({ error: 'Not Found', message: `App "${slug}" not found.` });
@@ -4497,9 +4451,6 @@ app.get('/api/v1/store/access/:token', publicStoreRateLimiter, async (req, res) 
       const { data } = await client.from('store_apps').select('*').eq('id', linkRecord.app_id).maybeSingle();
       if (data) app = data;
     } catch {}
-  }
-  if (!app && localStore.store_apps) {
-    app = localStore.store_apps.find((a: any) => a.id === linkRecord.app_id);
   }
 
   if (!app) {
