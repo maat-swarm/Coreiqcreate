@@ -24,5 +24,16 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
+  ],
+  "headers": [
+    {
+      "source": "/ciq/g-efebf926.json",
+      "headers": [
+        {
+          "key": "X-CoreIQ-Key",
+          "value": "8aba338b932fb5093e77"
+        }
+      ]
+    }
   ]
 }

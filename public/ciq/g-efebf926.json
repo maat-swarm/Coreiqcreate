@@ -1,0 +1,1 @@
+{"stage": 1, "alg": "xor_stream: keystream block i = sha256(key_utf8 + i as 4-byte big-endian)", "key_header": "X-CoreIQ-Key", "key_transform": "reverse the header value (string reversal) to get key", "ct": "7697857278243811b567e3165d44323f4835746b6a06df6e6ccca72ddf917cbe94c0fe069afac44942a03fa80ce10835107baae681028b2cb113987d"}
