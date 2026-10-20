@@ -36,19 +36,7 @@ export interface NewsArticleItem {
   updated_at: string;
 }
 
-export type ApiScope =
-  | 'READ_LEADS'
-  | 'WRITE_LEADS'
-  | 'READ_TASKS'
-  | 'WRITE_TASKS'
-  | 'READ_CLIENTS'
-  | 'WRITE_CLIENTS'
-  | 'READ_CONTENT'
-  | 'WRITE_CONTENT'
-  | 'READ_CONFIG'
-  | 'WRITE_CONFIG'
-  | 'READ_MEDIA'
-  | 'WRITE_MEDIA';
+export type { ApiScope, StandardApiScope } from '../shared/scopes';
 
 export type MediaSlotType = 'image' | 'video' | 'url';
 
@@ -97,6 +85,17 @@ export interface ApiKeyItem {
   revoked: boolean;
   last_used_at?: string;
   created_by?: string;
+}
+
+export interface ApiAuditItem {
+  id: string;
+  key_id: string;
+  key_name: string;
+  route: string;
+  method: string;
+  resource_id?: string | null;
+  status: number;
+  created_at: string;
 }
 
 export type LeadSource = 'website' | 'api' | 'manual';

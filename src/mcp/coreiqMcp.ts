@@ -5,6 +5,8 @@ import type { Request, Response } from 'express';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { CONTENT_MANIFEST } from '../data/contentManifest';
+import { RESOURCE_REGISTRY_TOOLS, getRegistryToolByName, ToolSchemaProperty } from '../server/resourceRegistry';
+import { executeRegistryTool } from '../server/registryExecution';
 
 // ---- Types ----
 export interface CoreIQTool {
@@ -188,7 +190,7 @@ export function getAllContent(
 
 // ---- Tools Registry ----
 export function getCoreIQToolsList(): CoreIQTool[] {
-  return [
+  const legacy: CoreIQTool[] = [
     { name: 'content_health', description: 'Returns published/placeholder counts for all manifest keys.', inputSchema: {} },
     { name: 'get_content', description: 'Fetch a single content item by manifest key.', inputSchema: { content_key: { type: 'string' } } },
     { name: 'resolve_content', description: 'Resolve a content key the same way the frontend does.', inputSchema: { content_key: { type: 'string' } } },
@@ -206,6 +208,14 @@ export function getCoreIQToolsList(): CoreIQTool[] {
     { name: 'create_task', description: 'Create an operator task in CoreIQ Command.', inputSchema: { title: { type: 'string' }, description: { type: 'string' } } },
     { name: 'get_agent_config', description: "Read CoreIQ's current provider/model/system prompt (API key redacted).", inputSchema: {} },
   ];
+
+  const registry: CoreIQTool[] = RESOURCE_REGISTRY_TOOLS.map((t) => ({
+    name: t.name,
+    description: t.description,
+    inputSchema: t.inputSchema as Record<string, unknown>,
+  }));
+
+  return [...legacy, ...registry];
 }
 
 export async function executeCoreIQTool(
@@ -594,8 +604,25 @@ export async function executeCoreIQTool(
         const safe = { ...config, api_key: config?.api_key ? '***redacted***' : '' };
         return { success: true, data: safe };
       }
-      default:
+      default: {
+        const regTool = getRegistryToolByName(toolName);
+        if (regTool) {
+          const result = await executeRegistryTool(toolName, args, {
+            db: supabase,
+            store: localStore,
+            callerApiKey,
+            isOperatorSession: callerApiKey?.scopes?.includes('*') || callerApiKey?.id?.startsWith('operator_'),
+          });
+          return {
+            success: result.success,
+            data: result.data,
+            error: result.error,
+            isNotFound: result.statusCode === 404,
+            isForbidden: result.statusCode === 403,
+          };
+        }
         return { success: false, error: `Unknown tool: ${toolName}`, isNotFound: true };
+      }
     }
   } catch (e: any) {
     return { success: false, error: e.message || 'Tool execution error' };
@@ -792,6 +819,89 @@ export function buildCoreIQMcpServer(
     return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
   });
 
+  // Dynamically register all comprehensive surface tools from RESOURCE_REGISTRY_TOOLS
+  const registeredLegacyNames = new Set([
+    'content_health',
+    'get_content',
+    'resolve_content',
+    'verify_content',
+    'list_placeholders',
+    'get_all_content',
+    'get_content_health',
+    'search_content',
+    'patch_content',
+    'publish_content',
+    'ask_coreiq',
+    'list_leads',
+    'create_lead',
+    'list_tasks',
+    'create_task',
+    'get_agent_config',
+  ]);
+
+  for (const reg of RESOURCE_REGISTRY_TOOLS) {
+    if (registeredLegacyNames.has(reg.name)) continue;
+
+    const shape: Record<string, z.ZodTypeAny> = {};
+    for (const [propName, propDef] of Object.entries(reg.inputSchema.properties || {})) {
+      let zType: z.ZodTypeAny = z.any();
+      if (propDef.type === 'string') {
+        zType = propDef.enum && Array.isArray(propDef.enum) && propDef.enum.length > 0
+          ? z.enum(propDef.enum as [string, ...string[]])
+          : z.string();
+      } else if (propDef.type === 'number') {
+        zType = z.number();
+      } else if (propDef.type === 'boolean') {
+        zType = z.boolean();
+      } else if (propDef.type === 'array') {
+        zType = z.array(z.any());
+      } else if (propDef.type === 'object') {
+        zType = z.record(z.any());
+      }
+
+      if (propDef.description) {
+        zType = zType.describe(propDef.description);
+      }
+
+      const isRequired = reg.inputSchema.required?.includes(propName);
+      if (!isRequired) {
+        zType = zType.optional();
+      }
+      shape[propName] = zType;
+    }
+
+    server.registerTool(
+      reg.name,
+      {
+        title: reg.title,
+        description: reg.description,
+        inputSchema: shape,
+      },
+      async (args: any) => {
+        const result = await executeRegistryTool(reg.name, args || {}, {
+          db: supabase,
+          store: localStore,
+          callerApiKey,
+          isOperatorSession: callerApiKey?.scopes?.includes('*') || callerApiKey?.id?.startsWith('operator_'),
+        });
+        if (!result.success) {
+          return {
+            content: [{ type: 'text', text: `Error: ${result.error || 'Execution failed'}` }],
+            isError: true,
+          };
+        }
+        return {
+          content: [
+            {
+              type: 'text',
+              text: typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2),
+            },
+          ],
+        };
+      }
+    );
+  }
+
   return server;
 }
 
@@ -800,7 +910,7 @@ export function mountCoreIQMcp(
   serverOrFactory: McpServer | ((req?: Request) => McpServer),
   authMiddleware: any
 ) {
-  app.post('/mcp', authMiddleware, async (req: Request, res: Response) => {
+  const mcpHandler = async (req: Request, res: Response) => {
     try {
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
       res.on('close', () => transport.close());
@@ -812,5 +922,7 @@ export function mountCoreIQMcp(
         res.status(500).json({ error: err?.message || 'MCP transport error' });
       }
     }
-  });
+  };
+
+  app.all(['/mcp', '/mcp/k/:key'], authMiddleware, mcpHandler);
 }

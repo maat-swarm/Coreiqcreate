@@ -11,6 +11,7 @@ import {
   SwarmCommsMessage,
   ApiKeyItem,
   ApiScope,
+  ApiAuditItem,
 } from '../types/command';
 
 // Storage keys
@@ -1040,6 +1041,37 @@ export const CoreIQData = {
     const current = getLocalTable<ApiKeyItem>('api_keys');
     const updated = current.filter((item) => item.id !== id);
     setLocalTable('api_keys', updated);
+  },
+
+  async updateApiKeyScopes(id: string, scopes: ApiScope[]): Promise<void> {
+    const client = getSupabase();
+    if (client) {
+      try {
+        await client.from('api_keys').update({ scopes }).eq('id', id);
+      } catch (e) {
+        console.warn('Supabase api_key update scopes error:', e);
+      }
+    }
+    const current = getLocalTable<ApiKeyItem>('api_keys');
+    const updated = current.map((item) => (item.id === id ? { ...item, scopes } : item));
+    setLocalTable('api_keys', updated);
+  },
+
+  async getApiAuditLogs(limit = 50): Promise<ApiAuditItem[]> {
+    const client = getSupabase();
+    if (client) {
+      try {
+        const { data, error } = await client
+          .from('api_audit')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        if (!error && data) return data as ApiAuditItem[];
+      } catch (e) {
+        console.warn('Supabase api_audit query error:', e);
+      }
+    }
+    return getLocalTable<ApiAuditItem>('api_audit').slice(0, limit);
   },
 
   // --- REALTIME SUBSCRIPTIONS ---

@@ -121,7 +121,7 @@ export function registerSiteToolsRoutes(app: Express, deps: SiteToolsDeps) {
   });
 
   // 2. OPERATOR: GET /api/v1/site-tools
-  app.get('/api/v1/site-tools', authenticateApiKey, requireScope('READ_MEDIA'), async (req: Request, res: Response) => {
+  app.get('/api/v1/site-tools', authenticateApiKey, requireScope('READ_TOOLS', 'READ_MEDIA'), async (req: Request, res: Response) => {
     if (!adminSupabase) {
       return res.status(503).json({ error: 'service_unavailable', message: 'adminSupabase is not configured' });
     }
@@ -146,7 +146,7 @@ export function registerSiteToolsRoutes(app: Express, deps: SiteToolsDeps) {
   });
 
   // 3. OPERATOR: POST /api/v1/site-tools
-  app.post('/api/v1/site-tools', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req: Request, res: Response) => {
+  app.post('/api/v1/site-tools', authenticateApiKey, requireScope('WRITE_TOOLS', 'WRITE_MEDIA'), async (req: Request, res: Response) => {
     if (!adminSupabase) {
       return res.status(503).json({ error: 'service_unavailable', message: 'adminSupabase is not configured' });
     }
@@ -291,7 +291,7 @@ export function registerSiteToolsRoutes(app: Express, deps: SiteToolsDeps) {
   });
 
   // 4. OPERATOR: PATCH /api/v1/site-tools/:id
-  app.patch('/api/v1/site-tools/:id', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req: Request, res: Response) => {
+  app.patch('/api/v1/site-tools/:id', authenticateApiKey, requireScope('WRITE_TOOLS', 'WRITE_MEDIA'), async (req: Request, res: Response) => {
     if (!adminSupabase) {
       return res.status(503).json({ error: 'service_unavailable', message: 'adminSupabase is not configured' });
     }
@@ -484,7 +484,7 @@ export function registerSiteToolsRoutes(app: Express, deps: SiteToolsDeps) {
   });
 
   // 5. OPERATOR: DELETE /api/v1/site-tools/:id
-  app.delete('/api/v1/site-tools/:id', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req: Request, res: Response) => {
+  app.delete('/api/v1/site-tools/:id', authenticateApiKey, requireScope('WRITE_TOOLS', 'WRITE_MEDIA'), async (req: Request, res: Response) => {
     if (!adminSupabase) {
       return res.status(503).json({ error: 'service_unavailable', message: 'adminSupabase is not configured' });
     }
@@ -510,7 +510,7 @@ export function registerSiteToolsRoutes(app: Express, deps: SiteToolsDeps) {
   app.post(
     '/api/v1/site-tools/image',
     authenticateApiKey,
-    requireScope('WRITE_MEDIA'),
+    requireScope('WRITE_TOOLS', 'WRITE_MEDIA'),
     (upload.single('file') as any),
     async (req: Request, res: Response) => {
       if (!adminSupabase) {
