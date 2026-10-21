@@ -40,6 +40,8 @@ export const AppActionModal: React.FC<AppActionModalProps> = ({
   // Step state
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [consent, setConsent] = useState(false);
   const [requestMessage, setRequestMessage] = useState('');
   const [copiedMethodId, setCopiedMethodId] = useState<string | null>(null);
 
@@ -123,13 +125,20 @@ export const AppActionModal: React.FC<AppActionModalProps> = ({
       return;
     }
 
+    if (!consent) {
+      setModalError('Please agree to the contact consent checkbox to proceed.');
+      return;
+    }
+
     try {
       setIsLoading(true);
       setModalError(null);
       const res = await submitAppRequest(app.slug, {
         email: email.trim(),
-        name: name.trim(),
+        name: name.trim() || undefined,
+        phone: phone.trim() || undefined,
         message: requestMessage.trim(),
+        consent: true,
       });
       setRequestSuccessMessage(
         res.message || 'Your request has been received. Our team will verify and provide your access link.'
@@ -403,6 +412,22 @@ export const AppActionModal: React.FC<AppActionModalProps> = ({
                 />
               </div>
 
+              {/* Consent Checkbox */}
+              <div className="pt-1">
+                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-300 min-h-[44px] py-1 select-none">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-950 shrink-0"
+                  />
+                  <span>
+                    I agree that CoreIQ Create may contact me about this request.
+                  </span>
+                </label>
+              </div>
+
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
@@ -459,6 +484,17 @@ export const AppActionModal: React.FC<AppActionModalProps> = ({
               </div>
 
               <div>
+                <label className="block text-xs font-mono text-slate-300 mb-1">Phone number (optional)</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                  placeholder="+27 82 123 4567"
+                />
+              </div>
+
+              <div>
                 <label className="block text-xs font-mono text-slate-300 mb-1">Project or Integration Notes</label>
                 <textarea
                   rows={3}
@@ -467,6 +503,22 @@ export const AppActionModal: React.FC<AppActionModalProps> = ({
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
                   placeholder="Describe your company use case, expected volume, or timeline."
                 />
+              </div>
+
+              {/* Consent Checkbox */}
+              <div className="pt-1">
+                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-300 min-h-[44px] py-1 select-none">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-950 shrink-0"
+                  />
+                  <span>
+                    I agree that CoreIQ Create may contact me about this request.
+                  </span>
+                </label>
               </div>
             </div>
 

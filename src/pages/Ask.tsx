@@ -4,8 +4,9 @@ import { CoreIQLogo } from '../components/common/CoreIQLogo';
 import { GradientBorderBox } from '../components/ask/GradientBorderBox';
 import { ScrambleText } from '../components/ask/ScrambleText';
 import { useMagneticHover } from '../hooks/useMagneticHover';
-import { coreIQRuntime } from '../services/coreiqRuntime';
+import { coreIQRuntime, getOrCreateSessionId } from '../services/coreiqRuntime';
 import { CoreIQData } from '../services/supabase';
+import { ArrowRight, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import '../styles/ask.css';
 
 interface Message {
@@ -94,6 +95,123 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
+
+  // CRM Bridge "Take this forward" card state
+  const [forwardCardMessageId, setForwardCardMessageId] = useState<string | null>(null);
+  const [leadName, setLeadName] = useState('');
+  const [leadEmail, setLeadEmail] = useState('');
+  const [leadPhone, setLeadPhone] = useState('');
+  const [leadCompany, setLeadCompany] = useState('');
+  const [leadConsent, setLeadConsent] = useState(false);
+  const [leadHoneypot, setLeadHoneypot] = useState('');
+  const [isSubmittingLead, setIsSubmittingLead] = useState(false);
+  const [leadSubmitError, setLeadSubmitError] = useState<string | null>(null);
+  const [leadSubmitSuccessName, setLeadSubmitSuccessName] = useState<string | null>(null);
+  const [detailsCaptured, setDetailsCaptured] = useState(false);
+  const [capturedLeadData, setCapturedLeadData] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    company: string;
+    summary: string;
+  } | null>(null);
+
+  // Auto-resend updated transcript 5s after later assistant replies once details are captured
+  useEffect(() => {
+    if (!detailsCaptured || !capturedLeadData || messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role !== 'assistant') return;
+
+    const timer = setTimeout(() => {
+      fetch('/api/v1/public/lead-capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: 'coreiq-website',
+          session_id: getOrCreateSessionId(),
+          name: capturedLeadData.name,
+          email: capturedLeadData.email || undefined,
+          phone: capturedLeadData.phone || undefined,
+          company: capturedLeadData.company || undefined,
+          summary: capturedLeadData.summary,
+          intent: activeTab,
+          page_url: window.location.href,
+          consent: true,
+          transcript: messages.map((m) => ({
+            role: m.role,
+            text: m.content,
+            at: m.timestamp.toISOString(),
+          })),
+          honeypot: '',
+        }),
+      }).catch(() => {});
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [messages, detailsCaptured, capturedLeadData, activeTab]);
+
+  const handleLeadSubmit = async (e: React.FormEvent, msgContent: string) => {
+    e.preventDefault();
+    if (!leadName.trim()) {
+      setLeadSubmitError('Please enter your name.');
+      return;
+    }
+    if (!leadEmail.trim() && !leadPhone.trim()) {
+      setLeadSubmitError('Please provide a valid email or phone number.');
+      return;
+    }
+    if (!leadConsent) {
+      setLeadSubmitError('Please agree to the contact consent checkbox to proceed.');
+      return;
+    }
+
+    setIsSubmittingLead(true);
+    setLeadSubmitError(null);
+
+    try {
+      const res = await fetch('/api/v1/public/lead-capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: 'coreiq-website',
+          session_id: getOrCreateSessionId(),
+          name: leadName.trim(),
+          email: leadEmail.trim() || undefined,
+          phone: leadPhone.trim() || undefined,
+          company: leadCompany.trim() || undefined,
+          summary: msgContent.slice(0, 1200),
+          intent: activeTab,
+          page_url: window.location.href,
+          consent: true,
+          transcript: messages.map((m) => ({
+            role: m.role,
+            text: m.content,
+            at: m.timestamp.toISOString(),
+          })),
+          honeypot: leadHoneypot,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to send');
+      }
+
+      setLeadSubmitSuccessName(leadName.trim());
+      setDetailsCaptured(true);
+      setCapturedLeadData({
+        name: leadName.trim(),
+        email: leadEmail.trim(),
+        phone: leadPhone.trim(),
+        company: leadCompany.trim(),
+        summary: msgContent.slice(0, 1200),
+      });
+      setLeadSubmitError(null);
+    } catch {
+      setLeadSubmitError("We couldn't send that just now. Your details are still here, so please try again.");
+    } finally {
+      setIsSubmittingLead(false);
+    }
+  };
 
   // Memoized tabs and static Maatverse collections
   const tabs = useMemo<TabConfig[]>(() => STATIC_TABS, []);
@@ -795,21 +913,190 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
           {/* Conversation Responses (if query has been dispatched) */}
           {messages.length > 0 && (
             <div className="w-full max-w-full md:max-w-[560px] mx-auto mt-6 space-y-3 text-left">
-              {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={`p-4 rounded-xl text-sm leading-relaxed ${
-                    m.role === 'user'
-                      ? 'bg-white/[0.06] text-white/90 ml-6 border border-white/[0.08]'
-                      : 'bg-black/60 text-white/95 border border-cyan-500/25 shadow-[0_0_20px_rgba(34,211,238,0.08)]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1 text-[11px] font-mono uppercase tracking-wider text-cyan-400">
-                    {m.role === 'user' ? 'You' : 'CoreIQ Engine'}
+              {messages.map((m) => {
+                const isBlueprint =
+                  m.role === 'assistant' &&
+                  (/INTENT|BLUEPRINT|MILESTONES|CAPABILITIES/i.test(m.content) || Boolean(m.blueprint));
+
+                return (
+                  <div
+                    key={m.id}
+                    className={`p-4 rounded-xl text-sm leading-relaxed ${
+                      m.role === 'user'
+                        ? 'bg-white/[0.06] text-white/90 ml-6 border border-white/[0.08]'
+                        : 'bg-black/60 text-white/95 border border-cyan-500/25 shadow-[0_0_20px_rgba(34,211,238,0.08)]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1 text-[11px] font-mono uppercase tracking-wider text-cyan-400">
+                      {m.role === 'user' ? 'You' : 'CoreIQ Engine'}
+                    </div>
+                    <div>{m.content}</div>
+
+                    {/* "Take this forward" Button & Expandable CRM Intake Card */}
+                    {isBlueprint && (
+                      <div className="mt-3 pt-3 border-t border-cyan-500/20">
+                        {forwardCardMessageId !== m.id ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForwardCardMessageId(m.id);
+                              setLeadSubmitSuccessName(null);
+                              setLeadSubmitError(null);
+                            }}
+                            className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)] min-h-[44px]"
+                          >
+                            <span>Take this forward</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        ) : (
+                          <div className="bg-slate-950/95 border border-cyan-500/40 rounded-xl p-4 mt-2 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-300">
+                                Project Specification Handoff
+                              </h4>
+                              <button
+                                type="button"
+                                onClick={() => setForwardCardMessageId(null)}
+                                className="text-slate-400 hover:text-white text-xs p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                aria-label="Close handoff form"
+                              >
+                                ✕
+                              </button>
+                            </div>
+
+                            {leadSubmitSuccessName ? (
+                              <div className="p-3 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                                <span>Thanks {leadSubmitSuccessName}. Your request has been passed to our team.</span>
+                              </div>
+                            ) : (
+                              <form onSubmit={(e) => handleLeadSubmit(e, m.content)} className="space-y-3">
+                                {/* Hidden Honeypot */}
+                                <input
+                                  type="text"
+                                  name="honeypot"
+                                  value={leadHoneypot}
+                                  onChange={(e) => setLeadHoneypot(e.target.value)}
+                                  tabIndex={-1}
+                                  autoComplete="off"
+                                  className="hidden"
+                                  aria-hidden="true"
+                                />
+
+                                <div>
+                                  <label className="block text-[11px] font-mono text-slate-300 mb-1">Your Name *</label>
+                                  <input
+                                    type="text"
+                                    required
+                                    value={leadName}
+                                    onChange={(e) => setLeadName(e.target.value)}
+                                    placeholder="Alex Rivers"
+                                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 min-h-[44px]"
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-[11px] font-mono text-slate-300 mb-1">Email address</label>
+                                    <input
+                                      type="email"
+                                      value={leadEmail}
+                                      onChange={(e) => setLeadEmail(e.target.value)}
+                                      placeholder="alex@company.com"
+                                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 min-h-[44px]"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[11px] font-mono text-slate-300 mb-1">Phone number</label>
+                                    <input
+                                      type="tel"
+                                      value={leadPhone}
+                                      onChange={(e) => setLeadPhone(e.target.value)}
+                                      placeholder="+27 82 123 4567"
+                                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 min-h-[44px]"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-[11px] font-mono text-slate-300 mb-1">Company (optional)</label>
+                                  <input
+                                    type="text"
+                                    value={leadCompany}
+                                    onChange={(e) => setLeadCompany(e.target.value)}
+                                    placeholder="Company name"
+                                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 min-h-[44px]"
+                                  />
+                                </div>
+
+                                {/* Required Consent Checkbox */}
+                                <div className="pt-1">
+                                  <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-300 min-h-[44px] py-1 select-none">
+                                    <input
+                                      type="checkbox"
+                                      required
+                                      checked={leadConsent}
+                                      onChange={(e) => setLeadConsent(e.target.checked)}
+                                      className="mt-0.5 w-4 h-4 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500 shrink-0"
+                                    />
+                                    <span>
+                                      I agree that CoreIQ Create may contact me about this request.{' '}
+                                      <span className="text-slate-400 underline hover:text-white">Privacy Policy</span>
+                                    </span>
+                                  </label>
+                                </div>
+
+                                {/* Live Error Region */}
+                                <div aria-live="polite">
+                                  {leadSubmitError && (
+                                    <div className="p-2.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-2">
+                                      <span>{leadSubmitError}</span>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => handleLeadSubmit(e, m.content)}
+                                        className="px-2.5 py-1 rounded bg-rose-500/25 hover:bg-rose-500/40 text-white font-semibold text-[11px] min-h-[36px]"
+                                      >
+                                        Retry
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="pt-1 flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setForwardCardMessageId(null)}
+                                    className="px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-white min-h-[44px]"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="submit"
+                                    disabled={isSubmittingLead}
+                                    className="px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 flex items-center gap-1.5 transition-colors disabled:opacity-50 min-h-[44px]"
+                                  >
+                                    {isSubmittingLead ? (
+                                      <>
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                        <span>Submitting...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span>Submit Details</span>
+                                        <ArrowRight className="w-3.5 h-3.5" />
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </form>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div>{m.content}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

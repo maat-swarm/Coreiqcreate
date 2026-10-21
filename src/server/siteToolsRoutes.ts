@@ -5,7 +5,7 @@ import multer from 'multer';
 
 export interface SiteToolsDeps {
   authenticateApiKey: (req: Request, res: Response, next: NextFunction) => Promise<any>;
-  requireScope: (scope: string) => (req: Request, res: Response, next: NextFunction) => any;
+  requireScope: (scope: string, legacyFallbackScope?: string) => (req: Request, res: Response, next: NextFunction) => any;
   adminSupabase: SupabaseClient | null;
   publicRateLimiter: (req: Request, res: Response, next: NextFunction) => any;
 }

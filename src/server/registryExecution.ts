@@ -17,10 +17,13 @@ import {
 } from '../mcp/coreiqMcp';
 
 export interface ExecutionContext {
-  supabase: SupabaseClient | null;
+  supabase?: SupabaseClient | null;
   adminSupabase?: SupabaseClient | null;
-  localStore: Record<string, any[]>;
+  db?: SupabaseClient | null;
+  localStore?: Record<string, any[]>;
+  store?: Record<string, any[]>;
   callerApiKey?: any;
+  isOperatorSession?: boolean;
 }
 
 export interface ExecutionResult {
@@ -57,7 +60,7 @@ export async function logApiAudit(
     created_at: new Date().toISOString(),
   };
 
-  const dbClient = ctx.adminSupabase || ctx.supabase;
+  const dbClient = ctx.adminSupabase || ctx.supabase || ctx.db;
   if (dbClient) {
     try {
       await dbClient.from('api_audit').insert([auditEntry]);
@@ -66,23 +69,63 @@ export async function logApiAudit(
     }
   }
 
-  if (!ctx.localStore.api_audit) {
-    ctx.localStore.api_audit = [];
-  }
-  ctx.localStore.api_audit.unshift(auditEntry);
-  if (ctx.localStore.api_audit.length > 200) {
-    ctx.localStore.api_audit = ctx.localStore.api_audit.slice(0, 200);
+  const targetStore = ctx.localStore || ctx.store;
+  if (targetStore) {
+    if (!targetStore.api_audit) {
+      targetStore.api_audit = [];
+    }
+    targetStore.api_audit.unshift(auditEntry);
+    if (targetStore.api_audit.length > 200) {
+      targetStore.api_audit = targetStore.api_audit.slice(0, 200);
+    }
   }
 }
 
 /**
- * Normalizes URL keys for uniqueness checks
+ * Normalizes URL keys for uniqueness checks (strips tracking query params, normalizes host & path)
  */
 export function normalizeUrlKey(url: string | null | undefined): string | null {
   if (!url || typeof url !== 'string') return null;
-  const clean = url.trim().toLowerCase().replace(/\/+$/, '');
+  const clean = url.trim();
   if (!clean) return null;
-  return clean;
+
+  try {
+    const parsed = new URL(clean);
+    const trackingParams = new Set([
+      'utm_source',
+      'utm_medium',
+      'utm_campaign',
+      'utm_term',
+      'utm_content',
+      'ref',
+      'ref_src',
+      'fbclid',
+      'gclid',
+      'msclkid',
+      'mc_cid',
+      'mc_eid',
+    ]);
+    const keysToDelete: string[] = [];
+    parsed.searchParams.forEach((_, key) => {
+      if (trackingParams.has(key.toLowerCase()) || key.toLowerCase().startsWith('utm_')) {
+        keysToDelete.push(key);
+      }
+    });
+    for (const key of keysToDelete) {
+      parsed.searchParams.delete(key);
+    }
+
+    let pathname = parsed.pathname;
+    if (pathname.length > 1 && pathname.endsWith('/')) {
+      pathname = pathname.slice(0, -1);
+    }
+    parsed.pathname = pathname;
+    parsed.hash = '';
+
+    return parsed.toString();
+  } catch {
+    return clean.toLowerCase().replace(/\/+$/, '');
+  }
 }
 
 export async function executeRegistryTool(
@@ -108,8 +151,8 @@ export async function executeRegistryTool(
     }
   }
 
-  const db = ctx.adminSupabase || ctx.supabase;
-  const store = ctx.localStore;
+  const db = ctx.adminSupabase || ctx.supabase || ctx.db || null;
+  const store = ctx.localStore || ctx.store || {};
   const args = sanitizeRecord(rawArgs);
 
   try {

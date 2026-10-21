@@ -6,8 +6,8 @@ import { hasScope } from '../shared/scopes';
 import { maskSecrets } from './validators';
 
 export interface MachineAccessDeps {
-  authenticateApiKey: (req: Request, res: Response, next: NextFunction) => void | Promise<void>;
-  requireScope: (scope: string, legacyFallbackScope?: string) => (req: Request, res: Response, next: NextFunction) => void;
+  authenticateApiKey: (req: Request, res: Response, next: NextFunction) => any;
+  requireScope: (scope: string, legacyFallbackScope?: string) => (req: Request, res: Response, next: NextFunction) => any;
   supabase: SupabaseClient | null;
   adminSupabase: SupabaseClient | null;
   localStore: Record<string, any[]>;

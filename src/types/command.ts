@@ -1,3 +1,5 @@
+import type { ApiScope } from '../shared/scopes';
+
 export type CommandTab = 
   | 'inbox'
   | 'tasks'
@@ -122,6 +124,11 @@ export interface LeadItem {
   client_id?: string | null;
   budget_range?: string;
   notes?: string;
+  session_id?: string | null;
+  crm_client_id?: string | null;
+  crm_client_code?: string | null;
+  crm_synced_at?: string | null;
+  crm_skipped_reason?: string | null;
 }
 
 export type SocialPlatformSource = 'facebook' | 'instagram' | 'x' | 'linkedin' | 'whatsapp' | 'telegram' | 'tiktok';

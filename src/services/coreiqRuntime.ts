@@ -57,15 +57,41 @@ function parseResponse(text: string, prompt: string): CoreIQAnalysisResponse {
   };
 }
 
+export const CRM_BRIDGE_PROMPT_INSTRUCTION =
+  "When the visitor wants to proceed, point them to the 'Take this forward' button. Never claim an action was completed, never promise that someone will call or reply within a time, and never mention the CRM, outbox or internal systems.";
+
+export function getOrCreateSessionId(): string {
+  try {
+    let sid = sessionStorage.getItem('coreiq_ask_session_id');
+    if (!sid) {
+      sid = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+          });
+      sessionStorage.setItem('coreiq_ask_session_id', sid);
+    }
+    return sid;
+  } catch {
+    return '10000000-0000-4000-8000-000000000000';
+  }
+}
+
 class RemoteCoreIQRuntime implements ICoreIQRuntime {
   private history: { role: string; content: string }[] = [];
 
   async analyzeIntent(prompt: string): Promise<CoreIQAnalysisResponse> {
     try {
+      const sessionId = getOrCreateSessionId();
       const res = await fetch(`${API_BASE}/api/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: prompt, history: this.history }),
+        body: JSON.stringify({
+          message: prompt,
+          history: this.history,
+          session_id: sessionId,
+        }),
       });
 
       if (!res.ok) {

@@ -163,7 +163,7 @@ export async function getAppAccess(
 
 export async function submitAppRequest(
   slug: string,
-  payload: { email: string; name?: string; message?: string }
+  payload: { email: string; name?: string; message?: string; phone?: string; consent?: boolean }
 ): Promise<{ success: boolean; message: string; id?: string }> {
   const headers = await getAuthHeaders(true);
   const res = await fetch(`${API_BASE}/api/v1/store/apps/${encodeURIComponent(slug)}/request`, {

@@ -202,8 +202,8 @@ export function getCoreIQToolsList(): CoreIQTool[] {
     { name: 'patch_content', description: 'Update or create a content item by key (body, summary, title, status, etc.).', inputSchema: { key: { type: 'string' }, title: { type: 'string' }, summary: { type: 'string' }, body: { type: 'string' }, category: { type: 'string' }, status: { type: 'string' }, dry_run: { type: 'boolean' } } },
     { name: 'publish_content', description: 'Publish a content item by key.', inputSchema: { key: { type: 'string' } } },
     { name: 'ask_coreiq', description: "Send a message to the live CoreIQ agent brain and return its response.", inputSchema: { message: { type: 'string' } } },
-    { name: 'list_leads', description: 'List recent website leads/inquiries.', inputSchema: { limit: { type: 'number' } } },
-    { name: 'create_lead', description: 'Create a new client lead/inquiry.', inputSchema: { client_name: { type: 'string' }, client_contact: { type: 'string' }, client_message: { type: 'string' } } },
+    { name: 'list_leads', description: 'Legacy website inbox. Client records and pipeline live in the CoreIQ CRM.', inputSchema: { limit: { type: 'number' } } },
+    { name: 'create_lead', description: 'Legacy website inbox. Client records and pipeline live in the CoreIQ CRM.', inputSchema: { client_name: { type: 'string' }, client_contact: { type: 'string' }, client_message: { type: 'string' } } },
     { name: 'list_tasks', description: 'List operator tasks in CoreIQ Command.', inputSchema: { limit: { type: 'number' } } },
     { name: 'create_task', description: 'Create an operator task in CoreIQ Command.', inputSchema: { title: { type: 'string' }, description: { type: 'string' } } },
     { name: 'get_agent_config', description: "Read CoreIQ's current provider/model/system prompt (API key redacted).", inputSchema: {} },
@@ -758,7 +758,7 @@ export function buildCoreIQMcpServer(
 
   server.registerTool('list_leads', {
     title: 'List Leads',
-    description: 'List recent website leads/inquiries.',
+    description: 'Legacy website inbox. Client records and pipeline live in the CoreIQ CRM.',
     inputSchema: { limit: z.number().optional().describe('Max number of leads to return (default 20)') },
   }, async ({ limit }) => {
     const result = await executeCoreIQTool('list_leads', { limit }, { supabase, localStore, callerApiKey });
@@ -767,7 +767,7 @@ export function buildCoreIQMcpServer(
 
   server.registerTool('create_lead', {
     title: 'Create Lead',
-    description: 'Create a new client lead/inquiry record.',
+    description: 'Legacy website inbox. Client records and pipeline live in the CoreIQ CRM.',
     inputSchema: {
       client_name: z.string().describe('Name of the lead/client'),
       client_contact: z.string().describe('Email or phone contact'),
@@ -856,7 +856,7 @@ export function buildCoreIQMcpServer(
       } else if (propDef.type === 'array') {
         zType = z.array(z.any());
       } else if (propDef.type === 'object') {
-        zType = z.record(z.any());
+        zType = z.record(z.string(), z.any());
       }
 
       if (propDef.description) {

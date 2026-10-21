@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { LeadItem, SocialMessageItem, UnifiedInboxItem, LeadStatus } from '../../types/command';
 import { CoreIQData } from '../../services/supabase';
+import { CommandCrmBridgeCard } from './CommandCrmBridgeCard';
 
 interface CommandInboxTabProps {
   leads: LeadItem[];
@@ -134,6 +135,9 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
         in /public/sw.js to listen to Supabase Edge Function database webhooks on 'leads' and
         'social_messages' INSERT events, triggering self.registration.showNotification('CoreIQ Alert', { body: ... }).
       */}
+
+      {/* CoreIQ CRM Bridge Card */}
+      <CommandCrmBridgeCard />
 
       {/* Top Filter & Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#060b1c]/90 border border-slate-800/80">
@@ -285,6 +289,29 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800">
                           {item.intent_type}
                         </span>
+                      )}
+
+                      {/* CRM Bridge Status Chip */}
+                      {isLead && (
+                        <>
+                          {item.crm_client_code ? (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                              CRM {item.crm_client_code}
+                            </span>
+                          ) : item.crm_skipped_reason === 'no_consent' ? (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800">
+                              not sent (no consent)
+                            </span>
+                          ) : item.crm_skipped_reason === 'no_contact' ? (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800">
+                              not sent (no contact)
+                            </span>
+                          ) : item.session_id ? (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                              CRM pending
+                            </span>
+                          ) : null}
+                        </>
                       )}
                     </div>
 

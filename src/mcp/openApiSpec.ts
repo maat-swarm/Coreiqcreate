@@ -338,10 +338,115 @@ export function buildOpenApiSpec(baseUrl = 'https://coreiqcreate.onrender.com') 
           responses: { '201': { description: 'Client registered' } },
         },
       },
+      '/api/v1/admin/news': {
+        get: {
+          summary: 'List News Articles',
+          description: 'Query all draft and published news articles (Scope: READ_NEWS).',
+          responses: { '200': { description: 'Articles list' } },
+        },
+        post: {
+          summary: 'Create News Article',
+          description: 'Create draft news article or publish if authorized (Scope: WRITE_NEWS, PUBLISH_NEWS).',
+          responses: { '201': { description: 'Article created' }, '409': { description: 'Duplicate url_key' } },
+        },
+      },
+      '/api/v1/admin/use-cases': {
+        get: {
+          summary: 'List Use Cases',
+          description: 'Query all use cases including drafts (Scope: READ_USE_CASES).',
+          responses: { '200': { description: 'Use cases list' } },
+        },
+        post: {
+          summary: 'Create Use Case',
+          description: 'Create use case definition (Scope: WRITE_USE_CASES, PUBLISH_USE_CASES).',
+          responses: { '201': { description: 'Use case created' } },
+        },
+      },
+      '/api/v1/store/apps': {
+        get: {
+          summary: 'List Store Apps',
+          description: 'Query all store apps (Scope: READ_STORE).',
+          responses: { '200': { description: 'Store apps list' } },
+        },
+        post: {
+          summary: 'Create Store App',
+          description: 'Create new store app (Scope: WRITE_STORE).',
+          responses: { '201': { description: 'App created' } },
+        },
+      },
+      '/api/v1/site-tools': {
+        get: {
+          summary: 'List Site Tools Registry',
+          description: 'Query catalog cards (Scope: READ_TOOLS).',
+          responses: { '200': { description: 'Site tools list' } },
+        },
+        post: {
+          summary: 'Create Site Tool',
+          description: 'Create new catalog tool (Scope: WRITE_TOOLS).',
+          responses: { '201': { description: 'Site tool created' } },
+        },
+      },
+      '/api/v1/platforms': {
+        get: {
+          summary: 'List Platforms',
+          description: 'Query registered platforms (Scope: READ_PLATFORMS).',
+          responses: { '200': { description: 'Platforms list' } },
+        },
+        post: {
+          summary: 'Create Platform',
+          description: 'Register deployment platform (Scope: WRITE_PLATFORMS).',
+          responses: { '201': { description: 'Platform registered' } },
+        },
+      },
+      '/api/v1/swarm/comms': {
+        get: {
+          summary: 'List Swarm Communications',
+          description: 'Query swarm broadcast log (Scope: READ_SWARM).',
+          responses: { '200': { description: 'Messages list' } },
+        },
+        post: {
+          summary: 'Send Swarm Message',
+          description: 'Post inter-agent message (Scope: WRITE_SWARM).',
+          responses: { '201': { description: 'Message sent' } },
+        },
+      },
+      '/api/v1/social/messages': {
+        get: {
+          summary: 'List Social Messages',
+          description: 'Query inbound social messages (Scope: READ_SOCIAL).',
+          responses: { '200': { description: 'Social messages list' } },
+        },
+      },
+      '/api/v1/analytics/summary': {
+        get: {
+          summary: 'Site Analytics Summary',
+          description: 'Aggregated analytics metrics rollup (Scope: READ_ANALYTICS).',
+          responses: { '200': { description: 'Analytics summary' } },
+        },
+      },
+      '/api/v1/keys': {
+        get: {
+          summary: 'List API Keys',
+          description: 'List active API keys with hashes masked (Scope: READ_KEYS).',
+          responses: { '200': { description: 'Keys list' } },
+        },
+      },
       '/mcp': {
         post: {
           summary: 'Model Context Protocol (MCP) Streamable Endpoint',
-          description: 'JSON-RPC 2.0 endpoint for MCP clients and Swarm agents. Supports initialize, tools/list, and tools/call across all 25 tools.',
+          description: 'JSON-RPC 2.0 endpoint for MCP clients and Swarm agents. Supports initialize, tools/list, and tools/call across all registered tools.',
+          responses: {
+            '200': { description: 'MCP Stream / JSON-RPC Response' },
+          },
+        },
+      },
+      '/mcp/k/{key}': {
+        post: {
+          summary: 'Model Context Protocol (MCP) Secret URL Endpoint',
+          description: 'Secret-URL access endpoint for MCP connectors (e.g. Claude.ai) that do not support custom request headers.',
+          parameters: [
+            { name: 'key', in: 'path', required: true, schema: { type: 'string' }, description: 'API Key Token (ciq_live_...)' },
+          ],
           responses: {
             '200': { description: 'MCP Stream / JSON-RPC Response' },
           },

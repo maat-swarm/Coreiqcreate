@@ -23,6 +23,11 @@ import { buildOpenApiSpec } from './src/mcp/openApiSpec';
 import { CONTENT_MANIFEST, evaluateContentHealth } from './src/data/contentManifest';
 import { GoogleGenAI } from '@google/genai';
 import { registerSiteToolsRoutes } from './src/server/siteToolsRoutes';
+import { registerMachineAccessRoutes } from './src/server/machineAccessRoutes';
+import { registerCrmBridgeRoutes } from './src/server/crmBridgeRoutes';
+import { buildPayload, enqueueOutbox, processOutbox } from './src/server/crmBridge';
+import { hasScope } from './src/shared/scopes';
+import { executeRegistryTool } from './src/server/registryExecution';
 
 const MEM0_API_KEY = process.env.MEM0_API_KEY || '';
 const MEM0_USER_ID = process.env.MEM0_USER_ID || 'maat-builder-shared';
@@ -96,6 +101,7 @@ const localStore: Record<string, any[]> = {
   tasks: [],
   clients: [],
   content: [],
+  crm_outbox: [],
   api_keys: [
     {
       id: 'key_local_dev_master',
@@ -108,6 +114,38 @@ const localStore: Record<string, any[]> = {
         'READ_CLIENTS', 'WRITE_CLIENTS',
         'READ_CONTENT', 'WRITE_CONTENT', 'PUBLISH_CONTENT',
         'READ_CONFIG', 'WRITE_CONFIG',
+        'READ_MEDIA', 'WRITE_MEDIA',
+        'READ_NEWS', 'WRITE_NEWS', 'PUBLISH_NEWS',
+        'READ_USE_CASES', 'WRITE_USE_CASES', 'PUBLISH_USE_CASES',
+        'READ_STORE', 'WRITE_STORE',
+        'READ_TOOLS', 'WRITE_TOOLS',
+        'READ_PLATFORMS', 'WRITE_PLATFORMS',
+        'READ_SWARM', 'WRITE_SWARM',
+        'READ_SOCIAL', 'WRITE_SOCIAL',
+        'READ_ANALYTICS', 'READ_KEYS',
+        '*'
+      ],
+      revoked: false,
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 'key_local_custom_operator',
+      name: 'Custom Operator Key',
+      key_prefix: 'ciq_live_custom_operator...',
+      key_hash: crypto.createHash('sha256').update('ciq_live_custom_operator_key_999').digest('hex'),
+      scopes: ['*'],
+      revoked: false,
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 'key_local_content_editor',
+      name: 'Content & Media Editor Key',
+      key_prefix: 'ciq_live_content_editor...',
+      key_hash: crypto.createHash('sha256').update('ciq_live_content_editor_000000000000000000000000').digest('hex'),
+      scopes: [
+        'READ_CONTENT', 'WRITE_CONTENT', 'PUBLISH_CONTENT',
+        'READ_NEWS', 'WRITE_NEWS', 'PUBLISH_NEWS',
+        'READ_USE_CASES', 'WRITE_USE_CASES', 'PUBLISH_USE_CASES',
         'READ_MEDIA', 'WRITE_MEDIA'
       ],
       revoked: false,
@@ -888,8 +926,40 @@ function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token.trim()).digest('hex');
 }
 
+// Failed auth rate-limiting per IP
+const failedAuthAttemptsByIp = new Map<string, { count: number; firstAttempt: number }>();
+const MAX_FAILED_AUTH_ATTEMPTS = 10;
+const FAILED_AUTH_WINDOW_MS = 5 * 60 * 1000;
+
+function checkAuthRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = failedAuthAttemptsByIp.get(ip);
+  if (!entry) return true;
+  if (now - entry.firstAttempt > FAILED_AUTH_WINDOW_MS) {
+    failedAuthAttemptsByIp.delete(ip);
+    return true;
+  }
+  return entry.count < MAX_FAILED_AUTH_ATTEMPTS;
+}
+
+function recordFailedAuthAttempt(ip: string) {
+  const now = Date.now();
+  const entry = failedAuthAttemptsByIp.get(ip);
+  if (!entry || now - entry.firstAttempt > FAILED_AUTH_WINDOW_MS) {
+    failedAuthAttemptsByIp.set(ip, { count: 1, firstAttempt: now });
+  } else {
+    entry.count += 1;
+  }
+}
+
+function resetFailedAuthAttempts(ip: string) {
+  failedAuthAttemptsByIp.delete(ip);
+}
+
 // Authentication & Scope validation middleware for /api/v1/*
 async function authenticateApiKey(req: Request, res: Response, next: NextFunction) {
+  const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+
   const authHeader = req.headers.authorization;
   const apiKeyHeader = req.headers['x-api-key'] as string;
   const operatorHeader = (req.headers['x-operator-auth'] as string) || (req.headers['x-operator-mode'] as string);
@@ -901,6 +971,8 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
     rawToken = apiKeyHeader.trim();
   } else if ((req.query as any).api_key) {
     rawToken = String((req.query as any).api_key).trim();
+  } else if ((req.params as any)?.key) {
+    rawToken = String((req.params as any).key).trim();
   }
 
   // Check if we are running in production or if Supabase is connected
@@ -909,6 +981,13 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
   // Reject the hardcoded dev master token in production or when Supabase is configured
   if (rawToken === 'ciq_live_devmaster_00000000000000000000000000000000') {
     if (isProductionOrSupabaseConfigured) {
+      if (!checkAuthRateLimit(clientIp)) {
+        return res.status(429).json({
+          error: 'Too Many Requests',
+          message: 'Too many failed authentication attempts. Please retry later.',
+        });
+      }
+      recordFailedAuthAttempt(clientIp);
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Dev master key is rejected in production or configured environments. Please sign in to Command.',
@@ -919,6 +998,7 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
   // Operator session from Command in local unconfigured dev mode only
   if (!isProductionOrSupabaseConfigured) {
     if ((operatorHeader === 'true' && rawToken === 'operator-session') || rawToken === 'ciq_live_devmaster_00000000000000000000000000000000') {
+      resetFailedAuthAttempts(clientIp);
       (req as any).apiKey = {
         id: 'key_operator_session',
         name: 'CoreIQ Local Operator Session',
@@ -933,6 +1013,13 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
   }
 
   if (!rawToken) {
+    if (!checkAuthRateLimit(clientIp)) {
+      return res.status(429).json({
+        error: 'Too Many Requests',
+        message: 'Too many failed authentication attempts. Please retry later.',
+      });
+    }
+    recordFailedAuthAttempt(clientIp);
     return res.status(401).json({
       error: 'Missing API Key',
       message: 'Please sign in to Command again.',
@@ -976,7 +1063,6 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
 
       if (!error && data) {
         keyRecord = data as ApiKeyRecord;
-        // Update last_used_at non-blockingly
         authClient
           .from('api_keys')
           .update({ last_used_at: new Date().toISOString() })
@@ -1000,12 +1086,20 @@ async function authenticateApiKey(req: Request, res: Response, next: NextFunctio
   }
 
   if (!keyRecord) {
+    if (!checkAuthRateLimit(clientIp)) {
+      return res.status(429).json({
+        error: 'Too Many Requests',
+        message: 'Too many failed authentication attempts. Please retry later.',
+      });
+    }
+    recordFailedAuthAttempt(clientIp);
     return res.status(401).json({
       error: 'Unauthorized',
       message: 'Invalid or revoked API key token. Please sign in to Command again.',
     });
   }
 
+  resetFailedAuthAttempts(clientIp);
   (req as any).apiKey = keyRecord;
   next();
 }
@@ -1062,41 +1156,31 @@ async function isCallerAuthorizedForMedia(req: Request): Promise<boolean> {
 
       if (!error && data) {
         const scopes: string[] = data.scopes || [];
-        return scopes.some((s) => s === '*' || s === 'ADMIN' || s === 'admin' || s === 'READ_MEDIA' || s === 'read_media');
+        return hasScope(scopes, 'READ_MEDIA') || hasScope(scopes, 'READ_STORE') || hasScope(scopes, 'READ_TOOLS');
       }
     } catch {}
   }
 
   const found = (localStore.api_keys as ApiKeyRecord[]).find((k) => k.key_hash === tokenHash && !k.revoked);
   if (found) {
-    return found.scopes.some((s) => s === '*' || s === 'ADMIN' || s === 'admin' || s === 'READ_MEDIA' || s === 'read_media');
+    return hasScope(found.scopes, 'READ_MEDIA') || hasScope(found.scopes, 'READ_STORE') || hasScope(found.scopes, 'READ_TOOLS');
   }
   return false;
 }
 
-function requireScope(scope: string) {
+function requireScope(scope: string, legacyFallbackScope?: string) {
   return (req: Request, res: Response, next: NextFunction) => {
     const key = (req as any).apiKey as ApiKeyRecord;
     if (!key) {
       return res.status(401).json({ error: 'Unauthenticated' });
     }
 
-    const normalizedReq = scope.toLowerCase().replace(/_/g, ':');
-    const hasScope = key.scopes.some((s) => {
-      if (s === '*' || s === 'ADMIN' || s === 'admin') return true;
-      if (s === scope) return true;
-      const normalizedKeyScope = s.toLowerCase().replace(/_/g, ':');
-      if (normalizedKeyScope === normalizedReq) return true;
-      // Reverse mapping: content:read <-> read_content, content:write <-> write_content
-      const invertedReq = scope.toLowerCase().includes(':')
-        ? scope.toLowerCase().split(':').reverse().join('_')
-        : scope.toLowerCase().split('_').reverse().join(':');
-      return s.toLowerCase() === invertedReq || normalizedKeyScope === invertedReq;
-    });
+    const authorized = hasScope(key.scopes, scope) || (legacyFallbackScope ? hasScope(key.scopes, legacyFallbackScope) : false);
 
-    if (!hasScope) {
+    if (!authorized) {
       return res.status(403).json({
         error: 'Forbidden',
+        missing_scope: scope,
         message: `API Key '${key.name}' does not have the required '${scope}' scope.`,
         available_scopes: key.scopes,
       });
@@ -2751,7 +2835,7 @@ app.delete(
 // --- ADMIN USE CASE ENDPOINTS ---
 
 // GET /api/v1/admin/use-cases — list ALL use cases including unpublished
-app.get('/api/v1/admin/use-cases', authenticateApiKey, async (req, res) => {
+app.get('/api/v1/admin/use-cases', authenticateApiKey, requireScope('READ_USE_CASES'), async (req, res) => {
   let allUseCases: any[] = [];
 
   if (supabase) {
@@ -2776,7 +2860,7 @@ app.get('/api/v1/admin/use-cases', authenticateApiKey, async (req, res) => {
 });
 
 // POST /api/v1/admin/use-cases — create a use case
-app.post('/api/v1/admin/use-cases', authenticateApiKey, async (req, res) => {
+app.post('/api/v1/admin/use-cases', authenticateApiKey, requireScope('WRITE_USE_CASES'), async (req, res) => {
   const {
     category_slug,
     title,
@@ -2796,6 +2880,10 @@ app.post('/api/v1/admin/use-cases', authenticateApiKey, async (req, res) => {
     });
   }
 
+  const callerKey = (req as any).apiKey;
+  const canPublish = hasScope(callerKey?.scopes, 'PUBLISH_USE_CASES');
+  const isPublished = Boolean(published) && canPublish;
+
   const newUseCase = {
     id: crypto.randomUUID ? crypto.randomUUID() : `uc_${Date.now()}`,
     category_slug,
@@ -2807,7 +2895,7 @@ app.post('/api/v1/admin/use-cases', authenticateApiKey, async (req, res) => {
     industry_tags: Array.isArray(industry_tags) ? industry_tags : [],
     image_url: null,
     image_alt: null,
-    published: Boolean(published),
+    published: isPublished,
     sort_order: sort_order ? parseInt(sort_order, 10) : 0,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -2835,9 +2923,18 @@ app.post('/api/v1/admin/use-cases', authenticateApiKey, async (req, res) => {
 });
 
 // PATCH /api/v1/admin/use-cases/:id — update a use case (including toggle published)
-app.patch('/api/v1/admin/use-cases/:id', authenticateApiKey, async (req, res) => {
+app.patch('/api/v1/admin/use-cases/:id', authenticateApiKey, requireScope('WRITE_USE_CASES'), async (req, res) => {
   const { id } = req.params;
   const updates = { ...req.body, updated_at: new Date().toISOString() };
+
+  const callerKey = (req as any).apiKey;
+  if (updates.published === true && !hasScope(callerKey?.scopes, 'PUBLISH_USE_CASES')) {
+    return res.status(403).json({
+      error: 'Forbidden',
+      missing_scope: 'PUBLISH_USE_CASES',
+      message: `API Key '${callerKey?.name || 'unknown'}' lacks required 'PUBLISH_USE_CASES' scope to publish use cases.`,
+    });
+  }
 
   let updatedRecord: any = null;
 
@@ -2872,7 +2969,7 @@ app.patch('/api/v1/admin/use-cases/:id', authenticateApiKey, async (req, res) =>
 });
 
 // DELETE /api/v1/admin/use-cases/:id — delete a use case
-app.delete('/api/v1/admin/use-cases/:id', authenticateApiKey, async (req, res) => {
+app.delete('/api/v1/admin/use-cases/:id', authenticateApiKey, requireScope('WRITE_USE_CASES'), async (req, res) => {
   const { id } = req.params;
 
   if (supabase) {
@@ -2959,7 +3056,7 @@ app.get('/api/v1/news/:slug', async (req, res) => {
 });
 
 // GET /api/v1/admin/news — list all news articles (draft & published)
-app.get('/api/v1/admin/news', authenticateApiKey, async (req, res) => {
+app.get('/api/v1/admin/news', authenticateApiKey, requireScope('READ_NEWS'), async (req, res) => {
   let articles: any[] = [];
 
   if (supabase) {
@@ -2983,81 +3080,37 @@ app.get('/api/v1/admin/news', authenticateApiKey, async (req, res) => {
 });
 
 // POST /api/v1/admin/news — create news article
-app.post('/api/v1/admin/news', authenticateApiKey, async (req, res) => {
-  const {
-    title,
-    slug,
-    summary,
-    body,
-    category,
-    author,
-    read_time,
-    badge,
-    featured,
-    tags,
-    takeaways,
-    source,
-    accent_color,
-    published,
-    sort_order,
-  } = req.body;
+app.post('/api/v1/admin/news', authenticateApiKey, requireScope('WRITE_NEWS'), async (req, res) => {
+  const result = await executeRegistryTool('site_news_create', req.body, {
+    db: adminSupabase || supabase,
+    store: localStore,
+    callerApiKey: (req as any).apiKey,
+    isOperatorSession:
+      Boolean((req as any).apiKey?.scopes?.includes('*')) ||
+      Boolean((req as any).apiKey?.id?.startsWith('operator_')) ||
+      (req as any).apiKey?.id === 'key_operator_session',
+  });
 
-  if (!title || !summary || !body) {
-    return res.status(400).json({
-      error: 'Bad Request',
-      message: 'title, summary, and body are required fields.',
-    });
+  if (!result.success) {
+    return res.status(result.statusCode || 400).json(result.data || { error: result.error });
   }
 
-  const generatedSlug = (slug && String(slug).trim()) || String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-
-  const newArticle = {
-    id: crypto.randomUUID ? crypto.randomUUID() : `news_${Date.now()}`,
-    slug: generatedSlug,
-    title: String(title).trim(),
-    summary: String(summary).trim(),
-    body: String(body).trim(),
-    category: category || 'Frontier Models',
-    hero_image: null,
-    author: author || 'CoreIQ Intelligence Desk',
-    read_time: read_time || '4 min read',
-    badge: badge || 'UPDATE',
-    featured: Boolean(featured),
-    tags: Array.isArray(tags) ? tags : (typeof tags === 'string' ? tags.split(',').map((t: string) => t.trim()).filter(Boolean) : []),
-    takeaways: Array.isArray(takeaways) ? takeaways : (typeof takeaways === 'string' ? takeaways.split('\n').map((t: string) => t.trim()).filter(Boolean) : []),
-    source: source || 'CoreIQ Frontier Intelligence',
-    accent_color: accent_color || 'cyan',
-    published: published !== undefined ? Boolean(published) : true,
-    sort_order: sort_order !== undefined ? parseInt(sort_order, 10) : 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('news_articles')
-        .insert([newArticle])
-        .select()
-        .single();
-      if (!error && data) {
-        return res.status(201).json({ status: 'created', article: data });
-      }
-    } catch (e) {
-      console.error('Supabase create news article error:', e);
-    }
-  }
-
-  if (!localStore.news_articles) localStore.news_articles = [];
-  localStore.news_articles.unshift(newArticle);
-
-  return res.status(201).json({ status: 'created', article: newArticle });
+  return res.status(201).json(result.data);
 });
 
 // PATCH /api/v1/admin/news/:id & PUT /api/v1/admin/news/:id — update news article
 const handleUpdateNewsArticle = async (req: Request, res: Response) => {
   const { id } = req.params;
   const updates: any = { ...req.body, updated_at: new Date().toISOString() };
+
+  const callerKey = (req as any).apiKey;
+  if (updates.published === true && !hasScope(callerKey?.scopes, 'PUBLISH_NEWS')) {
+    return res.status(403).json({
+      error: 'Forbidden',
+      missing_scope: 'PUBLISH_NEWS',
+      message: `API Key '${callerKey?.name || 'unknown'}' lacks required 'PUBLISH_NEWS' scope to publish news articles.`,
+    });
+  }
 
   if (typeof updates.tags === 'string') {
     updates.tags = updates.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
@@ -3097,11 +3150,11 @@ const handleUpdateNewsArticle = async (req: Request, res: Response) => {
   return res.json({ status: 'updated', article: updatedRecord });
 };
 
-app.patch('/api/v1/admin/news/:id', authenticateApiKey, handleUpdateNewsArticle);
-app.put('/api/v1/admin/news/:id', authenticateApiKey, handleUpdateNewsArticle);
+app.patch('/api/v1/admin/news/:id', authenticateApiKey, requireScope('WRITE_NEWS'), handleUpdateNewsArticle);
+app.put('/api/v1/admin/news/:id', authenticateApiKey, requireScope('WRITE_NEWS'), handleUpdateNewsArticle);
 
 // DELETE /api/v1/admin/news/:id — delete news article
-app.delete('/api/v1/admin/news/:id', authenticateApiKey, async (req, res) => {
+app.delete('/api/v1/admin/news/:id', authenticateApiKey, requireScope('WRITE_NEWS'), async (req, res) => {
   const { id } = req.params;
 
   if (supabase) {
@@ -3253,7 +3306,7 @@ function validateStoreAppPayload(body: any, isPatch = false): string[] {
 }
 
 // 1. GET /api/v1/store/apps — operator lists all store apps
-app.get('/api/v1/store/apps', authenticateApiKey, requireScope('READ_MEDIA'), async (req, res) => {
+app.get('/api/v1/store/apps', authenticateApiKey, requireScope('READ_STORE', 'READ_MEDIA'), async (req, res) => {
   const { status, category } = req.query as { status?: string; category?: string };
 
   let apps: any[] = [];
@@ -3287,7 +3340,7 @@ app.get('/api/v1/store/apps', authenticateApiKey, requireScope('READ_MEDIA'), as
 });
 
 // 2. POST /api/v1/store/apps — operator creates an app
-app.post('/api/v1/store/apps', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+app.post('/api/v1/store/apps', authenticateApiKey, requireScope('WRITE_STORE', 'WRITE_MEDIA'), async (req, res) => {
   const errors = validateStoreAppPayload(req.body, false);
   if (errors.length > 0) {
     return res.status(400).json({ error: 'Validation Error', messages: errors });
@@ -3409,7 +3462,7 @@ app.post('/api/v1/store/apps', authenticateApiKey, requireScope('WRITE_MEDIA'), 
 });
 
 // 3. PATCH /api/v1/store/apps/:id — operator updates an app
-app.patch('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+app.patch('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_STORE', 'WRITE_MEDIA'), async (req, res) => {
   const { id } = req.params;
   const errors = validateStoreAppPayload(req.body, true);
   if (errors.length > 0) {
@@ -3493,7 +3546,7 @@ app.patch('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_MEDI
 });
 
 // 4. DELETE /api/v1/store/apps/:id — operator deletes an app
-app.delete('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+app.delete('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_STORE', 'WRITE_MEDIA'), async (req, res) => {
   const { id } = req.params;
 
   if (adminSupabase) {
@@ -3517,7 +3570,7 @@ app.delete('/api/v1/store/apps/:id', authenticateApiKey, requireScope('WRITE_MED
 });
 
 // 5. POST /api/v1/store/apps/:id/upload-url — direct signed upload URL generation for private app-files bucket
-app.post('/api/v1/store/apps/:id/upload-url', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+app.post('/api/v1/store/apps/:id/upload-url', authenticateApiKey, requireScope('WRITE_STORE', 'WRITE_MEDIA'), async (req, res) => {
   const { id } = req.params;
   const { filename } = req.body;
 
@@ -3552,7 +3605,7 @@ app.post('/api/v1/store/apps/:id/upload-url', authenticateApiKey, requireScope('
 });
 
 // 6. POST /api/v1/store/apps/:id/file-complete — confirm upload and store metadata
-app.post('/api/v1/store/apps/:id/file-complete', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+app.post('/api/v1/store/apps/:id/file-complete', authenticateApiKey, requireScope('WRITE_STORE', 'WRITE_MEDIA'), async (req, res) => {
   const { id } = req.params;
   const { path: storagePath, name, size, sha256 } = req.body;
 
@@ -3597,7 +3650,7 @@ app.post('/api/v1/store/apps/:id/file-complete', authenticateApiKey, requireScop
 });
 
 // 7. POST /api/v1/store/apps/:id/access-links — create secure expiring access link
-app.post('/api/v1/store/apps/:id/access-links', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+app.post('/api/v1/store/apps/:id/access-links', authenticateApiKey, requireScope('WRITE_STORE', 'WRITE_MEDIA'), async (req, res) => {
   const { id } = req.params;
   const { note = '', hours = 72, max_uses = 1 } = req.body;
 
@@ -3646,7 +3699,7 @@ app.post('/api/v1/store/apps/:id/access-links', authenticateApiKey, requireScope
 });
 
 // 8. GET /api/v1/store/apps/:id/access-links — list access links for an app
-app.get('/api/v1/store/apps/:id/access-links', authenticateApiKey, requireScope('READ_MEDIA'), async (req, res) => {
+app.get('/api/v1/store/apps/:id/access-links', authenticateApiKey, requireScope('READ_STORE', 'READ_MEDIA'), async (req, res) => {
   const { id } = req.params;
 
   let links: any[] = [];
@@ -3673,7 +3726,7 @@ app.get('/api/v1/store/apps/:id/access-links', authenticateApiKey, requireScope(
 });
 
 // 9. GET /api/v1/store/requests — list customer/user requests
-app.get('/api/v1/store/requests', authenticateApiKey, requireScope('READ_MEDIA'), async (req, res) => {
+app.get('/api/v1/store/requests', authenticateApiKey, requireScope('READ_STORE', 'READ_MEDIA'), async (req, res) => {
   const { app_id, status } = req.query as { app_id?: string; status?: string };
 
   let requests: any[] = [];
@@ -3699,7 +3752,7 @@ app.get('/api/v1/store/requests', authenticateApiKey, requireScope('READ_MEDIA')
 });
 
 // 10. PATCH /api/v1/store/requests/:id — update request status
-app.patch('/api/v1/store/requests/:id', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+app.patch('/api/v1/store/requests/:id', authenticateApiKey, requireScope('WRITE_STORE', 'WRITE_MEDIA'), async (req, res) => {
   const { id } = req.params;
   const { status, admin_note } = req.body;
 
@@ -3731,7 +3784,7 @@ app.patch('/api/v1/store/requests/:id', authenticateApiKey, requireScope('WRITE_
 });
 
 // 11. GET /api/v1/store/settings/:key — get setting (e.g. 'payment')
-app.get('/api/v1/store/settings/:key', authenticateApiKey, requireScope('READ_MEDIA'), async (req, res) => {
+app.get('/api/v1/store/settings/:key', authenticateApiKey, requireScope('READ_STORE', 'READ_MEDIA'), async (req, res) => {
   const { key } = req.params;
 
   let setting: any = null;
@@ -3751,7 +3804,7 @@ app.get('/api/v1/store/settings/:key', authenticateApiKey, requireScope('READ_ME
 });
 
 // 12. PUT /api/v1/store/settings/:key — operator saves global setting (e.g. 'payment')
-app.put('/api/v1/store/settings/:key', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+app.put('/api/v1/store/settings/:key', authenticateApiKey, requireScope('WRITE_STORE', 'WRITE_MEDIA'), async (req, res) => {
   const { key } = req.params;
   const { value } = req.body;
 
@@ -3784,7 +3837,7 @@ app.put('/api/v1/store/settings/:key', authenticateApiKey, requireScope('WRITE_M
 app.post(
   '/api/v1/store/apps/:id/media-upload',
   authenticateApiKey,
-  requireScope('WRITE_MEDIA'),
+  requireScope('WRITE_STORE', 'WRITE_MEDIA'),
   (upload.single('file') as any),
   async (req, res) => {
     const appId = String(req.params.id);
@@ -3837,7 +3890,7 @@ app.post(
 );
 
 // 14. GET /api/v1/store/stats — real download counts per app
-app.get('/api/v1/store/stats', authenticateApiKey, requireScope('READ_MEDIA'), async (req, res) => {
+app.get('/api/v1/store/stats', authenticateApiKey, requireScope('READ_STORE', 'READ_MEDIA'), async (req, res) => {
   const statsMap: Record<string, { downloads: number; last_download_at: string | null }> = {};
 
   const client = adminSupabase || supabase;
@@ -3909,7 +3962,7 @@ function isPrivateOrDisallowedHost(hostname: string): boolean {
 }
 
 // 15. POST /api/v1/store/check-url — operator validates custom payment or app URL with SSRF protection
-app.post('/api/v1/store/check-url', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
+app.post('/api/v1/store/check-url', authenticateApiKey, requireScope('WRITE_STORE', 'WRITE_MEDIA'), async (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== 'string') {
     return res.status(400).json({ error: 'Validation Error', message: 'url string is required' });
@@ -4361,6 +4414,30 @@ app.post('/api/v1/store/apps/:slug/request', publicStoreRateLimiter, async (req,
     return res.status(500).json({ error: 'Database Error', message: 'Failed to record your request. Please retry.' });
   }
 
+  // STEP 5: Store app request CRM bridge enqueue
+  const userConsent = Boolean(req.body?.consent);
+  const userPhone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : undefined;
+  if ((cleanEmail || userPhone) && userConsent) {
+    try {
+      const modeText = app.price_mode === 'paid' ? 'purchase' : app.price_mode === 'contact' ? 'contact' : 'access';
+      const crmPayload = buildPayload({
+        source: 'coreiq-website-app-request',
+        session_id: `app-request-${reqId}`,
+        name: cleanName,
+        email: cleanEmail,
+        phone: userPhone,
+        summary: `Requested ${modeText} for ${app.title}`,
+        intent: 'app',
+        consent: true,
+        page_url: `/apps/${app.slug}`,
+      });
+      await enqueueOutbox(crmPayload, { db: adminSupabase || supabase, localStore });
+      processOutbox(10, { db: adminSupabase || supabase, localStore }).catch(() => {});
+    } catch (crmErr: any) {
+      console.warn('[CRM Bridge app-request enqueue warning]:', crmErr?.message);
+    }
+  }
+
   return res.status(201).json({
     status: 'received',
     success: true,
@@ -4513,10 +4590,12 @@ app.get('/api/v1/store/public/access/:token', publicStoreRateLimiter, async (req
 });
 
 registerSiteToolsRoutes(app, { authenticateApiKey, requireScope, adminSupabase, publicRateLimiter: publicStoreRateLimiter });
+registerMachineAccessRoutes(app, { authenticateApiKey, requireScope, supabase, adminSupabase, localStore });
+registerCrmBridgeRoutes(app, { authenticateApiKey, requireScope, supabase, adminSupabase, localStore });
 
 // --- PUBLIC ASK ENDPOINT ---
 app.post('/api/ask', async (req, res) => {
-  const { message, history = [] } = req.body;
+  const { message, history = [], session_id } = req.body;
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'message is required' });
@@ -4614,7 +4693,7 @@ const systemPrompt = buildSystemPrompt() || agentConfig?.system_prompt || 'You a
     }
 
     // Save lead if conversation is substantial
-    if (history.length >= 2 && supabase) {
+    if (history.length >= 2) {
       const lead = {
         id: crypto.randomUUID ? crypto.randomUUID() : `lead_${Date.now()}`,
         created_at: new Date().toISOString(),
@@ -4625,8 +4704,15 @@ const systemPrompt = buildSystemPrompt() || agentConfig?.system_prompt || 'You a
         intent_type: 'custom',
         source: 'ask_page',
         status: 'new',
+        session_id: session_id || null,
+        crm_skipped_reason: 'no_contact',
       };
-      supabase.from('leads').insert([lead]).then(() => {});
+      if (supabase) {
+        supabase.from('leads').insert([lead]).then(() => {});
+      } else {
+        localStore.leads = localStore.leads || [];
+        localStore.leads.unshift(lead);
+      }
     }
 
     await mem0Save(message, assistantMessage);
