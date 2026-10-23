@@ -6,7 +6,7 @@ import { ScrambleText } from '../components/ask/ScrambleText';
 import { useMagneticHover } from '../hooks/useMagneticHover';
 import { coreIQRuntime, getOrCreateSessionId } from '../services/coreiqRuntime';
 import { CoreIQData } from '../services/supabase';
-import { ArrowRight, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowRight, CheckCircle2, AlertCircle, RefreshCw, Volume2, Square } from 'lucide-react';
 import '../styles/ask.css';
 
 interface Message {
@@ -95,6 +95,7 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
 
   // CRM Bridge "Take this forward" card state
   const [forwardCardMessageId, setForwardCardMessageId] = useState<string | null>(null);
@@ -239,6 +240,47 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
       document.body.classList.remove('ask-page-active');
     };
   }, []);
+
+  // Stop any active speech synthesis on component unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  // Text-to-speech (TTS) handler using window.speechSynthesis
+  const handleToggleSpeak = (messageId: string, text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    if (speakingMessageId === messageId) {
+      window.speechSynthesis.cancel();
+      setSpeakingMessageId(null);
+      return;
+    }
+
+    // Cancel any ongoing speech so only one message can be spoken at a time
+    window.speechSynthesis.cancel();
+
+    // Clean plain text: strip markdown / code blocks if necessary for clear audio
+    const cleanText = text
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/[*_#]/g, '')
+      .trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText || text);
+    utterance.onend = () => {
+      setSpeakingMessageId((current) => (current === messageId ? null : current));
+    };
+    utterance.onerror = () => {
+      setSpeakingMessageId((current) => (current === messageId ? null : current));
+    };
+
+    setSpeakingMessageId(messageId);
+    window.speechSynthesis.speak(utterance);
+  };
 
   // Handle initial prompt from homepage or route navigation
   useEffect(() => {
@@ -927,8 +969,34 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
                         : 'bg-black/60 text-white/95 border border-cyan-500/25 shadow-[0_0_20px_rgba(34,211,238,0.08)]'
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-1 text-[11px] font-mono uppercase tracking-wider text-cyan-400">
-                      {m.role === 'user' ? 'You' : 'CoreIQ Engine'}
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-cyan-400">
+                        {m.role === 'user' ? 'You' : 'CoreIQ Engine'}
+                      </div>
+                      {m.role === 'assistant' && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSpeak(m.id, m.content)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono transition-colors cursor-pointer select-none ${
+                            speakingMessageId === m.id
+                              ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25'
+                              : 'bg-white/5 text-slate-300 hover:text-white border border-white/10 hover:border-cyan-500/30 hover:bg-white/10'
+                          }`}
+                          aria-label={speakingMessageId === m.id ? 'Stop reading aloud' : 'Read aloud'}
+                        >
+                          {speakingMessageId === m.id ? (
+                            <>
+                              <Square className="w-3 h-3 fill-current text-amber-300" />
+                              <span>Stop</span>
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 className="w-3 h-3 text-cyan-400" />
+                              <span>Read aloud</span>
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                     <div>{m.content}</div>
 
