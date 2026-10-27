@@ -31,6 +31,8 @@ import { executeRegistryTool } from './src/server/registryExecution';
 
 const MEM0_API_KEY = process.env.MEM0_API_KEY || '';
 const MEM0_USER_ID = process.env.MEM0_USER_ID || 'maat-builder-shared';
+const PUBLIC_MEM0 = process.env.PUBLIC_MEM0 === 'on';
+const ANON_LEADS = process.env.ANON_LEADS === 'on';
 
 async function mem0Search(query: string): Promise<string> {
   if (!MEM0_API_KEY) return '';
@@ -4618,7 +4620,7 @@ app.post('/api/ask', async (req, res) => {
     const modelName = agentConfig?.model_name || 'openai/gpt-oss-120b';
 const systemPrompt = buildSystemPrompt() || agentConfig?.system_prompt || 'You are CoreIQ.';
 
-    const memContext = await mem0Search(message);
+    const memContext = PUBLIC_MEM0 ? await mem0Search(message) : '';
     const enrichedPrompt = memContext ? `${systemPrompt}\n\n${memContext}` : systemPrompt;
 
     let assistantMessage = '';
@@ -4693,7 +4695,7 @@ const systemPrompt = buildSystemPrompt() || agentConfig?.system_prompt || 'You a
     }
 
     // Save lead if conversation is substantial
-    if (history.length >= 2) {
+    if (ANON_LEADS && history.length >= 2) {
       const lead = {
         id: crypto.randomUUID ? crypto.randomUUID() : `lead_${Date.now()}`,
         created_at: new Date().toISOString(),
@@ -4715,7 +4717,7 @@ const systemPrompt = buildSystemPrompt() || agentConfig?.system_prompt || 'You a
       }
     }
 
-    await mem0Save(message, assistantMessage);
+    if (PUBLIC_MEM0) await mem0Save(message, assistantMessage);
     return res.json({ assistantMessage });
 
   } catch (e) {

@@ -394,6 +394,7 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
       setMessages((prev) => [...prev, aiMsg]);
       if (voiceEnabledRef.current) speakText(aiMsg.id, aiMsg.content, 500);
 
+      const RECORD_ANON_LEADS: boolean = false as boolean;
       // Record lead in Supabase database
       const fullTurns = updatedHistory.map((m) => ({
         sender: m.role === 'user' ? ('user' as const) : ('coreiq' as const),
@@ -401,7 +402,7 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
         timestamp: m.timestamp.toISOString(),
       }));
 
-      if (!activeLeadId) {
+      if (RECORD_ANON_LEADS && !activeLeadId) {
         const lead = await CoreIQData.insertLead({
           source: 'website',
           client_name: 'Anonymous Creator',
@@ -414,7 +415,7 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
           budget_range: '$5k - $15k',
         });
         if (lead?.id) setActiveLeadId(lead.id);
-      } else {
+      } else if (RECORD_ANON_LEADS && activeLeadId) {
         await CoreIQData.updateLead(activeLeadId, {
           full_conversation: fullTurns,
           conversation_summary: text,
