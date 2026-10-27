@@ -250,36 +250,105 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
     };
   }, []);
 
-  // Text-to-speech (TTS) handler using window.speechSynthesis
+  // ---- Voice: browser speechSynthesis (swap speakText for server TTS later) ----
+  const [voiceEnabled, setVoiceEnabled] = useState<boolean>(() => {
+    try { return window.localStorage.getItem('coreiq_voice') !== 'off'; } catch { return true; }
+  });
+  const voiceEnabledRef = useRef(voiceEnabled);
+  voiceEnabledRef.current = voiceEnabled;
+  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+
+  const pickVoice = (): SpeechSynthesisVoice | null => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices.length) return voiceRef.current;
+    const nav = (navigator.language || 'en-US').toLowerCase();
+    const score = (v: SpeechSynthesisVoice) => {
+      const l = v.lang.toLowerCase().replace('_', '-');
+      let s = 0;
+      if (!l.startsWith('en')) s -= 10;
+      if (l === nav) s += 2;
+      if (/natural|neural|online/i.test(v.name)) s += 6;
+      else if (/google/i.test(v.name)) s += 4;
+      if (!v.localService) s += 1;
+      return s;
+    };
+    voiceRef.current = [...voices].sort((a, b) => score(b) - score(a))[0] || null;
+    return voiceRef.current;
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const load = () => { pickVoice(); };
+    load();
+    window.speechSynthesis.addEventListener('voiceschanged', load);
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
+  }, []);
+
+  const speakText = (messageId: string, text: string, maxChars?: number) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    let clean = (text
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/[*_#>|]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()) || text;
+    if (maxChars && clean.length > maxChars) {
+      const cut = clean.slice(0, maxChars);
+      const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '));
+      clean = end > 80 ? cut.slice(0, end + 1) : cut;
+    }
+    const chunks = clean
+      .replace(/([.!?])\s+/g, '$1|')
+      .split('|')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!chunks.length) return;
+    const voice = voiceRef.current || pickVoice();
+    const done = () => setSpeakingMessageId((cur) => (cur === messageId ? null : cur));
+    setSpeakingMessageId(messageId);
+    chunks.forEach((chunk, i) => {
+      const u = new SpeechSynthesisUtterance(chunk);
+      if (voice) { u.voice = voice; u.lang = voice.lang; }
+      u.rate = 1;
+      u.pitch = 1;
+      if (i === chunks.length - 1) u.onend = done;
+      u.onerror = done;
+      window.speechSynthesis.speak(u);
+    });
+  };
+
+  // Call inside the Send gesture: stops old speech and unlocks audio (iOS)
+  const primeSpeech = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    if (!voiceEnabledRef.current) return;
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+  };
+
+  const toggleVoice = () => {
+    const next = !voiceEnabled;
+    setVoiceEnabled(next);
+    try { window.localStorage.setItem('coreiq_voice', next ? 'on' : 'off'); } catch {}
+    if (!next && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setSpeakingMessageId(null);
+    }
+  };
+
+  // Manual Read aloud / Stop button
   const handleToggleSpeak = (messageId: string, text: string) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-
     if (speakingMessageId === messageId) {
       window.speechSynthesis.cancel();
       setSpeakingMessageId(null);
       return;
     }
-
-    // Cancel any ongoing speech so only one message can be spoken at a time
-    window.speechSynthesis.cancel();
-
-    // Clean plain text: strip markdown / code blocks if necessary for clear audio
-    const cleanText = text
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/`([^`]+)`/g, '$1')
-      .replace(/[*_#]/g, '')
-      .trim();
-
-    const utterance = new SpeechSynthesisUtterance(cleanText || text);
-    utterance.onend = () => {
-      setSpeakingMessageId((current) => (current === messageId ? null : current));
-    };
-    utterance.onerror = () => {
-      setSpeakingMessageId((current) => (current === messageId ? null : current));
-    };
-
-    setSpeakingMessageId(messageId);
-    window.speechSynthesis.speak(utterance);
+    speakText(messageId, text);
   };
 
   // Handle initial prompt from homepage or route navigation
@@ -294,6 +363,7 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
   const sendQuery = async (queryText?: string) => {
     const text = (queryText ?? input).trim();
     if (!text || loading) return;
+    primeSpeech();
 
     setInput('');
     if (textareaRef.current) {
@@ -322,6 +392,7 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
 
       const updatedHistory = [...messages, userMsg, aiMsg];
       setMessages((prev) => [...prev, aiMsg]);
+      if (voiceEnabledRef.current) speakText(aiMsg.id, aiMsg.content, 500);
 
       // Record lead in Supabase database
       const fullTurns = updatedHistory.map((m) => ({
@@ -382,6 +453,15 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
       id="ask-page-root"
       className="relative w-full bg-[#080808] text-white flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden font-sans"
     >
+            <button
+        type="button"
+        onClick={toggleVoice}
+        aria-pressed={voiceEnabled}
+        aria-label={voiceEnabled ? 'Turn off spoken replies' : 'Turn on spoken replies'}
+        className="absolute top-3 right-3 z-40 flex h-11 min-w-[44px] items-center justify-center rounded-full border border-white/15 bg-black/60 px-3 text-xs text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+      >
+        {voiceEnabled ? 'Voice on' : 'Voice off'}
+      </button>
       {/* Hidden file input for Attach icon */}
       <input
         ref={fileInputRef}
