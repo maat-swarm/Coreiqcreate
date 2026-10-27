@@ -11,9 +11,12 @@ export interface CoreIQAnalysisResponse {
   responseMessage: string;
 }
 
+export const CRM_GUIDANCE_INSTRUCTION =
+  "When the visitor wants to proceed, point them to the 'Take this forward' button. Never claim an action was completed, never promise that someone will call or reply within a time, and never mention the CRM, outbox or internal systems.";
+
 export interface ICoreIQRuntime {
-  analyzeIntent(prompt: string, history?: { role: string; content: string }[]): Promise<CoreIQAnalysisResponse>;
-  processQuery(prompt: string, config?: any): Promise<{ assistantMessage: string; blueprint?: SolutionBlueprint }>;
+  analyzeIntent(prompt: string, history?: { role: string; content: string }[], sessionId?: string): Promise<CoreIQAnalysisResponse>;
+  processQuery(prompt: string, config?: any, sessionId?: string): Promise<{ assistantMessage: string; blueprint?: SolutionBlueprint }>;
 }
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -57,33 +60,11 @@ function parseResponse(text: string, prompt: string): CoreIQAnalysisResponse {
   };
 }
 
-export const CRM_BRIDGE_PROMPT_INSTRUCTION =
-  "When the visitor wants to proceed, point them to the 'Take this forward' button. Never claim an action was completed, never promise that someone will call or reply within a time, and never mention the CRM, outbox or internal systems.";
-
-export function getOrCreateSessionId(): string {
-  try {
-    let sid = sessionStorage.getItem('coreiq_ask_session_id');
-    if (!sid) {
-      sid = (typeof crypto !== 'undefined' && crypto.randomUUID)
-        ? crypto.randomUUID()
-        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-            const r = (Math.random() * 16) | 0;
-            return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-          });
-      sessionStorage.setItem('coreiq_ask_session_id', sid);
-    }
-    return sid;
-  } catch {
-    return '10000000-0000-4000-8000-000000000000';
-  }
-}
-
 class RemoteCoreIQRuntime implements ICoreIQRuntime {
   private history: { role: string; content: string }[] = [];
 
-  async analyzeIntent(prompt: string): Promise<CoreIQAnalysisResponse> {
+  async analyzeIntent(prompt: string, _historyOverride?: { role: string; content: string }[], sessionId?: string): Promise<CoreIQAnalysisResponse> {
     try {
-      const sessionId = getOrCreateSessionId();
       const res = await fetch(`${API_BASE}/api/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,6 +72,7 @@ class RemoteCoreIQRuntime implements ICoreIQRuntime {
           message: prompt,
           history: this.history,
           session_id: sessionId,
+          guidance: CRM_GUIDANCE_INSTRUCTION,
         }),
       });
 
@@ -189,8 +171,8 @@ class RemoteCoreIQRuntime implements ICoreIQRuntime {
     }
   }
 
-  async processQuery(prompt: string, _config?: any): Promise<{ assistantMessage: string; blueprint?: SolutionBlueprint }> {
-    const result = await this.analyzeIntent(prompt);
+  async processQuery(prompt: string, _config?: any, sessionId?: string): Promise<{ assistantMessage: string; blueprint?: SolutionBlueprint }> {
+    const result = await this.analyzeIntent(prompt, undefined, sessionId);
     return {
       assistantMessage: result.responseMessage,
       blueprint: result.recommendedBlueprint,

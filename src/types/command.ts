@@ -1,5 +1,3 @@
-import type { ApiScope } from '../shared/scopes';
-
 export type CommandTab = 
   | 'inbox'
   | 'tasks'
@@ -38,7 +36,8 @@ export interface NewsArticleItem {
   updated_at: string;
 }
 
-export type { ApiScope, StandardApiScope } from '../shared/scopes';
+import type { ApiScope, StandardApiScope } from '../shared/scopes';
+export type { ApiScope, StandardApiScope };
 
 export type MediaSlotType = 'image' | 'video' | 'url';
 
@@ -129,6 +128,32 @@ export interface LeadItem {
   crm_client_code?: string | null;
   crm_synced_at?: string | null;
   crm_skipped_reason?: string | null;
+}
+
+export type CrmOutboxStatus = 'pending' | 'sending' | 'sent' | 'dead';
+
+export interface CrmOutboxRecord {
+  id: string;
+  session_id: string;
+  source: string;
+  payload: Record<string, any>;
+  status: CrmOutboxStatus;
+  attempts: number;
+  last_error?: string | null;
+  next_attempt_at: string;
+  lease_until?: string | null;
+  crm_client_id?: string | null;
+  crm_client_code?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CrmBridgeHealth {
+  configured: boolean;
+  crm_host: string | null;
+  counts: Record<CrmOutboxStatus, number>;
+  last_success_at: string | null;
+  oldest_pending_age_seconds: number | null;
 }
 
 export type SocialPlatformSource = 'facebook' | 'instagram' | 'x' | 'linkedin' | 'whatsapp' | 'telegram' | 'tiktok';

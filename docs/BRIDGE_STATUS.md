@@ -1,74 +1,48 @@
 # CoreIQ CRM Bridge — Inspection Status (Step 0)
 
-Date: 2026-10-21  
-Target CRM Endpoint: `https://coreiqcreate-crm.onrender.com/api/v1/intake`
+## 1. Where Leads Are Created
+1. **/ask Chat Flow (Client-side)**:
+   - `src/pages/Ask.tsx`: Inside `sendQuery()`, calls `CoreIQData.insertLead()` with client_name ("Anonymous Creator"), client_contact ("inbound@coreiq.dev"), client_message, conversation_summary, intent_type (tab category), status ("new"), and full_conversation turns. Updates the existing lead on subsequent turns.
+2. **/api/ask Endpoint (Server-side)**:
+   - `server.ts`: At line 4618, when conversation history length is >= 2, automatically inserts a record into the `leads` table with client_name ("Website Visitor"), client_message, conversation_summary, intent_type ("custom"), source ("ask_page"), status ("new").
+3. **/api/v1/leads (REST API)**:
+   - `server.ts`: Authenticated endpoint (`WRITE_LEADS` scope) accepts `client_name`, `client_contact`, `client_message`, `conversation_summary`, `intent_type`, `source`, `budget_range`, `notes`. Inserts into Supabase `leads` or falls back to in-memory `localStore.leads`.
+4. **Store App Requests**:
+   - `server.ts`: `app.post('/api/v1/store/apps/:slug/request')` records a request in `app_requests` and calls `recordStoreLead(...)`, which creates a lead row in `leads` table with `source: 'app_request_<slug>'` and `intent_type: 'app_store'`.
+5. **CoreIQ MCP Tool**:
+   - `src/mcp/coreiqMcp.ts`: `create_lead` tool calls `executeCoreIQTool('create_lead', args)` which inserts into `leads`.
 
----
+## 2. Real `leads` Table Columns (Supabase)
+As verified in `supabase/schema.sql` and `src/types/command.ts`:
+- `id`: TEXT PRIMARY KEY
+- `created_at`: TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+- `source`: TEXT DEFAULT 'website' NOT NULL
+- `client_name`: TEXT NOT NULL
+- `client_contact`: TEXT NOT NULL
+- `client_message`: TEXT
+- `conversation_summary`: TEXT
+- `intent_type`: TEXT DEFAULT 'custom'
+- `status`: TEXT DEFAULT 'new' NOT NULL
+- `full_conversation`: JSONB
+- `client_id`: TEXT
+- `budget_range`: TEXT
+- `notes`: TEXT
 
-## 1. Where Leads Are Created Today
+### Required Nullable Bridge Columns to Add (Step 2)
+- `session_id`: TEXT (NULLABLE, indexed)
+- `crm_client_id`: TEXT (NULLABLE)
+- `crm_client_code`: TEXT (NULLABLE)
+- `crm_synced_at`: TIMESTAMPTZ (NULLABLE)
+- `crm_skipped_reason`: TEXT (NULLABLE)
 
-| Surface / Flow | Location | Mechanism | CRM Bridge Status Before |
-| :--- | :--- | :--- | :--- |
-| **Ask CoreIQ AI Chat** | `/api/ask` in `server.ts:4668` | Direct insert to `leads` table if history &ge; 2 turns | Unsynced; no contact info collected in chat |
-| **Client Brief Handoff** | `coreiqRuntime.ts:101` | Parses `##BRIEF##` from assistant, creates task in Command | Unsynced; created as internal task only |
-| **Store App Request** | `POST /api/v1/store/apps/:slug/request` (`server.ts:4348`) | Calls `recordStoreLead()`, writes to `app_requests` & `leads` | Needs CRM bridge enqueue on consent |
-| **Store Free App Download**| `POST /api/v1/store/apps/:slug/get` (`server.ts:4292`) | Calls `recordStoreLead()` | Unsynced |
-| **Machine / REST API** | `POST /api/v1/leads` (`server.ts:1278`) | Writes directly to `leads` | Unsynced |
-| **MCP Tool (`create_lead`)**| `src/mcp/coreiqMcp.ts:530` | Writes directly to `leads` | Unsynced |
-| **Registry Tool (`site_leads_create`)** | `src/server/registryExecution.ts:1496` | Writes directly to `leads` | Unsynced |
-| **Command Inbox Test Lead**| `CommandInboxTab.tsx:89` | Calls `CoreIQData.insertLead()` | Manual test simulation |
+## 3. How Ask Sends History to /api/ask
+- The client-side runtime `src/services/coreiqRuntime.ts` contains `RemoteCoreIQRuntime.analyzeIntent(prompt)`.
+- It executes `fetch(`${API_BASE}/api/ask`, { method: 'POST', body: JSON.stringify({ message: prompt, history: this.history }) })`.
+- `this.history` tracks an array of `{ role: 'user' | 'assistant', content: string }` representing the ongoing dialog.
+- The server receives `{ message, history = [], session_id }`, executes model completion via Groq or Gemini fallback, and records the conversation turn.
 
----
-
-## 2. Existing Schema for `public.leads`
-
-From `supabase/schema.sql` and `server.ts`:
-- `id` (text, primary key)
-- `created_at` (timestamptz, default now())
-- `source` (text, default 'website')
-- `client_name` (text, not null)
-- `client_contact` (text, not null)
-- `client_message` (text, nullable)
-- `conversation_summary` (text, nullable)
-- `intent_type` (text, default 'custom')
-- `status` (text, default 'new')
-- `full_conversation` (jsonb, nullable)
-- `client_id` (text, nullable)
-- `budget_range` (text, nullable)
-- `notes` (text, nullable)
-
-### Added Nullable Columns (CRM Bridge)
-- `session_id` (text, nullable, indexed)
-- `crm_client_id` (text, nullable)
-- `crm_client_code` (text, nullable)
-- `crm_synced_at` (timestamptz, nullable)
-- `crm_skipped_reason` (text, nullable: e.g. `'no_contact'`, `'no_consent'`)
-
----
-
-## 3. How /ask Sends History to `/api/ask`
-
-1. **Frontend (`src/services/coreiqRuntime.ts`)**:
-   - Maintains `this.history: { role: string; content: string }[]`.
-   - Sends `POST /api/ask` with JSON body: `{ message: string, history: this.history }`.
-   - Additive enhancement: Include `session_id` (retrieved or generated via `crypto.randomUUID()` in `sessionStorage`).
-2. **Backend (`server.ts:4569`)**:
-   - Parses `{ message, history = [], session_id } = req.body`.
-   - Passes context to agent model.
-
----
-
-## 4. Vercel Rewrites Analysis (`vercel.json`)
-
-`vercel.json` already defines:
-```json
-{
-  "source": "/api/v1/:path*",
-  "destination": "https://coreiqcreate.onrender.com/api/v1/:path*"
-},
-{
-  "source": "/api/:path*",
-  "destination": "https://coreiqcreate.onrender.com/api/:path*"
-}
-```
-All routes under `/api/v1/public/*`, including `/api/v1/public/lead-capture`, are **fully covered** by `/api/v1/:path*`. No additional rewrite rules are needed.
+## 4. Vercel.json Rewrites
+Inspected `/vercel.json`:
+- Contains rule: `{"source": "/api/v1/:path*", "destination": "https://coreiqcreate.onrender.com/api/v1/:path*"}`
+- Contains rule: `{"source": "/api/:path*", "destination": "https://coreiqcreate.onrender.com/api/:path*"}`
+- Because `/api/v1/:path*` is a wildcard match, all routes under `/api/v1/public/*`, `/api/v1/crm-bridge/*`, and `/api/v1/admin/crm-bridge/*` are automatically forwarded to Render. No additional rules are needed.

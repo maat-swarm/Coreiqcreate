@@ -1,168 +1,150 @@
 /**
- * CoreIQ CRM Bridge
- * Handles reliable server-side intake forwarding to CoreIQ CRM (https://coreiqcreate-crm.onrender.com).
- * Manages outbox queueing, retries, backoff, transcripts, secret redaction, and lead syncing.
+ * CoreIQ Create — CRM Bridge Server Module
+ * Connects website lead capture and app requests to CoreIQ CRM (POST /api/v1/intake)
+ * strictly server-side with an asynchronous outbox and retry engine.
  */
 
-import crypto from 'crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
+import type { CrmBridgeHealth, CrmOutboxRecord, CrmOutboxStatus } from '../types/command';
 
-export interface CrmTranscriptTurn {
-  role: 'visitor' | 'assistant';
-  text: string;
-  at: string;
+export interface RawTranscriptTurn {
+  role?: string;
+  sender?: string;
+  text?: string;
+  content?: string;
+  at?: string;
+  timestamp?: string | Date;
 }
 
-export type CrmIntent = 'website' | 'app' | 'automation' | 'agent' | 'voice' | 'unknown';
+export interface RawCrmInput {
+  session_id: string;
+  source?: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  company?: string | null;
+  summary?: string | null;
+  intent?: string | null;
+  budget_hint?: string | null;
+  page_url?: string | null;
+  consent: boolean;
+  transcript?: RawTranscriptTurn[];
+  honeypot?: string | null;
+}
 
-export interface CrmIntakePayload {
+export interface CrmPayload {
   source: string;
   session_id: string;
   name: string;
-  email: string;
-  phone?: string;
-  company?: string;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
   summary: string;
-  intent: CrmIntent;
-  budget_hint?: string;
-  page_url?: string;
+  intent: 'website' | 'app' | 'automation' | 'agent' | 'voice' | 'unknown';
+  budget_hint: string | null;
+  page_url: string | null;
   consent: boolean;
-  transcript: CrmTranscriptTurn[];
-  honeypot: '';
+  transcript: Array<{ role: 'visitor' | 'assistant'; text: string; at: string }>;
+  honeypot: string;
 }
 
-export interface CrmOutboxRow {
-  id: string;
-  session_id: string;
-  source: string;
-  payload: CrmIntakePayload;
-  status: 'pending' | 'sending' | 'sent' | 'dead';
-  attempts: number;
-  last_error?: string | null;
-  next_attempt_at: string;
-  lease_until?: string | null;
-  crm_client_id?: string | null;
-  crm_client_code?: string | null;
-  created_at: string;
-  updated_at: string;
+export interface CrmIntakeResponse {
+  client_id?: string;
+  code?: string;
+  stage?: string;
+  engagement_id?: string;
+  error?: string;
+  message?: string;
 }
 
-export interface CrmBridgeConfig {
+// -----------------------------------------------------------------------------
+// 1. CONFIGURATION HELPERS
+// -----------------------------------------------------------------------------
+export function getBridgeConfig(): {
   intakeUrl: string;
   intakeKey: string;
-  isConfigured: boolean;
-}
-
-export interface CrmBridgeStats {
   configured: boolean;
-  crm_host: string | null;
-  counts: {
-    pending: number;
-    sending: number;
-    sent: number;
-    dead: number;
-    total: number;
-  };
-  last_success_at: string | null;
-  oldest_pending_age_seconds: number | null;
-}
-
-// Retry backoff schedule in milliseconds: 30s, 2m, 10m, 1h, 6h
-const BACKOFF_MS = [
-  30 * 1000,
-  2 * 60 * 1000,
-  10 * 60 * 1000,
-  60 * 60 * 1000,
-  6 * 60 * 60 * 1000,
-];
-const MAX_ATTEMPTS = 6;
-const LEASE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
-const SEND_TIMEOUT_MS = 65 * 1000; // 65 seconds timeout (CRM can take ~50s to wake)
-
-/**
- * Get current CRM Bridge configuration from server env
- */
-export function getCrmBridgeConfig(): CrmBridgeConfig {
+  isConfigured: boolean;
+  host: string | null;
+} {
   const intakeUrl = (process.env.CRM_INTAKE_URL || '').trim();
   const intakeKey = (process.env.CRM_INTAKE_KEY || '').trim();
   const isConfigured = Boolean(intakeUrl && intakeKey);
-  return {
-    intakeUrl,
-    intakeKey,
-    isConfigured,
-  };
+
+  let host: string | null = null;
+  if (intakeUrl) {
+    try {
+      const u = new URL(intakeUrl);
+      host = u.host;
+    } catch {
+      host = intakeUrl.replace(/^https?:\/\//, '').split('/')[0] || null;
+    }
+  }
+
+  return { intakeUrl, intakeKey, configured: isConfigured, isConfigured, host };
+}
+
+export function isBridgeConfigured(): boolean {
+  return getBridgeConfig().isConfigured;
+}
+
+// -----------------------------------------------------------------------------
+// 2. DATA NORMALIZATION & SECURITY REDACTION
+// -----------------------------------------------------------------------------
+
+/**
+ * Normalizes a phone number to E.164, applying South Africa (+27) default for local numbers.
+ */
+export function normalizePhone(raw?: string | null): string | null {
+  if (!raw || typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  // Preserve leading '+' if present
+  const hasLeadingPlus = trimmed.startsWith('+');
+  const digitsOnly = trimmed.replace(/\D/g, '');
+  if (!digitsOnly) return null;
+
+  if (hasLeadingPlus) {
+    return `+${digitsOnly}`;
+  }
+
+  // International prefix 00
+  if (digitsOnly.startsWith('00')) {
+    return `+${digitsOnly.slice(2)}`;
+  }
+
+  // Already prefixed with country code 27 (e.g. 27821234567)
+  if (digitsOnly.startsWith('27') && digitsOnly.length >= 10 && digitsOnly.length <= 12) {
+    return `+${digitsOnly}`;
+  }
+
+  // South African domestic format: starts with 0 and is 10 digits total (e.g. 0821234567)
+  if (digitsOnly.startsWith('0') && digitsOnly.length === 10) {
+    return `+27${digitsOnly.slice(1)}`;
+  }
+
+  // South African domestic without leading 0 (9 digits, e.g. 821234567)
+  if (digitsOnly.length === 9) {
+    return `+27${digitsOnly}`;
+  }
+
+  // Fallback: prepend '+' if longer than 9 digits, else return as +27 local
+  if (digitsOnly.length > 9) {
+    return `+${digitsOnly}`;
+  }
+
+  return `+27${digitsOnly}`;
 }
 
 /**
- * Normalise phone number to E.164 with South Africa default (+27)
+ * Maps input text or keywords to one of the canonical CRM intent types:
+ * website | app | automation | agent | voice | unknown
  */
-export function normalizePhone(rawPhone?: string | null): string | undefined {
-  if (!rawPhone || typeof rawPhone !== 'string') return undefined;
-  const trimmed = rawPhone.trim();
-  if (!trimmed) return undefined;
-
-  // Strip spaces, dashes, parentheses, dots
-  const stripped = trimmed.replace(/[\s\-\(\)\.]+/g, '');
-  if (!stripped) return undefined;
-
-  // Case 1: Already has leading +
-  if (stripped.startsWith('+')) {
-    const digits = stripped.slice(1).replace(/\D/g, '');
-    return digits ? `+${digits}` : undefined;
-  }
-
-  // Case 2: South Africa local starting with 0 (e.g. 0821234567 -> +27821234567)
-  if (/^0\d{9}$/.test(stripped)) {
-    return `+27${stripped.slice(1)}`;
-  }
-
-  // Case 3: Starts with 27 followed by 9 digits
-  if (/^27\d{9}$/.test(stripped)) {
-    return `+${stripped}`;
-  }
-
-  // Case 4: Digits only
-  const onlyDigits = stripped.replace(/\D/g, '');
-  if (!onlyDigits) return undefined;
-
-  // If 10 digits and starts with 0, convert to +27
-  if (onlyDigits.length === 10 && onlyDigits.startsWith('0')) {
-    return `+27${onlyDigits.slice(1)}`;
-  }
-
-  return `+${onlyDigits}`;
-}
-
-/**
- * Redact sensitive tokens and strip HTML tags
- */
-export function sanitizeTranscriptText(text: string): string {
-  if (!text || typeof text !== 'string') return '';
-
-  // 1. Strip HTML tags
-  let cleaned = text.replace(/<[^>]*>/g, '');
-
-  // 2. Redact ciq_live_ API keys
-  cleaned = cleaned.replace(/ciq_live_[a-zA-Z0-9_]+/g, '[REDACTED_KEY]');
-
-  // 3. Redact sk- API keys (OpenAI / Gemini / Anthropic)
-  cleaned = cleaned.replace(/sk-[a-zA-Z0-9_\-]+/g, '[REDACTED_KEY]');
-
-  // 4. Redact JWT tokens starting with eyJ
-  cleaned = cleaned.replace(/eyJ[a-zA-Z0-9_\-\.]+/g, '[REDACTED_JWT]');
-
-  // 5. Redact anything after "password:"
-  cleaned = cleaned.replace(/(password\s*:\s*)([^\s\n,;\)]+)/gi, '$1[REDACTED]');
-
-  return cleaned.trim().slice(0, 2000);
-}
-
-/**
- * Determine intent from text or keyword rules
- */
-export function detectIntent(textOrKeyword?: string | null): CrmIntent {
-  if (!textOrKeyword || typeof textOrKeyword !== 'string') return 'unknown';
-  const lower = textOrKeyword.toLowerCase();
+export function mapIntent(text?: string | null): 'website' | 'app' | 'automation' | 'agent' | 'voice' | 'unknown' {
+  if (!text || typeof text !== 'string') return 'unknown';
+  const lower = text.toLowerCase().trim();
 
   if (/website|site|landing/.test(lower)) return 'website';
   if (/app|mobile/.test(lower)) return 'app';
@@ -174,368 +156,353 @@ export function detectIntent(textOrKeyword?: string | null): CrmIntent {
 }
 
 /**
- * Build the standardised CRM intake payload
+ * Strips HTML and redacts secrets (ciq_live_, sk-, eyJ JWTs, and password values)
  */
-export function buildPayload(input: {
-  source?: string;
-  session_id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  company?: string;
-  summary?: string;
-  intent?: string;
-  budget_hint?: string;
-  page_url?: string;
-  consent: boolean;
-  transcript?: any[];
-}): CrmIntakePayload {
-  const source = (input.source && input.source.trim()) || 'coreiq-website';
-  const email = (input.email || '').trim().toLowerCase();
-  const phone = normalizePhone(input.phone);
-  const company = (input.company || '').trim() || undefined;
-  const summary = (input.summary || '').trim().slice(0, 1200);
-  const intent = detectIntent(input.intent || summary);
-  const budget_hint = (input.budget_hint || '').trim() || undefined;
-  const page_url = (input.page_url || '').trim() || undefined;
-  const consent = input.consent === true;
+export function sanitizeAndRedact(text?: string | null): string {
+  if (!text || typeof text !== 'string') return '';
 
-  // Process transcript turns: last 40 turns, { role: 'visitor'|'assistant', text: max 2000, at: ISO string }
-  const rawTranscript = Array.isArray(input.transcript) ? input.transcript : [];
-  const processedTranscript: CrmTranscriptTurn[] = rawTranscript
-    .slice(-40)
-    .map((turn: any) => {
-      const rawRole = String(turn?.role || turn?.sender || '').toLowerCase();
+  // 1. Strip HTML tags
+  let cleaned = text.replace(/<[^>]*>/g, '');
+
+  // 2. Redact ciq_live_ API keys
+  cleaned = cleaned.replace(/ciq_live_[a-zA-Z0-9_-]+/g, '[REDACTED_API_KEY]');
+
+  // 3. Redact OpenAI / third-party sk- keys
+  cleaned = cleaned.replace(/sk-[a-zA-Z0-9_-]{10,}/g, '[REDACTED_API_KEY]');
+
+  // 4. Redact JWTs starting with eyJ
+  cleaned = cleaned.replace(/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g, '[REDACTED_JWT]');
+  cleaned = cleaned.replace(/eyJ[a-zA-Z0-9._-]{20,}/g, '[REDACTED_JWT]');
+
+  // 5. Redact anything after "password:"
+  cleaned = cleaned.replace(/(password\s*:\s*)[^\s\r\n,;]+/gi, '$1[REDACTED]');
+
+  return cleaned;
+}
+
+/**
+ * Formats transcript turns, keeping the last 40 turns with max 2000 characters each.
+ */
+export function buildTranscript(
+  rawHistory?: RawTranscriptTurn[]
+): Array<{ role: 'visitor' | 'assistant'; text: string; at: string }> {
+  if (!rawHistory || !Array.isArray(rawHistory)) return [];
+
+  const turns = rawHistory
+    .map((turn) => {
+      const rawRole = (turn.role || turn.sender || 'visitor').toLowerCase();
       const role: 'visitor' | 'assistant' =
-        rawRole === 'assistant' || rawRole === 'coreiq' || rawRole === 'system' || rawRole === 'operator'
+        rawRole === 'assistant' || rawRole === 'coreiq' || rawRole === 'model' || rawRole === 'operator'
           ? 'assistant'
           : 'visitor';
 
-      const rawText = String(turn?.text || turn?.content || turn?.message || '');
-      const text = sanitizeTranscriptText(rawText);
-      const at = turn?.at || turn?.timestamp || new Date().toISOString();
+      const rawText = turn.text ?? turn.content ?? '';
+      const text = sanitizeAndRedact(rawText).slice(0, 2000);
 
-      return { role, text, at: typeof at === 'string' ? at : new Date(at).toISOString() };
-    });
+      let at = new Date().toISOString();
+      if (turn.at) {
+        at = turn.at;
+      } else if (turn.timestamp) {
+        at = typeof turn.timestamp === 'string' ? turn.timestamp : new Date(turn.timestamp).toISOString();
+      }
+
+      return { role, text, at };
+    })
+    .filter((t) => t.text.trim().length > 0);
+
+  return turns.slice(-40);
+}
+
+/**
+ * Builds the canonical CRM intake payload from raw input.
+ */
+export function buildPayload(input: RawCrmInput): CrmPayload {
+  const email = input.email && typeof input.email === 'string' ? input.email.trim().toLowerCase() : null;
+  const phone = normalizePhone(input.phone);
+
+  const rawSummary = input.summary || (input.transcript && input.transcript[0]?.text) || 'Website consultation lead';
+  const summary = sanitizeAndRedact(rawSummary).slice(0, 1200);
+
+  const intent = mapIntent(input.intent || input.summary || (input.transcript && input.transcript[0]?.text));
+
+  const transcript = buildTranscript(input.transcript);
 
   return {
-    source,
-    session_id: input.session_id,
-    name: input.name.trim(),
-    email,
-    ...(phone ? { phone } : {}),
-    ...(company ? { company } : {}),
+    source: (input.source && input.source.trim()) || 'coreiq-website',
+    session_id: input.session_id.trim(),
+    name: input.name ? sanitizeAndRedact(input.name.trim()).slice(0, 120) : 'Website Visitor',
+    email: email || null,
+    phone: phone || null,
+    company: input.company ? sanitizeAndRedact(input.company.trim()).slice(0, 120) : null,
     summary,
     intent,
-    ...(budget_hint ? { budget_hint } : {}),
-    ...(page_url ? { page_url } : {}),
-    consent,
-    transcript: processedTranscript,
-    honeypot: '',
+    budget_hint: input.budget_hint ? sanitizeAndRedact(input.budget_hint.trim()).slice(0, 80) : null,
+    page_url: input.page_url ? input.page_url.trim().slice(0, 255) : null,
+    consent: Boolean(input.consent === true),
+    transcript,
+    honeypot: input.honeypot || '',
   };
 }
 
 /**
- * Validate skip rules for intake:
- * Returns { shouldEnqueue: false, reason: 'no_contact' | 'no_consent' } if not qualified.
+ * Validates whether the lead qualifies for CRM intake queuing.
+ * Returns null if qualified, or a skipped reason string if not.
  */
-export function evaluateSkipRules(input: {
-  email?: string | null;
-  phone?: string | null;
-  consent?: boolean | null;
-}): { shouldEnqueue: boolean; reason?: 'no_contact' | 'no_consent' } {
-  const hasEmail = Boolean(input.email && input.email.trim());
-  const hasPhone = Boolean(input.phone && input.phone.trim());
-
-  if (!hasEmail && !hasPhone) {
-    return { shouldEnqueue: false, reason: 'no_contact' };
-  }
-
+export function getSkippedReason(input: RawCrmInput): 'no_consent' | 'no_contact' | null {
   if (input.consent !== true) {
-    return { shouldEnqueue: false, reason: 'no_consent' };
+    return 'no_consent';
+  }
+  const cleanEmail = input.email && input.email.trim();
+  const cleanPhone = normalizePhone(input.phone);
+  if (!cleanEmail && !cleanPhone) {
+    return 'no_contact';
+  }
+  return null;
+}
+
+// -----------------------------------------------------------------------------
+// 3. OUTBOX QUEUING & PERSISTENCE
+// -----------------------------------------------------------------------------
+
+/**
+ * Calculates exponential backoff: 30s, 2m, 10m, 1h, 6h; marks dead after 6 attempts.
+ */
+export function calculateNextAttempt(attempts: number): { nextAttemptAt: string; isDead: boolean } {
+  if (attempts >= 6) {
+    return { nextAttemptAt: new Date().toISOString(), isDead: true };
   }
 
-  return { shouldEnqueue: true };
+  const intervalsMs = [
+    30 * 1000, // Attempt 1: 30 seconds
+    2 * 60 * 1000, // Attempt 2: 2 minutes
+    10 * 60 * 1000, // Attempt 3: 10 minutes
+    60 * 60 * 1000, // Attempt 4: 1 hour
+    6 * 60 * 60 * 1000, // Attempt 5: 6 hours
+  ];
+
+  const delay = intervalsMs[Math.min(attempts - 1, intervalsMs.length - 1)] || 30 * 1000;
+  const nextAttemptAt = new Date(Date.now() + delay).toISOString();
+  return { nextAttemptAt, isDead: false };
 }
 
 /**
- * Enqueue an intake payload into crm_outbox (Supabase or localStore)
+ * Upserts a payload into crm_outbox by session_id.
+ * If row was already sent and the payload has changed, sets pending with a 60s debounce.
  */
 export async function enqueueOutbox(
-  payload: CrmIntakePayload,
-  ctx: {
-    db: SupabaseClient | null;
-    localStore: Record<string, any[]>;
-  }
-): Promise<{ row: CrmOutboxRow; status: 'queued' | 'debounced' }> {
-  const { db, localStore } = ctx;
-  const now = new Date();
-  const nowIso = now.toISOString();
+  db: SupabaseClient | null,
+  localStore: Record<string, any[]>,
+  sessionId: string,
+  source: string,
+  payload: CrmPayload
+): Promise<CrmOutboxRecord> {
+  const now = new Date().toISOString();
+  let existing: CrmOutboxRecord | null = null;
 
-  // Find existing outbox row by session_id
-  let existingRow: CrmOutboxRow | null = null;
   if (db) {
     try {
-      const { data } = await db
-        .from('crm_outbox')
-        .select('*')
-        .eq('session_id', payload.session_id)
-        .maybeSingle();
-      if (data) existingRow = data as CrmOutboxRow;
+      const { data } = await db.from('crm_outbox').select('*').eq('session_id', sessionId).maybeSingle();
+      if (data) existing = data as CrmOutboxRecord;
     } catch (e) {
-      console.warn('[CRM Bridge DB read warning]:', e);
+      console.warn('[CRM Bridge] Outbox lookup warning:', e);
     }
   }
 
-  if (!existingRow) {
-    localStore.crm_outbox = localStore.crm_outbox || [];
-    existingRow = localStore.crm_outbox.find((r: CrmOutboxRow) => r.session_id === payload.session_id) || null;
+  if (!existing && localStore.crm_outbox) {
+    existing = localStore.crm_outbox.find((r: CrmOutboxRecord) => r.session_id === sessionId) || null;
   }
 
-  let nextAttemptAt = nowIso;
-  let status: 'pending' | 'sending' | 'sent' | 'dead' = 'pending';
-  let queueStatus: 'queued' | 'debounced' = 'queued';
+  if (existing) {
+    const payloadChanged = JSON.stringify(existing.payload) !== JSON.stringify(payload);
+    let newStatus: CrmOutboxStatus = existing.status;
+    let nextAttemptAt = existing.next_attempt_at;
 
-  if (existingRow) {
-    // If already sent and payload has updated, set to pending with next_attempt_at = now + 60s (debounce)
-    if (existingRow.status === 'sent') {
-      const payloadChanged = JSON.stringify(existingRow.payload) !== JSON.stringify(payload);
+    if (existing.status === 'sent') {
       if (payloadChanged) {
-        nextAttemptAt = new Date(now.getTime() + 60 * 1000).toISOString();
-        status = 'pending';
-        queueStatus = 'debounced';
-      } else {
-        // Unchanged sent row remains sent
-        return { row: existingRow, status: 'queued' };
+        newStatus = 'pending';
+        // Debounce 60 seconds
+        nextAttemptAt = new Date(Date.now() + 60 * 1000).toISOString();
       }
-    } else if (existingRow.status === 'dead') {
-      // Allow new submission for a dead session to retry
-      status = 'pending';
-      nextAttemptAt = nowIso;
-    } else {
-      // Pending or sending
-      status = 'pending';
-      nextAttemptAt = existingRow.next_attempt_at || nowIso;
+    } else if (existing.status === 'dead' && payloadChanged) {
+      newStatus = 'pending';
+      nextAttemptAt = new Date(Date.now() + 60 * 1000).toISOString();
     }
+
+    const updatedRecord: CrmOutboxRecord = {
+      ...existing,
+      payload,
+      source: source || existing.source,
+      status: newStatus,
+      next_attempt_at: nextAttemptAt,
+      updated_at: now,
+    };
+
+    if (db) {
+      try {
+        await db
+          .from('crm_outbox')
+          .update({
+            payload,
+            source: updatedRecord.source,
+            status: newStatus,
+            next_attempt_at: nextAttemptAt,
+            updated_at: now,
+          })
+          .eq('session_id', sessionId);
+      } catch (e) {
+        console.warn('[CRM Bridge] Outbox update warning:', e);
+      }
+    }
+
+    if (localStore.crm_outbox) {
+      const idx = localStore.crm_outbox.findIndex((r: CrmOutboxRecord) => r.session_id === sessionId);
+      if (idx >= 0) localStore.crm_outbox[idx] = updatedRecord;
+    }
+
+    return updatedRecord;
   }
 
-  const outboxId = existingRow?.id || (crypto.randomUUID ? crypto.randomUUID() : `outbox_${Date.now()}`);
-  const outboxRecord: CrmOutboxRow = {
-    id: outboxId,
-    session_id: payload.session_id,
-    source: payload.source,
+  // Create new outbox record
+  const newRecord: CrmOutboxRecord = {
+    id: crypto.randomUUID ? crypto.randomUUID() : `outbox_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    session_id: sessionId,
+    source: source || 'coreiq-website',
     payload,
-    status,
-    attempts: existingRow ? existingRow.attempts : 0,
-    last_error: existingRow?.last_error || null,
-    next_attempt_at: nextAttemptAt,
+    status: 'pending',
+    attempts: 0,
+    last_error: null,
+    next_attempt_at: now,
     lease_until: null,
-    crm_client_id: existingRow?.crm_client_id || null,
-    crm_client_code: existingRow?.crm_client_code || null,
-    created_at: existingRow?.created_at || nowIso,
-    updated_at: nowIso,
+    crm_client_id: null,
+    crm_client_code: null,
+    created_at: now,
+    updated_at: now,
   };
 
   if (db) {
     try {
-      const { data, error } = await db
-        .from('crm_outbox')
-        .upsert([outboxRecord], { onConflict: 'session_id' })
-        .select()
-        .single();
-      if (!error && data) {
-        return { row: data as CrmOutboxRow, status: queueStatus };
-      }
+      await db.from('crm_outbox').insert([newRecord]);
     } catch (e) {
-      console.warn('[CRM Bridge DB upsert warning]:', e);
+      console.warn('[CRM Bridge] Outbox insert warning:', e);
     }
   }
 
-  // Fallback to localStore
   localStore.crm_outbox = localStore.crm_outbox || [];
-  const idx = localStore.crm_outbox.findIndex((r: CrmOutboxRow) => r.session_id === payload.session_id);
-  if (idx >= 0) {
-    localStore.crm_outbox[idx] = outboxRecord;
-  } else {
-    localStore.crm_outbox.push(outboxRecord);
-  }
-
-  return { row: outboxRecord, status: queueStatus };
+  localStore.crm_outbox.unshift(newRecord);
+  return newRecord;
 }
 
+// -----------------------------------------------------------------------------
+// 4. CRM HTTP TRANSMISSION
+// -----------------------------------------------------------------------------
+
 /**
- * Send an outbox row to CRM_INTAKE_URL
+ * Transmits payload to the CRM intake endpoint with 65s timeout.
+ * Never logs secrets or API tokens.
  */
-export async function sendOutboxRow(
-  row: CrmOutboxRow,
-  config: CrmBridgeConfig,
-  ctx: {
-    db: SupabaseClient | null;
-    localStore: Record<string, any[]>;
-  }
-): Promise<{ success: boolean; status: 'sent' | 'pending' | 'dead'; error?: string; client_code?: string; client_id?: string }> {
-  if (!config.isConfigured) {
-    return { success: false, status: 'pending', error: 'CRM bridge is not configured (missing URL or KEY)' };
+export async function sendCrmPayload(
+  payload: CrmPayload,
+  overrideConfig?: { intakeUrl: string; intakeKey: string }
+): Promise<{ success: boolean; status: number; data?: CrmIntakeResponse; error?: string }> {
+  const cfg = overrideConfig || getBridgeConfig();
+  if (!cfg.intakeUrl || !cfg.intakeKey) {
+    return {
+      success: false,
+      status: 503,
+      error: 'CRM Bridge is not configured (missing CRM_INTAKE_URL or CRM_INTAKE_KEY)',
+    };
   }
 
-  const { db, localStore } = ctx;
-  const now = new Date();
-
-  // Create AbortController with 65s timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
-
-  let responseStatus = 0;
-  let responseData: any = null;
-  let networkError: string | null = null;
+  // 65s timeout: CRM cold starts on free tiers can take ~50s
+  const timer = setTimeout(() => controller.abort(), 65000);
 
   try {
-    const res = await fetch(config.intakeUrl, {
+    const res = await fetch(cfg.intakeUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.intakeKey}`,
+        Authorization: `Bearer ${cfg.intakeKey}`,
       },
-      body: JSON.stringify(row.payload),
+      body: JSON.stringify(payload),
       signal: controller.signal,
     });
+    clearTimeout(timer);
 
-    responseStatus = res.status;
-    const text = await res.text();
-    try {
-      responseData = JSON.parse(text);
-    } catch {
-      responseData = { message: text.slice(0, 500) };
-    }
-  } catch (err: any) {
-    networkError = err?.name === 'AbortError' ? 'Connection timed out after 65s' : err?.message || 'Network error';
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  // Handle outcome
-  let nextStatus: 'sent' | 'pending' | 'dead' = 'pending';
-  let crmClientId: string | null = row.crm_client_id || null;
-  let crmClientCode: string | null = row.crm_client_code || null;
-  let lastError: string | null = null;
-  let nextAttemptAt: string = row.next_attempt_at;
-  const nextAttempts = row.attempts + 1;
-
-  if (!networkError && responseStatus >= 200 && responseStatus < 300) {
-    // 2xx Success
-    nextStatus = 'sent';
-    crmClientId = responseData?.client_id || responseData?.id || null;
-    crmClientCode = responseData?.code || responseData?.client_code || null;
-    lastError = null;
-  } else if (!networkError && responseStatus >= 400 && responseStatus < 500 && responseStatus !== 408 && responseStatus !== 429) {
-    // 4xx (except 408 & 429): Non-retryable error -> dead
-    nextStatus = 'dead';
-    lastError = `HTTP ${responseStatus}: ${String(responseData?.message || responseData?.error || 'Rejected by CRM').slice(0, 500)}`;
-  } else {
-    // 408, 429, 5xx, timeout, or network error: schedule retry with backoff
-    const errText = networkError || `HTTP ${responseStatus}: ${String(responseData?.message || responseData?.error || 'Server error').slice(0, 500)}`;
-    lastError = errText;
-
-    if (nextAttempts >= MAX_ATTEMPTS) {
-      nextStatus = 'dead';
-    } else {
-      nextStatus = 'pending';
-      const backoffDelay = BACKOFF_MS[Math.min(nextAttempts - 1, BACKOFF_MS.length - 1)];
-      nextAttemptAt = new Date(now.getTime() + backoffDelay).toISOString();
-    }
-  }
-
-  // Update outbox record
-  const updatedRow: CrmOutboxRow = {
-    ...row,
-    status: nextStatus,
-    attempts: nextStatus === 'sent' ? row.attempts : nextAttempts,
-    last_error: lastError,
-    next_attempt_at: nextAttemptAt,
-    lease_until: null,
-    crm_client_id: crmClientId,
-    crm_client_code: crmClientCode,
-    updated_at: new Date().toISOString(),
-  };
-
-  // Persist to DB or localStore
-  if (db) {
-    try {
-      await db.from('crm_outbox').update(updatedRow).eq('id', row.id);
-
-      // If sent, update corresponding row in public.leads table
-      if (nextStatus === 'sent') {
-        await db
-          .from('leads')
-          .update({
-            crm_client_id: crmClientId,
-            crm_client_code: crmClientCode,
-            crm_synced_at: new Date().toISOString(),
-          })
-          .eq('session_id', row.session_id);
+    let resData: any = null;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        resData = await res.json();
+      } catch {
+        resData = null;
       }
-    } catch (e) {
-      console.warn('[CRM Bridge outbox update DB error]:', e);
+    } else {
+      const text = await res.text();
+      resData = { message: text.slice(0, 300) };
     }
-  }
 
-  localStore.crm_outbox = localStore.crm_outbox || [];
-  const idx = localStore.crm_outbox.findIndex((r: CrmOutboxRow) => r.id === row.id);
-  if (idx >= 0) {
-    localStore.crm_outbox[idx] = updatedRow;
-  } else {
-    localStore.crm_outbox.push(updatedRow);
-  }
-
-  // Also update localStore leads if applicable
-  if (nextStatus === 'sent' && localStore.leads) {
-    const lead = localStore.leads.find((l: any) => l.session_id === row.session_id);
-    if (lead) {
-      lead.crm_client_id = crmClientId;
-      lead.crm_client_code = crmClientCode;
-      lead.crm_synced_at = new Date().toISOString();
+    if (res.ok) {
+      return {
+        success: true,
+        status: res.status,
+        data: resData as CrmIntakeResponse,
+      };
     }
-  }
 
-  return {
-    success: nextStatus === 'sent',
-    status: nextStatus,
-    error: lastError || undefined,
-    client_code: crmClientCode || undefined,
-    client_id: crmClientId || undefined,
-  };
+    return {
+      success: false,
+      status: res.status,
+      data: resData,
+      error: resData?.error || resData?.message || `HTTP ${res.status}`,
+    };
+  } catch (err: any) {
+    clearTimeout(timer);
+    const isTimeout = err?.name === 'AbortError' || err?.message?.includes('timeout') || err?.code === 'ETIMEDOUT';
+    return {
+      success: false,
+      status: isTimeout ? 408 : 500,
+      error: isTimeout ? 'CRM intake request timed out after 65 seconds' : err?.message || 'Network error',
+    };
+  }
 }
 
+// -----------------------------------------------------------------------------
+// 5. OUTBOX PROCESSOR WORKER
+// -----------------------------------------------------------------------------
+
 /**
- * Process due outbox rows (limit 10)
- * Uses a 5-minute lease to prevent double-sends across concurrent workers.
+ * Claims up to `limit` pending outbox rows and transmits them to CRM.
+ * Implements 5-minute leasing to avoid duplicate concurrent sends.
  */
 export async function processOutbox(
-  limit: number = 10,
-  ctx: {
-    db: SupabaseClient | null;
-    localStore: Record<string, any[]>;
+  db: SupabaseClient | null,
+  localStore: Record<string, any[]>,
+  limit = 10
+): Promise<{ processed: number; sent: number; failed: number; dead: number }> {
+  const cfg = getBridgeConfig();
+  if (!cfg.isConfigured) {
+    // Graceful no-op when not configured
+    return { processed: 0, sent: 0, failed: 0, dead: 0 };
   }
-): Promise<{ processed: number; sent: number; pending: number; dead: number }> {
-  const config = getCrmBridgeConfig();
-  const { db, localStore } = ctx;
+
   const now = new Date();
   const nowIso = now.toISOString();
-  const leaseUntilIso = new Date(now.getTime() + LEASE_DURATION_MS).toISOString();
+  const leaseExpiryIso = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
 
-  let claimedRows: CrmOutboxRow[] = [];
+  let dueRows: CrmOutboxRecord[] = [];
 
   if (db) {
     try {
-      // 1. Release expired leases (rows stuck in 'sending' past lease_until)
+      // 1. Release expired leases back to pending
       await db
         .from('crm_outbox')
         .update({ status: 'pending', lease_until: null, updated_at: nowIso })
         .eq('status', 'sending')
         .lt('lease_until', nowIso);
 
-      // 2. Claim due pending rows
-      const { data: dueRows } = await db
+      // 2. Fetch pending rows whose next_attempt_at is due
+      const { data, error } = await db
         .from('crm_outbox')
         .select('*')
         .eq('status', 'pending')
@@ -543,26 +510,17 @@ export async function processOutbox(
         .order('next_attempt_at', { ascending: true })
         .limit(limit);
 
-      if (dueRows && dueRows.length > 0) {
-        const ids = dueRows.map((r: any) => r.id);
-        const { data: updatedClaimed } = await db
-          .from('crm_outbox')
-          .update({ status: 'sending', lease_until: leaseUntilIso, updated_at: nowIso })
-          .in('id', ids)
-          .select('*');
-
-        claimedRows = (updatedClaimed as CrmOutboxRow[]) || [];
+      if (!error && data) {
+        dueRows = data as CrmOutboxRecord[];
       }
     } catch (e) {
-      console.warn('[CRM Bridge DB claim warning]:', e);
+      console.warn('[CRM Bridge] DB query warning during processOutbox:', e);
     }
   }
 
-  // Memory fallback / local store processing
-  if (claimedRows.length === 0) {
-    localStore.crm_outbox = localStore.crm_outbox || [];
-
-    // Release expired leases in memory
+  // Memory fallback / merge
+  if (localStore.crm_outbox) {
+    // Release memory expired leases
     for (const r of localStore.crm_outbox) {
       if (r.status === 'sending' && r.lease_until && new Date(r.lease_until) < now) {
         r.status = 'pending';
@@ -570,114 +528,248 @@ export async function processOutbox(
       }
     }
 
-    const dueMemory = localStore.crm_outbox
-      .filter((r: CrmOutboxRow) => r.status === 'pending' && new Date(r.next_attempt_at) <= now)
-      .slice(0, limit);
-
-    for (const r of dueMemory) {
-      r.status = 'sending';
-      r.lease_until = leaseUntilIso;
-      claimedRows.push(r);
+    if (dueRows.length === 0) {
+      dueRows = localStore.crm_outbox
+        .filter((r: CrmOutboxRecord) => r.status === 'pending' && new Date(r.next_attempt_at) <= now)
+        .slice(0, limit);
     }
   }
 
-  let sent = 0;
-  let pending = 0;
-  let dead = 0;
+  if (dueRows.length === 0) {
+    return { processed: 0, sent: 0, failed: 0, dead: 0 };
+  }
 
-  for (const row of claimedRows) {
-    try {
-      const result = await sendOutboxRow(row, config, ctx);
-      if (result.status === 'sent') sent++;
-      else if (result.status === 'dead') dead++;
-      else pending++;
-    } catch {
-      pending++;
+  let sentCount = 0;
+  let failedCount = 0;
+  let deadCount = 0;
+
+  for (const row of dueRows) {
+    // Claim the row with a 5-minute lease
+    if (db) {
+      try {
+        await db
+          .from('crm_outbox')
+          .update({ status: 'sending', lease_until: leaseExpiryIso, updated_at: nowIso })
+          .eq('id', row.id)
+          .eq('status', 'pending');
+      } catch {}
+    }
+    row.status = 'sending';
+    row.lease_until = leaseExpiryIso;
+
+    // Send payload to CRM
+    const result = await sendCrmPayload(row.payload as CrmPayload);
+
+    if (result.success && result.data) {
+      // 2xx Success: mark sent, capture CRM codes
+      sentCount++;
+      const crmClientId = result.data.client_id || null;
+      const crmClientCode = result.data.code || null;
+
+      const updates: Partial<CrmOutboxRecord> = {
+        status: 'sent',
+        lease_until: null,
+        crm_client_id: crmClientId,
+        crm_client_code: crmClientCode,
+        last_error: null,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (db) {
+        try {
+          await db.from('crm_outbox').update(updates).eq('id', row.id);
+
+          // Update corresponding leads row
+          await db
+            .from('leads')
+            .update({
+              crm_client_id: crmClientId,
+              crm_client_code: crmClientCode,
+              crm_synced_at: new Date().toISOString(),
+              crm_skipped_reason: null,
+            })
+            .eq('session_id', row.session_id);
+        } catch (e) {
+          console.warn('[CRM Bridge] DB update on success warning:', e);
+        }
+      }
+
+      Object.assign(row, updates);
+
+      // Also update local leads row if present
+      if (localStore.leads) {
+        const lead = localStore.leads.find((l: any) => l.session_id === row.session_id);
+        if (lead) {
+          lead.crm_client_id = crmClientId;
+          lead.crm_client_code = crmClientCode;
+          lead.crm_synced_at = new Date().toISOString();
+        }
+      }
+    } else {
+      // Failure branch: check status code
+      failedCount++;
+      const statusCode = result.status;
+      const errorMsg = (result.error || 'CRM transmission error').slice(0, 300);
+
+      // On 4xx (except 408 Timeout and 429 Rate Limit): mark dead immediately
+      const isDeadImmediate = statusCode >= 400 && statusCode < 500 && statusCode !== 408 && statusCode !== 429;
+
+      const newAttempts = (row.attempts || 0) + 1;
+      const backoff = calculateNextAttempt(newAttempts);
+      const isDead = isDeadImmediate || backoff.isDead;
+
+      if (isDead) deadCount++;
+
+      const updates: Partial<CrmOutboxRecord> = {
+        status: isDead ? 'dead' : 'pending',
+        attempts: newAttempts,
+        last_error: errorMsg,
+        lease_until: null,
+        next_attempt_at: backoff.nextAttemptAt,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (db) {
+        try {
+          await db.from('crm_outbox').update(updates).eq('id', row.id);
+        } catch (e) {
+          console.warn('[CRM Bridge] DB update on failure warning:', e);
+        }
+      }
+
+      Object.assign(row, updates);
     }
   }
 
   return {
-    processed: claimedRows.length,
-    sent,
-    pending,
-    dead,
+    processed: dueRows.length,
+    sent: sentCount,
+    failed: failedCount,
+    dead: deadCount,
   };
 }
 
+// -----------------------------------------------------------------------------
+// 6. HEALTH & REPLAY ENGINE
+// -----------------------------------------------------------------------------
+
 /**
- * Get aggregate statistics on CRM bridge status and queue counts
+ * Returns diagnostic metrics for the CRM Bridge.
  */
-export async function getCrmBridgeStats(ctx: {
-  db: SupabaseClient | null;
-  localStore: Record<string, any[]>;
-}): Promise<CrmBridgeStats> {
-  const config = getCrmBridgeConfig();
-  const { db, localStore } = ctx;
-
-  let rows: CrmOutboxRow[] = [];
-
-  if (db) {
-    try {
-      const { data } = await db.from('crm_outbox').select('*').order('created_at', { ascending: false });
-      if (data) rows = data as CrmOutboxRow[];
-    } catch (e) {
-      console.warn('[CRM Bridge stats DB warning]:', e);
-    }
-  }
-
-  if (rows.length === 0) {
-    rows = (localStore.crm_outbox as CrmOutboxRow[]) || [];
-  }
-
-  const counts = {
+export async function getBridgeHealth(
+  db: SupabaseClient | null,
+  localStore: Record<string, any[]>
+): Promise<CrmBridgeHealth> {
+  const cfg = getBridgeConfig();
+  const counts: Record<CrmOutboxStatus, number> = {
     pending: 0,
     sending: 0,
     sent: 0,
     dead: 0,
-    total: rows.length,
   };
 
   let lastSuccessAt: string | null = null;
-  let oldestPendingTime: number | null = null;
+  let oldestPendingCreated: string | null = null;
 
-  for (const r of rows) {
-    if (r.status === 'pending') {
-      counts.pending++;
-      const createdAtMs = new Date(r.created_at).getTime();
-      if (oldestPendingTime === null || createdAtMs < oldestPendingTime) {
-        oldestPendingTime = createdAtMs;
+  if (db) {
+    try {
+      const { data } = await db.from('crm_outbox').select('status, created_at, updated_at');
+      if (data && Array.isArray(data)) {
+        for (const row of data) {
+          const s = (row.status as CrmOutboxStatus) || 'pending';
+          if (counts[s] !== undefined) counts[s]++;
+
+          if (s === 'sent') {
+            const updatedAt = row.updated_at || row.created_at;
+            if (!lastSuccessAt || new Date(updatedAt) > new Date(lastSuccessAt)) {
+              lastSuccessAt = updatedAt;
+            }
+          }
+
+          if (s === 'pending') {
+            if (!oldestPendingCreated || new Date(row.created_at) < new Date(oldestPendingCreated)) {
+              oldestPendingCreated = row.created_at;
+            }
+          }
+        }
       }
-    } else if (r.status === 'sending') {
-      counts.sending++;
-    } else if (r.status === 'sent') {
-      counts.sent++;
-      if (!lastSuccessAt || new Date(r.updated_at) > new Date(lastSuccessAt)) {
-        lastSuccessAt = r.updated_at;
+    } catch {}
+  } else if (localStore.crm_outbox) {
+    for (const row of localStore.crm_outbox) {
+      const s = (row.status as CrmOutboxStatus) || 'pending';
+      if (counts[s] !== undefined) counts[s]++;
+
+      if (s === 'sent') {
+        const updatedAt = row.updated_at || row.created_at;
+        if (!lastSuccessAt || new Date(updatedAt) > new Date(lastSuccessAt)) {
+          lastSuccessAt = updatedAt;
+        }
       }
-    } else if (r.status === 'dead') {
-      counts.dead++;
+
+      if (s === 'pending') {
+        if (!oldestPendingCreated || new Date(row.created_at) < new Date(oldestPendingCreated)) {
+          oldestPendingCreated = row.created_at;
+        }
+      }
     }
   }
 
   let oldestPendingAgeSeconds: number | null = null;
-  if (oldestPendingTime !== null) {
-    oldestPendingAgeSeconds = Math.max(0, Math.round((Date.now() - oldestPendingTime) / 1000));
-  }
-
-  let crmHost: string | null = null;
-  if (config.intakeUrl) {
-    try {
-      crmHost = new URL(config.intakeUrl).host;
-    } catch {
-      crmHost = config.intakeUrl;
-    }
+  if (oldestPendingCreated) {
+    oldestPendingAgeSeconds = Math.max(0, Math.floor((Date.now() - new Date(oldestPendingCreated).getTime()) / 1000));
   }
 
   return {
-    configured: config.isConfigured,
-    crm_host: crmHost,
+    configured: cfg.isConfigured,
+    crm_host: cfg.host,
     counts,
     last_success_at: lastSuccessAt,
     oldest_pending_age_seconds: oldestPendingAgeSeconds,
   };
+}
+
+/**
+ * Replays a dead or pending outbox row by resetting status to 'pending' and next_attempt_at to now.
+ */
+export async function replayOutboxRow(
+  db: SupabaseClient | null,
+  localStore: Record<string, any[]>,
+  sessionIdOrId: string
+): Promise<boolean> {
+  const now = new Date().toISOString();
+  let found = false;
+
+  if (db) {
+    try {
+      const { data } = await db
+        .from('crm_outbox')
+        .update({
+          status: 'pending',
+          attempts: 0,
+          next_attempt_at: now,
+          lease_until: null,
+          updated_at: now,
+        })
+        .or(`id.eq.${sessionIdOrId},session_id.eq.${sessionIdOrId}`)
+        .select();
+
+      if (data && data.length > 0) found = true;
+    } catch (e) {
+      console.warn('[CRM Bridge] Replay error:', e);
+    }
+  }
+
+  if (localStore.crm_outbox) {
+    const row = localStore.crm_outbox.find((r: CrmOutboxRecord) => r.id === sessionIdOrId || r.session_id === sessionIdOrId);
+    if (row) {
+      row.status = 'pending';
+      row.attempts = 0;
+      row.next_attempt_at = now;
+      row.lease_until = null;
+      row.updated_at = now;
+      found = true;
+    }
+  }
+
+  return found;
 }

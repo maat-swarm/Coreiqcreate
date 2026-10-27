@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { LeadItem, SocialMessageItem, UnifiedInboxItem, LeadStatus } from '../../types/command';
 import { CoreIQData } from '../../services/supabase';
-import { CommandCrmBridgeCard } from './CommandCrmBridgeCard';
+import { CrmBridgeCard } from './CrmBridgeCard';
 
 interface CommandInboxTabProps {
   leads: LeadItem[];
@@ -136,8 +136,8 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
         'social_messages' INSERT events, triggering self.registration.showNotification('CoreIQ Alert', { body: ... }).
       */}
 
-      {/* CoreIQ CRM Bridge Card */}
-      <CommandCrmBridgeCard />
+      {/* CRM Bridge Control Surface */}
+      <CrmBridgeCard onRefreshParent={onRefresh} />
 
       {/* Top Filter & Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#060b1c]/90 border border-slate-800/80">
@@ -274,10 +274,35 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
                     {/* Source tag & Name */}
                     <div className="flex items-center gap-2">
                       {isLead ? (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 flex items-center gap-1">
-                          <Globe className="w-3 h-3" />
-                          <span>Website Lead</span>
-                        </span>
+                        <>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 flex items-center gap-1">
+                            <Globe className="w-3 h-3" />
+                            <span>Website Lead</span>
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border flex items-center gap-1 ${
+                              (item as LeadItem).crm_client_code
+                                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                                : (item as LeadItem).crm_skipped_reason === 'no_consent'
+                                ? 'bg-slate-900 border-slate-700 text-slate-400'
+                                : (item as LeadItem).crm_skipped_reason === 'failed' || (item as LeadItem).crm_skipped_reason === 'crm_dead'
+                                ? 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+                                : (item as LeadItem).crm_skipped_reason
+                                ? 'bg-slate-900 border-slate-700 text-slate-400'
+                                : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+                            }`}
+                          >
+                            {(item as LeadItem).crm_client_code
+                              ? `CRM ${(item as LeadItem).crm_client_code}`
+                              : (item as LeadItem).crm_skipped_reason === 'no_consent'
+                              ? 'not sent (no consent)'
+                              : (item as LeadItem).crm_skipped_reason === 'failed' || (item as LeadItem).crm_skipped_reason === 'crm_dead'
+                              ? 'CRM failed'
+                              : (item as LeadItem).crm_skipped_reason
+                              ? `not sent (${(item as LeadItem).crm_skipped_reason})`
+                              : 'CRM pending'}
+                          </span>
+                        </>
                       ) : (
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-violet-500/15 border border-violet-500/30 text-violet-300 flex items-center gap-1 uppercase">
                           <MessageSquare className="w-3 h-3" />
@@ -289,29 +314,6 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800">
                           {item.intent_type}
                         </span>
-                      )}
-
-                      {/* CRM Bridge Status Chip */}
-                      {isLead && (
-                        <>
-                          {item.crm_client_code ? (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
-                              CRM {item.crm_client_code}
-                            </span>
-                          ) : item.crm_skipped_reason === 'no_consent' ? (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800">
-                              not sent (no consent)
-                            </span>
-                          ) : item.crm_skipped_reason === 'no_contact' ? (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800">
-                              not sent (no contact)
-                            </span>
-                          ) : item.session_id ? (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300">
-                              CRM pending
-                            </span>
-                          ) : null}
-                        </>
                       )}
                     </div>
 
@@ -368,7 +370,7 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
             {/* Detail Header */}
             <div className="flex items-start justify-between border-b border-slate-800 pb-4">
               <div>
-                <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                   <span
                     className={`px-2.5 py-0.5 rounded-md text-xs font-mono font-bold ${
                       selectedItem.itemType === 'lead'
@@ -378,6 +380,31 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
                   >
                     {selectedItem.itemType === 'lead' ? 'WEBSITE LEAD' : `SOCIAL: ${selectedItem.source.toUpperCase()}`}
                   </span>
+                  {selectedItem.itemType === 'lead' && (
+                    <span
+                      className={`px-2.5 py-0.5 rounded-md text-xs font-mono font-bold border flex items-center gap-1 ${
+                        (selectedItem as LeadItem).crm_client_code
+                          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                          : (selectedItem as LeadItem).crm_skipped_reason === 'no_consent'
+                          ? 'bg-slate-900 border-slate-700 text-slate-400'
+                          : (selectedItem as LeadItem).crm_skipped_reason === 'failed' || (selectedItem as LeadItem).crm_skipped_reason === 'crm_dead'
+                          ? 'bg-rose-500/20 border-rose-500/40 text-rose-300'
+                          : (selectedItem as LeadItem).crm_skipped_reason
+                          ? 'bg-slate-900 border-slate-700 text-slate-400'
+                          : 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                      }`}
+                    >
+                      {(selectedItem as LeadItem).crm_client_code
+                        ? `CRM ${(selectedItem as LeadItem).crm_client_code}`
+                        : (selectedItem as LeadItem).crm_skipped_reason === 'no_consent'
+                        ? 'not sent (no consent)'
+                        : (selectedItem as LeadItem).crm_skipped_reason === 'failed' || (selectedItem as LeadItem).crm_skipped_reason === 'crm_dead'
+                        ? 'CRM failed'
+                        : (selectedItem as LeadItem).crm_skipped_reason
+                        ? `not sent (${(selectedItem as LeadItem).crm_skipped_reason})`
+                        : 'CRM pending'}
+                    </span>
+                  )}
                   <span className="text-xs text-slate-400 font-mono">
                     {new Date(selectedItem.created_at).toLocaleString()}
                   </span>

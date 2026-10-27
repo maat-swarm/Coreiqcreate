@@ -1,171 +1,144 @@
-# CoreIQ CRM Bridge Documentation
+# CoreIQ Create — CRM Bridge Architecture & Operational Guide
 
-## Overview
-The CRM Bridge connects the CoreIQ Create customer-facing website with the CoreIQ CRM system hosted at `https://coreiqcreate-crm.onrender.com`. When prospective clients express interest via `/ask` conversation blueprints or Store App Requests, their contact details, inquiry intent, project summary, and sanitized transcripts are captured server-side and reliably synchronized to the CRM's intake API via a resilient outbox pattern.
-
----
-
-## 1. Environment Variables
-
-| Variable | Scope | Required | Description |
-|---|---|---|---|
-| `CRM_INTAKE_URL` | Server only | Yes (for active sync) | Target endpoint for CRM intake, e.g. `https://coreiqcreate-crm.onrender.com/api/v1/intake` |
-| `CRM_INTAKE_KEY` | Server only | Yes (for active sync) | Secret bearer token for authorizing requests to the CRM intake API |
-
-**Security Note:** These keys live strictly in server environment variables on Render/Node.js. They are **never** included in Vite client-side builds, git repositories, client responses, or server logs.
-
-If either variable is missing, the bridge operates in an unconfigured state: lead capture continues normally on the website, local leads are saved, and outbox rows accumulate in a safe `pending` state awaiting future configuration.
+The **CRM Bridge** connects the CoreIQ Create public website with the CoreIQ CRM system hosted at `https://coreiqcreate-crm.onrender.com`.
 
 ---
 
-## 2. CRM Intake Contract
+## 1. CRM Intake Contract
 
-### Endpoint
-`POST /api/v1/intake`
-Headers:
-- `Content-Type: application/json`
-- `Authorization: Bearer <CRM_INTAKE_KEY>`
+### Target Endpoint
+- **URL**: `POST https://coreiqcreate-crm.onrender.com/api/v1/intake` (configured via `CRM_INTAKE_URL`)
+- **Headers**:
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <CRM_INTAKE_KEY>`
+- **Timeout**: 65 seconds (accommodating Render cold-wake latency ~50s)
 
-### Request Payload Schema
+### Request Payload (`CrmPayload`)
+| Field | Type | Description / Rules |
+| :--- | :--- | :--- |
+| `source` | `string` | Origin identifier (e.g. `coreiq-website`, `coreiq-website-ask`, `coreiq-website-app-request`, `coreiq-website-test`). |
+| `session_id` | `string` | Unique session UUID (`crypto.randomUUID`) or identifier (e.g. `app-request-<id>`). |
+| `name` | `string` | Full name of the prospect/visitor. Required. |
+| `email` | `string \| null` | Trimmed, lowercased email address. |
+| `phone` | `string \| null` | Normalized E.164 phone number with South Africa (`+27`) default prefix. |
+| `company` | `string \| null` | Organization or studio name if provided. |
+| `summary` | `string` | Executive inquiry overview or project blueprint synopsis (max 1200 chars). |
+| `intent` | `string` | One of `website`, `app`, `automation`, `agent`, `voice`, or `unknown`. Derived from keyword classification. |
+| `budget_hint` | `string \| null` | Budget tier or estimated investment range if indicated. |
+| `page_url` | `string \| null` | URL where the inquiry was submitted. |
+| `consent` | `boolean` | Must be strictly `true`. Inquiries without consent are not sent. |
+| `transcript` | `Array<{ role, text, at }>` | Last 40 turns with HTML stripped and sensitive tokens redacted. `role` is `'visitor'` or `'assistant'`. Max 2000 chars per turn. |
+| `honeypot` | `string` | Must be empty string `""`. If filled, discarded immediately with HTTP 200. |
+
+### Redaction Rules
+Before transmission, all transcript entries are sanitized to redact:
+- API Keys: `ciq_live_*`
+- OpenAI / LLM Keys: `sk-*`
+- JSON Web Tokens: `eyJ*`
+- Credentials: Any text following `password:` or `token:`
+
+### Response Schema
 ```json
 {
-  "source": "coreiq-website" | "coreiq-website-app-request" | "coreiq-website-test",
-  "session_id": "c62efd44-6729-4c12-98aa-f19e4a31742f",
-  "name": "Jane Doe",
-  "email": "jane@example.com",
-  "phone": "+27821234567",
-  "company": "Acme Corp",
-  "summary": "Building an automated inventory tracking portal...",
-  "intent": "website" | "app" | "automation" | "agent" | "voice" | "unknown",
-  "budget_hint": null,
-  "page_url": "https://create.coreiq.co.za/ask",
-  "consent": true,
-  "transcript": [
-    {
-      "role": "visitor",
-      "text": "Can you build a field inspection app?",
-      "at": "2026-10-21T14:00:00.000Z"
-    },
-    {
-      "role": "assistant",
-      "text": "Yes, we can build a mobile app with offline capture...",
-      "at": "2026-10-21T14:00:05.000Z"
-    }
-  ],
-  "honeypot": ""
-}
-```
-
-### Data Transformations & Normalization
-1. **Source**: Default `"coreiq-website"`. For store requests: `"coreiq-website-app-request"`.
-2. **Email**: Trimmed and lowercased.
-3. **Phone**: Normalized to E.164. South African 10-digit numbers (`082...`, `07...`, `01...`) automatically default to the `+27` country code (`+27821234567`).
-4. **Intent Detection**: Analyzed by keyword matching against conversation summary:
-   - `website`: `website`, `site`, `landing`
-   - `app`: `app`, `mobile`, `ios`, `android`
-   - `automation`: `automat`, `workflow`, `pipeline`, `zapier`, `integromat`, `webhook`
-   - `agent`: `agent`, `chatbot`, `assistant`, `bot`, `ai rep`
-   - `voice`: `voice`, `call`, `reception`, `telephon`, `phone agent`
-   - Default: `unknown`
-5. **Transcript Limits & Hygiene**:
-   - Truncated to the last 40 dialogue turns.
-   - Each turn text is clipped to a maximum of 2,000 characters.
-   - HTML tags are stripped.
-   - Sensitive tokens are scrubbed: `ciq_live_*` API keys, OpenAI/Anthropic `sk-*` keys, JWT tokens starting with `eyJ`, and passwords matching `password: ...`.
-6. **Summary**: Clipped to 1,200 characters.
-
-### CRM Response Schema
-```json
-{
-  "client_id": "c1f7b98d-a78b-4f9e-a864-123456789abc",
-  "code": "CIQ-C-1042",
+  "client_id": "c1a94e23-...",
+  "code": "CIQ-C-0104",
   "stage": "inbound",
-  "engagement_id": "eng_8273648"
+  "engagement_id": "eng_..."
 }
 ```
-The CRM dedupes contacts by email then phone number. Submissions bearing the same `session_id` append transcript history and update client records without creating duplicate leads.
+
+The CRM dedupes inbound leads by email, then phone number. Submissions sharing the same `session_id` append conversation history rather than duplicating client records.
 
 ---
 
-## 3. End-to-End Flow
+## 2. Server Environment Variables
 
-```
-[ Visitor on /ask ]
-       │
-       ▼ (Generates blueprint)
-[ "Take this forward" card ] ──(Fills details & ticks consent)
-       │
-       ▼ POST /api/v1/public/lead-capture (10/min, 30/hr rate limit)
-[ Express API Server ]
-       ├─► Insert/Upsert into `leads` table (local website inbox)
-       └─► Upsert into `crm_outbox` (status: 'pending', session_id keyed)
-             │
-             ▼ (Fire-and-forget trigger & 60s background interval)
-       [ crmBridge.processOutbox() ]
-             ├─ Claim rows (`status: sending`, 5-min lease)
-             ├─ POST CRM /api/v1/intake (65s timeout)
-             ├─ 2xx Success:
-             │    ├─ Set outbox `status: sent`, save client_id and code
-             │    └─ Update `leads` with `crm_client_id`, `crm_client_code`, `crm_synced_at`
-             └─ Errors: Handle retry backoff or mark dead
-```
+| Variable | Required | Description |
+| :--- | :--- | :--- |
+| `CRM_INTAKE_URL` | No | Full target intake URL (defaults to `https://coreiqcreate-crm.onrender.com/api/v1/intake`). |
+| `CRM_INTAKE_KEY` | Recommended | Bearer secret token authorized for the CRM intake route. |
+
+### Behavior When Unconfigured
+If `CRM_INTAKE_KEY` or `CRM_INTAKE_URL` is omitted:
+- Bridge health status reports `configured: false`.
+- Inbound inquiries and leads continue saving to Supabase (`leads` table) normally.
+- Outbox rows are safely queued as `status: 'pending'` without raising unhandled errors.
+- Visitors receive standard confirmation without disruption.
 
 ---
 
-## 4. Failure Modes & Resilience
+## 3. Transmission Flow in Words
 
-### 1. CRM Service Sleep / Cold Starts
-Render free-tier instances spin down when inactive and can take up to 50–55 seconds to boot.
-- The outbound HTTP request timeout is configured to **65 seconds** to accommodate cold boot times without dropping payloads.
-- Background worker processes rows asynchronously so visitors on the website receive immediate sub-second confirmation.
-
-### 2. Network Errors & Retries (5xx, 408, 429, Timeouts)
-- If the CRM returns a server error, is rate limited, or times out, the outbox record increments `attempts` and schedules an exponential backoff retry:
-  - Attempt 1: +30 seconds
-  - Attempt 2: +2 minutes
-  - Attempt 3: +10 minutes
-  - Attempt 4: +1 hour
-  - Attempt 5: +6 hours
-- After 6 failed attempts, the record transitions to `status: 'dead'`.
-
-### 3. Non-Retryable Client Errors (4xx except 408 & 429)
-- Permanent errors (e.g. 400 Bad Request, 422 Unprocessable Entity) mark the outbox row as `status: 'dead'` immediately without wasting retries.
-- The error message is truncated and recorded in `last_error`.
-
-### 4. Lease Expiration
-- To prevent duplicate concurrent dispatches across multiple server instances or restarts, workers claim rows with a 5-minute lease (`lease_until`).
-- If an instance crashes mid-flight, expired leases are automatically returned to `status: 'pending'` on the next worker cycle.
+1. **Visitor Intake Trigger**:
+   - On `/ask`: After CoreIQ synthesizes an architecture response containing blueprint markers (`INTENT`, `BLUEPRINT`, `MILESTONES`, `CAPABILITIES`), a "Take this forward" card allows the user to submit their name, contact details, and explicit consent.
+   - On Store Apps: When submitting an app order or access request form, the user checks the mandatory consent checkbox.
+2. **Client Submission**:
+   - The frontend submits an HTTP POST to `/api/v1/public/lead-capture` with `session_id`, sanitized details, and transcript.
+3. **Ingestion & Validation**:
+   - Rate limiting validates that the IP does not exceed 10 req/min and the session does not exceed 30 req/hour.
+   - Honeypot check: If the hidden honeypot contains text, HTTP 200 `{ ok: true }` is returned instantly and the payload is discarded.
+   - Contact check: At least one valid email or phone number is required.
+   - Consent check: If `consent` is false, the lead is stored with `crm_skipped_reason: 'no_consent'` and is not queued.
+4. **Outbox Enqueuing**:
+   - If contact and consent are present, payload is built and upserted into `crm_outbox` by `session_id`.
+   - If the row was previously marked `sent` and updated with new turns, its status reverts to `pending` with a 60-second debounce.
+5. **Outbox Worker**:
+   - `processOutbox(limit: 10)` runs immediately in background (fire-and-forget), every 60 seconds via server interval, and on-demand via the Command dashboard.
+   - Rows are claimed using a 5-minute lease (`lease_until`) to prevent race conditions or duplicate sends across concurrent workers.
+   - Transmission executes with Bearer authorization and a 65-second HTTP timeout.
+6. **Resolution**:
+   - **On 2xx Success**: Status updates to `sent`. `crm_client_id` and `crm_client_code` are saved to the outbox row and synced to the corresponding `leads` record.
+   - **On Visitor Continuation**: After details are captured, any subsequent assistant replies on `/ask` automatically trigger an update 5 seconds later.
 
 ---
 
-## 5. Replaying a Dead Row
+## 4. Failure Modes & Exponential Backoff
 
-When a row is marked `dead` (due to exceeding max retries or a transient schema issue that has been resolved):
+| HTTP Status / Condition | Outbox Status | Retry Schedule | Behavior |
+| :--- | :--- | :--- | :--- |
+| **200 - 299** | `sent` | None | Success. Synced with CRM client code. |
+| **400, 401, 403, 404, 422** | `dead` | None | Non-transient client error. Marked dead with truncated error message. |
+| **408, 429, 500, 502, 503, 504** | `pending` | Exponential Backoff | Transient error or rate limit. Rescheduled according to backoff table. |
+| **Network Timeout / Abort** | `pending` | Exponential Backoff | Server or network cold-boot delay. Rescheduled according to backoff table. |
 
-### Option A: From Command UI (Recommended)
-1. Sign in as Owner to CoreIQ Command.
-2. Navigate to **Inbox & Leads**.
-3. View the **CRM Bridge** control card.
-4. Locate the dead entry in the Outbox monitor table.
-5. Click **Run Outbox Now** (or re-submit if an action button is enabled).
+### Retry Backoff Schedule
+1. Attempt 1 failure: `now + 30 seconds`
+2. Attempt 2 failure: `now + 2 minutes`
+3. Attempt 3 failure: `now + 10 minutes`
+4. Attempt 4 failure: `now + 1 hour`
+5. Attempt 5 failure: `now + 6 hours`
+6. Attempt 6 failure: Marked `dead` (exceeded maximum attempts)
+
+### Lease Expiration Recovery
+If an outbox processor worker crashes or restarts while rows are in `sending` state, any row whose `lease_until` has lapsed is automatically reclaimed and returned to `pending` on the next interval.
+
+---
+
+## 5. How to Replay a Dead Row
+
+When a transmission reaches `dead` status (due to network outage or temporary authorization misconfiguration), it can be manually re-queued:
+
+### Option A: Via CoreIQ Command UI (Recommended)
+1. Navigate to `/command` and select the **Inbox** tab.
+2. Locate the **CRM Bridge Control Surface** card at the top.
+3. In the Outbox Queue list, dead rows feature a red status badge and a **Replay** button.
+4. Click **Replay**. The row is instantly reset to `status: 'pending'`, attempts are reset to 0, and `next_attempt_at` is set to the current time.
+5. Click **Run now** to trigger immediate processing.
 
 ### Option B: Via Admin API Endpoint
-Send an authorized POST request using your Command Bearer token:
+Issue an authenticated POST request with `WRITE_CONFIG` scope:
 ```bash
-curl -X POST https://create.coreiq.co.za/api/v1/admin/crm-bridge/run \
-  -H "Authorization: Bearer <COMMAND_ACCESS_TOKEN>" \
+curl -X POST https://coreiqcreate.com/api/v1/admin/crm-bridge/replay/<OUTBOX_ROW_OR_SESSION_ID> \
+  -H "Authorization: Bearer <COREIQ_API_KEY>" \
   -H "Content-Type: application/json"
 ```
 
-### Option C: Direct Database SQL Update
-If direct Supabase access is available:
-```sql
-UPDATE public.crm_outbox
-SET status = 'pending',
-    attempts = 0,
-    next_attempt_at = NOW(),
-    lease_until = NULL,
-    last_error = NULL
-WHERE session_id = '<target-session-id>';
+Response:
+```json
+{
+  "ok": true,
+  "message": "Outbox row queued for retry",
+  "id": "c1000000-0000-4000-8000-000000000001",
+  "status": "pending"
+}
 ```
-The background outbox worker will claim and re-dispatch the payload within 60 seconds.

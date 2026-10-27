@@ -6,8 +6,8 @@ import { hasScope } from '../shared/scopes';
 import { maskSecrets } from './validators';
 
 export interface MachineAccessDeps {
-  authenticateApiKey: (req: Request, res: Response, next: NextFunction) => any;
-  requireScope: (scope: string, legacyFallbackScope?: string) => (req: Request, res: Response, next: NextFunction) => any;
+  authenticateApiKey: (req: Request, res: Response, next: NextFunction) => void | Promise<void>;
+  requireScope: (scope: string, legacyFallbackScope?: string) => (req: Request, res: Response, next: NextFunction) => void;
   supabase: SupabaseClient | null;
   adminSupabase: SupabaseClient | null;
   localStore: Record<string, any[]>;
@@ -18,7 +18,10 @@ export function registerMachineAccessRoutes(app: Express, deps: MachineAccessDep
   const db = adminSupabase || supabase;
 
   const getCtx = (req: Request) => ({
+    supabase,
+    adminSupabase,
     db,
+    localStore,
     store: localStore,
     callerApiKey: (req as any).apiKey,
     isOperatorSession:
