@@ -12,7 +12,8 @@ export type CommandTab =
   | 'store'
   | 'upload'
   | 'swarm'
-  | 'analytics';
+  | 'analytics'
+  | 'maatverse';
 
 export interface NewsArticleItem {
   id: string;
@@ -313,4 +314,71 @@ export interface AnalyticsSummary {
   totalTasks: number;
   completedTasks: number;
   activeClientsCount: number;
+}
+
+export interface ToolFormField {
+  label: string;
+  key: string;
+  type: 'text' | 'long_text' | 'email' | 'file' | 'select';
+  required: boolean;
+  options?: string[];
+}
+
+export interface ToolSubmissionItem {
+  id: string;
+  tool_id: string | null;
+  tool_slug: string;
+  client_name: string;
+  client_email: string;
+  form_data: Record<string, any>;
+  file_paths: string[];
+  status: 'new' | 'in_progress' | 'awaiting_payment' | 'paid' | 'delivered' | 'cancelled';
+  payment_status: 'not_required' | 'pending' | 'paid';
+  amount_due: number | null;
+  operator_notes: string;
+  deliverable_path: string | null;
+  created_at: string;
+  updated_at: string;
+  signed_file_urls?: { path: string; url: string }[];
+  signed_deliverable_url?: string | null;
+}
+
+export interface MaatverseSectionItem {
+  id: string;
+  slug: string;
+  title: string;
+  blurb: string;
+  description?: string;
+  image_url: string | null;
+  cover_url?: string | null;
+  status: 'opening_soon' | 'live';
+  sort_order: number;
+  is_mock: boolean;
+  entry_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MaatverseEntryItem {
+  id: string;
+  section_id?: string;
+  section_slug: string;
+  section_title?: string;
+  kind: 'entry' | 'character' | 'video' | 'download' | 'comic';
+  media_type?: 'entry' | 'character' | 'video' | 'download' | 'comic' | 'text' | 'image' | 'audio';
+  title: string;
+  slug: string;
+  summary: string;
+  subtitle?: string | null;
+  body_md: string;
+  body?: string;
+  image_url: string | null;
+  media_url?: string | null;
+  external_url: string | null;
+  status: 'draft' | 'published';
+  sort_order: number;
+  featured?: boolean;
+  is_mock: boolean;
+  created_at: string;
+  updated_at: string;
 }

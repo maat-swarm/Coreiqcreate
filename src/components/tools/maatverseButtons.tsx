@@ -59,15 +59,49 @@ export const MaatverseButton: React.FC<MaatverseButtonProps> = ({
 
 export interface MaatverseDoorProps {
   label: string;
+  description?: string;
+  coverUrl?: string | null;
+  entryCount?: number;
+  isMock?: boolean;
+  onClick?: () => void;
 }
 
-export const MaatverseDoor: React.FC<MaatverseDoorProps> = ({ label }) => {
+export const MaatverseDoor: React.FC<MaatverseDoorProps> = ({
+  label,
+  description,
+  coverUrl,
+  entryCount = 0,
+  isMock = false,
+  onClick,
+}) => {
+  const isClickable = Boolean(onClick);
+
   return (
     <div
-      role="group"
-      aria-disabled="true"
-      className="relative rounded-2xl bg-[#080b18] border border-[rgba(120,160,255,0.25)] min-h-[120px] p-5 flex flex-col justify-between overflow-hidden select-none"
+      role={isClickable ? 'button' : 'group'}
+      tabIndex={isClickable ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (isClickable && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      aria-disabled={!isClickable}
+      className={`relative rounded-2xl bg-[#080b18] border border-[rgba(120,160,255,0.25)] min-h-[140px] p-5 flex flex-col justify-between overflow-hidden select-none transition-all duration-300 ${
+        isClickable
+          ? 'cursor-pointer hover:border-[#C9A24B]/70 hover:shadow-[0_0_25px_rgba(201,162,75,0.2)] hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A24B]'
+          : 'opacity-90'
+      }`}
     >
+      {/* Cover image background tint if provided */}
+      {coverUrl && (
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-20 pointer-events-none transition-transform duration-500 hover:scale-105"
+          style={{ backgroundImage: `url(${coverUrl})` }}
+        />
+      )}
+
       {/* Single decorative top hairline */}
       <div
         className="absolute top-0 left-0 right-0 h-[1px] pointer-events-none"
@@ -77,21 +111,39 @@ export const MaatverseDoor: React.FC<MaatverseDoorProps> = ({ label }) => {
         aria-hidden="true"
       />
 
-      {/* Door Title (System serif display stack) */}
-      <div className="pt-1">
+      {/* Door Title & Description */}
+      <div className="pt-1 relative z-10 space-y-1">
         <h3
           className="text-lg sm:text-xl font-normal text-white tracking-wide"
           style={{ fontFamily: 'ui-serif, Georgia, "Times New Roman", serif' }}
         >
           {label}
         </h3>
+        {description && (
+          <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+            {description}
+          </p>
+        )}
       </div>
 
       {/* Pill bottom-left */}
-      <div className="pt-4">
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium text-[#C9A24B] bg-[#C9A24B]/10 border border-[#C9A24B]/30">
-          Opening soon
-        </span>
+      <div className="pt-4 relative z-10 flex items-center justify-between">
+        {entryCount > 0 ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium text-cyan-300 bg-cyan-950/40 border border-cyan-500/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            {entryCount} {entryCount === 1 ? 'entry' : 'entries'}
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium text-[#C9A24B] bg-[#C9A24B]/10 border border-[#C9A24B]/30">
+            Opening soon
+          </span>
+        )}
+
+        {isClickable && (
+          <span className="text-xs font-mono font-medium text-[#C9A24B] group-hover:translate-x-1 transition-transform">
+            Enter &rarr;
+          </span>
+        )}
       </div>
     </div>
   );

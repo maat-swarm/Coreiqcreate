@@ -15,7 +15,8 @@ export type AppRoute =
   | 'imageforge'
   | 'core-principles'
   | '404'
-  | `apps/${string}`;
+  | `apps/${string}`
+  | `maatverse/${string}`;
 
 const VALID_NAV_ROUTES: readonly NavRoute[] = [
   'home',
@@ -60,6 +61,7 @@ export default function App() {
     if (p.startsWith('learn/')) return p as AppRoute;
     if (p.startsWith('apps/access/')) return p as AppRoute;
     if (p.startsWith('apps/')) return p as AppRoute;
+    if (p.startsWith('maatverse/')) return p as AppRoute;
     if (p === 'command' || window.location.hash === '#command') return 'command';
     if (p === 'solutions') {
       try {
@@ -134,9 +136,11 @@ export default function App() {
     ? 'learn'
     : currentRoute.startsWith('apps/')
       ? 'apps'
-      : (VALID_NAV_ROUTES.includes(currentRoute as NavRoute)
-        ? (currentRoute as NavRoute)
-        : 'home');
+      : currentRoute.startsWith('maatverse/')
+        ? 'maatverse'
+        : (VALID_NAV_ROUTES.includes(currentRoute as NavRoute)
+          ? (currentRoute as NavRoute)
+          : 'home');
 
   return (
     <div className="min-h-screen bg-transparent text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -180,7 +184,12 @@ export default function App() {
               />
             )}
             {currentRoute === 'tools' && <ToolsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
-            {currentRoute === 'maatverse' && <MaatversePage onNavigate={navigateTo} />}
+            {(currentRoute === 'maatverse' || currentRoute.startsWith('maatverse/')) && (
+              <MaatversePage
+                subpath={currentRoute.startsWith('maatverse/') ? currentRoute.replace(/^maatverse\/?/, '') : ''}
+                onNavigate={navigateTo}
+              />
+            )}
             {currentRoute === 'about' && <AboutPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'news' && <NewsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'ask' && <AskPage initialPrompt={activePrompt} onNavigate={navigateTo} />}

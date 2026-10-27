@@ -1,4 +1,5 @@
 import { getAuthHeaders } from './supabase';
+import { ToolFormField, ToolSubmissionItem } from '../types/command';
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL ?? '';
 
@@ -11,14 +12,22 @@ export interface AdminSiteTool {
   category: string;
   tier: 'free' | 'pro';
   status: 'draft' | 'published';
-  launch_type: 'link' | 'download' | 'payment' | 'inline' | 'coming_soon';
+  launch_type: 'link' | 'download' | 'payment' | 'in_app' | 'coming_soon' | 'inline';
   launch_url: string | null;
+  payment_url?: string | null;
+  download_path?: string | null;
   cta_label: string;
   image_url: string | null;
   image_path: string | null;
   featured: boolean;
   sort_order: number;
   origin: 'coreiq' | 'opensource';
+  is_paid: boolean;
+  price_amount: number | null;
+  price_currency: string;
+  form_schema: ToolFormField[];
+  is_mock: boolean;
+  new_submissions_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -31,14 +40,21 @@ export interface CreateSiteToolPayload {
   category?: string;
   tier?: 'free' | 'pro';
   status?: 'draft' | 'published';
-  launch_type?: 'link' | 'download' | 'payment' | 'inline' | 'coming_soon';
+  launch_type?: 'link' | 'download' | 'payment' | 'in_app' | 'coming_soon' | 'inline';
   launch_url?: string | null;
+  payment_url?: string | null;
+  download_path?: string | null;
   cta_label?: string;
   image_url?: string | null;
   image_path?: string | null;
   featured?: boolean;
   sort_order?: number;
   origin?: 'coreiq' | 'opensource';
+  is_paid?: boolean;
+  price_amount?: number | null;
+  price_currency?: string;
+  form_schema?: ToolFormField[];
+  is_mock?: boolean;
 }
 
 export type UpdateSiteToolPayload = Partial<CreateSiteToolPayload>;
@@ -113,8 +129,27 @@ export async function deleteAdminSiteTool(id: string): Promise<void> {
   await handleAdminResponse<{ status: string; id: string }>(res, 'Failed to delete tool');
 }
 
+export async function duplicateAdminSiteTool(id: string): Promise<AdminSiteTool> {
+  const headers = await getAuthHeaders(true);
+  const res = await fetch(`${API_BASE}/api/v1/site-tools/${encodeURIComponent(id)}/duplicate`, {
+    method: 'POST',
+    headers,
+  });
+  const data = await handleAdminResponse<{ tool: AdminSiteTool } & AdminSiteTool>(res, 'Failed to duplicate tool');
+  return data.tool || (data as AdminSiteTool);
+}
+
+export async function deleteAllMockSiteTools(): Promise<{ deleted: number }> {
+  const headers = await getAuthHeaders(true);
+  const res = await fetch(`${API_BASE}/api/v1/site-tools/mocks`, {
+    method: 'DELETE',
+    headers,
+  });
+  return handleAdminResponse<{ deleted: number }>(res, 'Failed to delete mock tools');
+}
+
 export async function uploadSiteToolImage(file: File): Promise<{ image_url: string; image_path: string }> {
-  const headers = await getAuthHeaders(false); // multipart: browser sets content-type with boundary
+  const headers = await getAuthHeaders(false);
   const formData = new FormData();
   formData.append('file', file);
 
@@ -125,4 +160,79 @@ export async function uploadSiteToolImage(file: File): Promise<{ image_url: stri
   });
 
   return handleAdminResponse<{ image_url: string; image_path: string }>(res, 'Failed to upload tool image');
+}
+
+export async function uploadSiteToolFile(file: File): Promise<{ file_path: string; file_name: string }> {
+  const headers = await getAuthHeaders(false);
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${API_BASE}/api/v1/site-tools/upload-file`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  return handleAdminResponse<{ file_path: string; file_name: string }>(res, 'Failed to upload tool file');
+}
+
+// --- SUBMISSIONS MANAGEMENT ---
+export async function fetchToolSubmissions(toolId?: string, status?: string): Promise<ToolSubmissionItem[]> {
+  const headers = await getAuthHeaders(true);
+  const params = new URLSearchParams();
+  if (toolId) params.set('tool_id', toolId);
+  if (status && status !== 'all') params.set('status', status);
+
+  const url = `${API_BASE}/api/v1/site-tools/submissions${params.toString() ? `?${params.toString()}` : ''}`;
+  const res = await fetch(url, { headers });
+  const data = await handleAdminResponse<{ submissions: ToolSubmissionItem[] }>(res, 'Failed to fetch submissions');
+  return data.submissions || [];
+}
+
+export async function updateToolSubmission(
+  id: string,
+  payload: Partial<ToolSubmissionItem>
+): Promise<ToolSubmissionItem> {
+  const headers = await getAuthHeaders(true);
+  const res = await fetch(`${API_BASE}/api/v1/site-tools/submissions/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(payload),
+  });
+  const data = await handleAdminResponse<{ submission: ToolSubmissionItem }>(res, 'Failed to update submission');
+  return data.submission;
+}
+
+export async function deleteToolSubmission(id: string): Promise<void> {
+  const headers = await getAuthHeaders(true);
+  const res = await fetch(`${API_BASE}/api/v1/site-tools/submissions/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers,
+  });
+  await handleAdminResponse<{ status: string; id: string }>(res, 'Failed to delete submission');
+}
+
+export async function uploadSubmissionDeliverable(
+  id: string,
+  file: File
+): Promise<{ deliverable_path: string; signed_url: string }> {
+  const headers = await getAuthHeaders(false);
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${API_BASE}/api/v1/site-tools/submissions/${encodeURIComponent(id)}/deliverable`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  return handleAdminResponse<{ deliverable_path: string; signed_url: string }>(res, 'Failed to upload deliverable');
+}
+
+export async function getSubmissionShareableLink(id: string): Promise<{ signed_url: string; expires_at: string }> {
+  const headers = await getAuthHeaders(true);
+  const res = await fetch(`${API_BASE}/api/v1/site-tools/submissions/${encodeURIComponent(id)}/shareable-link`, {
+    headers,
+  });
+  return handleAdminResponse<{ signed_url: string; expires_at: string }>(res, 'Failed to generate shareable link');
 }

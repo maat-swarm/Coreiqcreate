@@ -12,6 +12,8 @@ import {
   ExternalLink,
   Download,
   Terminal,
+  Layers,
+  Sparkles,
 } from 'lucide-react';
 import { PublicSiteTool } from '../../services/siteTools';
 import { NavRoute } from '../../types';
@@ -20,7 +22,8 @@ export interface ToolCardProps {
   tool: PublicSiteTool;
   variant?: 'hero' | 'grid';
   heroNumber?: string;
-  onNavigate: (route: NavRoute) => void;
+  onNavigate?: (route: NavRoute) => void;
+  onSelectTool?: (tool: PublicSiteTool) => void;
 }
 
 const CATEGORY_ICONS: Record<string, React.FC<{ className?: string }>> = {
@@ -50,69 +53,32 @@ export const ToolCard: React.FC<ToolCardProps> = ({
   variant = 'grid',
   heroNumber,
   onNavigate,
+  onSelectTool,
 }) => {
   const [imageError, setImageError] = useState(false);
 
-  const isLive = (() => {
-    if (tool.launch_type === 'coming_soon' || tool.launch_type === 'inline') return false;
-    if (tool.launch_type === 'link' || tool.launch_type === 'download') {
-      return Boolean(tool.launch_url && tool.launch_url.trim());
-    }
-    if (tool.launch_type === 'payment') {
-      return Boolean(tool.launch_url && tool.launch_url.trim());
-    }
-    return false;
-  })();
+  const isComingSoon = tool.launch_type === 'coming_soon';
+  const isLive = !isComingSoon;
 
   const CategoryIcon = CATEGORY_ICONS[tool.category] || Terminal;
   const gradientClass = CATEGORY_GRADIENTS[tool.category] || 'from-slate-900 via-[#070e24] to-slate-950';
 
   const handleClick = (e: React.MouseEvent) => {
-    if (!isLive || !tool.launch_url) {
-      e.preventDefault();
-      return;
-    }
-
-    const url = tool.launch_url.trim();
-
-    if (tool.launch_type === 'download') {
-      // Natural browser download
-      return;
-    }
-
-    if (tool.launch_type === 'link') {
-      if (url.startsWith('https://')) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-        return;
-      }
-      const cleanPath = url.replace(/^\//, '');
-      const knownRoutes = ['home', 'use-cases', 'apps', 'learn', 'tools', 'about', 'news', 'ask', 'command', 'maatverse'];
-      if (knownRoutes.includes(cleanPath)) {
-        e.preventDefault();
-        onNavigate(cleanPath as NavRoute);
-        return;
-      }
-      if (url.startsWith('/')) {
-        window.location.assign(url);
-        return;
-      }
-    }
-
-    if (tool.launch_type === 'payment') {
-      if (url.startsWith('https://')) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
+    e.preventDefault();
+    if (!isLive) return;
+    if (onSelectTool) {
+      onSelectTool(tool);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.key === 'Enter' || e.key === ' ') && isLive) {
       e.preventDefault();
-      handleClick(e as any);
+      if (onSelectTool) onSelectTool(tool);
     }
   };
 
-  const cardContent = (
+  return (
     <div
       className={`group relative rounded-2xl bg-[#070b1a] border border-slate-800/80 overflow-hidden flex flex-col justify-between h-full transition-all duration-200 ${
         isLive
@@ -123,7 +89,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
       }}
       tabIndex={isLive ? 0 : undefined}
-      role={isLive ? 'link' : 'article'}
+      role={isLive ? 'button' : 'article'}
       aria-disabled={!isLive}
       onClick={isLive ? handleClick : undefined}
       onKeyDown={isLive ? handleKeyDown : undefined}
@@ -172,8 +138,18 @@ export const ToolCard: React.FC<ToolCardProps> = ({
           </div>
         )}
 
-        {/* Tier Badge top-right */}
-        <div className="absolute top-3 right-3 z-10">
+        {/* Badges top-right */}
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 flex-wrap justify-end">
+          {tool.is_mock && (
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              MOCK
+            </span>
+          )}
+          {tool.is_paid && (
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              {tool.price_amount ? `$${tool.price_amount} ${tool.price_currency}` : 'PAID'}
+            </span>
+          )}
           <span
             className={`text-[10px] font-mono tracking-wider font-bold px-2 py-0.5 rounded-md uppercase ${
               tool.tier === 'pro'
@@ -193,9 +169,14 @@ export const ToolCard: React.FC<ToolCardProps> = ({
             <span className="text-slate-400 uppercase tracking-wider group-hover:text-cyan-300 transition-colors">
               {tool.category}
             </span>
-            {tool.origin === 'opensource' && (
-              <span className="text-[10px] text-emerald-400 font-mono">OSS</span>
-            )}
+            <div className="flex items-center gap-2">
+              {tool.launch_type === 'in_app' && (
+                <span className="text-[10px] text-cyan-400 font-mono">Interactive</span>
+              )}
+              {tool.origin === 'opensource' && (
+                <span className="text-[10px] text-emerald-400 font-mono">OSS</span>
+              )}
+            </div>
           </div>
 
           <h3 className={`font-bold text-white transition-colors leading-snug ${variant === 'hero' ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'} group-hover:text-cyan-300`}>
@@ -211,19 +192,19 @@ export const ToolCard: React.FC<ToolCardProps> = ({
         <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
           {isLive ? (
             <>
-              <span className="text-cyan-400 font-semibold group-hover:underline">
-                {tool.cta_label || 'Open'}
+              <span className="text-cyan-400 font-semibold group-hover:underline flex items-center gap-1.5">
+                {tool.cta_label || (tool.launch_type === 'download' ? 'Download' : tool.launch_type === 'in_app' ? 'Use Tool' : 'Open')}
               </span>
               {tool.launch_type === 'download' ? (
                 <Download className="w-4 h-4 text-cyan-400 transition-transform group-hover:translate-y-0.5" />
-              ) : tool.launch_url?.startsWith('https://') ? (
-                <ExternalLink className="w-4 h-4 text-cyan-400 transition-transform group-hover:translate-x-0.5" />
+              ) : tool.launch_type === 'in_app' ? (
+                <Sparkles className="w-4 h-4 text-cyan-400 transition-transform group-hover:scale-110" />
               ) : (
                 <ArrowRight className="w-4 h-4 text-cyan-400 transition-transform group-hover:translate-x-1" />
               )}
             </>
           ) : (
-            <span className="text-slate-500 font-mono text-[11px]">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium text-slate-500 bg-slate-900 border border-slate-800">
               Coming soon
             </span>
           )}
@@ -231,19 +212,4 @@ export const ToolCard: React.FC<ToolCardProps> = ({
       </div>
     </div>
   );
-
-  // If download type and live, wrap in <a href download>
-  if (isLive && tool.launch_type === 'download' && tool.launch_url) {
-    return (
-      <a
-        href={tool.launch_url}
-        download
-        className="block h-full focus:outline-none"
-      >
-        {cardContent}
-      </a>
-    );
-  }
-
-  return cardContent;
 };

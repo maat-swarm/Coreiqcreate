@@ -23,6 +23,8 @@ import { buildOpenApiSpec } from './src/mcp/openApiSpec';
 import { CONTENT_MANIFEST, evaluateContentHealth } from './src/data/contentManifest';
 import { GoogleGenAI } from '@google/genai';
 import { registerSiteToolsRoutes } from './src/server/siteToolsRoutes';
+import { registerMaatverseRoutes, SEED_MAATVERSE_SECTIONS, SEED_MAATVERSE_ENTRIES } from './src/server/maatverseRoutes';
+import { SEED_SITE_TOOLS } from './src/data/toolsData';
 import { registerCrmBridgeRoutes } from './src/server/crmBridgeRoutes';
 import { processOutbox, buildPayload, enqueueOutbox } from './src/server/crmBridge';
 
@@ -311,6 +313,50 @@ const localStore: Record<string, any[]> = {
       label: 'News showcase carousel',
       allowed_types: ['image', 'video'],
       max_items: 6,
+      max_bytes: 52428800,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'tools.maatverse.banner',
+      page: 'tools',
+      label: "Ma'atverse Stage Banner",
+      allowed_types: ['image', 'video'],
+      max_items: 1,
+      max_bytes: 52428800,
+      aspect: '8:3',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'tools.maatverse.mascot',
+      page: 'tools',
+      label: "Ma'atverse Mascot",
+      allowed_types: ['image', 'video'],
+      max_items: 1,
+      max_bytes: 52428800,
+      aspect: '4:5',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'tools.page.background',
+      page: 'tools',
+      label: 'Tools Page Background',
+      allowed_types: ['image', 'video'],
+      max_items: 1,
+      max_bytes: 52428800,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      slot_key: 'maatverse.page.background',
+      page: 'maatverse',
+      label: "Ma'atverse Page Background",
+      allowed_types: ['image', 'video'],
+      max_items: 1,
       max_bytes: 52428800,
       aspect: '16:9',
       created_at: new Date().toISOString(),
@@ -842,7 +888,19 @@ This verification loop forms the core architecture of CoreIQ Create venture pipe
       },
       updated_at: new Date().toISOString()
     }
-  ]
+  ],
+  site_tools: [...SEED_SITE_TOOLS],
+  site_tool_private: SEED_SITE_TOOLS.map((t) => ({
+    tool_id: t.id,
+    launch_url: t.launch_url,
+    payment_url: null,
+    download_path: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  })),
+  tool_submissions: [],
+  maatverse_sections: [...SEED_MAATVERSE_SECTIONS],
+  maatverse_entries: [...SEED_MAATVERSE_ENTRIES],
 };
 
 // Seed localStore with manifest placeholders
@@ -4554,7 +4612,21 @@ app.get('/api/v1/store/public/access/:token', publicStoreRateLimiter, async (req
   res.redirect(`/api/v1/store/access/${encodeURIComponent(req.params.token)}`);
 });
 
-registerSiteToolsRoutes(app, { authenticateApiKey, requireScope, adminSupabase, publicRateLimiter: publicStoreRateLimiter });
+registerSiteToolsRoutes(app, {
+  authenticateApiKey,
+  requireScope,
+  adminSupabase,
+  publicRateLimiter: publicStoreRateLimiter,
+  localStore,
+});
+
+registerMaatverseRoutes(app, {
+  authenticateApiKey,
+  requireScope,
+  adminSupabase,
+  publicRateLimiter: publicStoreRateLimiter,
+  localStore,
+});
 
 registerCrmBridgeRoutes(app, { authenticateApiKey, requireScope, supabase, adminSupabase, localStore });
 

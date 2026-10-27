@@ -1160,8 +1160,11 @@ export async function executeRegistryTool(
         if (db) {
           try {
             const { data } = await db.from('site_tools').select('*').order('sort_order', { ascending: true });
-            if (data) tools = data;
+            if (data && data.length > 0) tools = data;
           } catch {}
+        }
+        if (tools.length === 0 && store.site_tools) {
+          tools = [...store.site_tools];
         }
         return { success: true, data: { count: tools.length, tools } };
       }
@@ -1174,6 +1177,9 @@ export async function executeRegistryTool(
             const { data } = await db.from('site_tools').select('*').or(`id.eq.${target},slug.eq.${target}`).maybeSingle();
             if (data) toolItem = data;
           } catch {}
+        }
+        if (!toolItem && store.site_tools) {
+          toolItem = store.site_tools.find((t: any) => t.id === target || t.slug === target);
         }
         if (!toolItem) return { success: false, error: `Tool '${target}' not found`, isNotFound: true, statusCode: 404 };
         return { success: true, data: { tool: toolItem } };
@@ -1218,6 +1224,8 @@ export async function executeRegistryTool(
             }
           } catch {}
         }
+        if (!store.site_tools) store.site_tools = [];
+        store.site_tools.push(newTool);
         await logApiAudit(ctx, '/api/v1/site-tools', 'POST', 201, newTool.id);
         return { success: true, data: { status: 'created', tool: newTool } };
       }
@@ -1244,6 +1252,13 @@ export async function executeRegistryTool(
             if (data) updated = data;
           } catch {}
         }
+        if (!updated && store.site_tools) {
+          const found = store.site_tools.find((t: any) => t.id === id);
+          if (found) {
+            Object.assign(found, updates);
+            updated = found;
+          }
+        }
         if (!updated) return { success: false, error: `Tool '${id}' not found`, isNotFound: true, statusCode: 404 };
         await logApiAudit(ctx, `/api/v1/site-tools/${id}`, 'PATCH', 200, id);
         return { success: true, data: { status: 'updated', tool: updated } };
@@ -1257,7 +1272,245 @@ export async function executeRegistryTool(
             await db.from('site_tools').delete().eq('id', id);
           } catch {}
         }
+        if (store.site_tools) {
+          store.site_tools = store.site_tools.filter((t: any) => t.id !== id);
+        }
         await logApiAudit(ctx, `/api/v1/site-tools/${id}`, 'DELETE', 200, id);
+        return { success: true, data: { status: 'deleted', id } };
+      }
+
+      case 'site_tools_list_submissions': {
+        let subs: any[] = [];
+        if (db) {
+          try {
+            let q = db.from('tool_submissions').select('*').order('created_at', { ascending: false });
+            if (args.tool_slug) q = q.eq('tool_slug', args.tool_slug);
+            if (args.status) q = q.eq('status', args.status);
+            const { data } = await q;
+            if (data) subs = data;
+          } catch {}
+        }
+        if (subs.length === 0 && store.tool_submissions) {
+          subs = store.tool_submissions.filter((s: any) => {
+            if (args.tool_slug && s.tool_slug !== args.tool_slug) return false;
+            if (args.status && s.status !== args.status) return false;
+            return true;
+          });
+        }
+        return { success: true, data: { count: subs.length, submissions: subs } };
+      }
+
+      case 'site_tools_update_submission': {
+        const id = args.id;
+        if (!id) return { success: false, error: 'id is required', statusCode: 400 };
+        const updates: any = { updated_at: new Date().toISOString() };
+        if (args.status !== undefined) updates.status = args.status;
+        if (args.payment_status !== undefined) updates.payment_status = args.payment_status;
+        if (args.operator_notes !== undefined) updates.operator_notes = args.operator_notes;
+        if (args.deliverable_path !== undefined) updates.deliverable_path = args.deliverable_path;
+
+        let updated: any = null;
+        if (db) {
+          try {
+            const { data } = await db.from('tool_submissions').update(updates).eq('id', id).select().maybeSingle();
+            if (data) updated = data;
+          } catch {}
+        }
+        if (!updated && store.tool_submissions) {
+          const found = store.tool_submissions.find((s: any) => s.id === id);
+          if (found) {
+            Object.assign(found, updates);
+            updated = found;
+          }
+        }
+        if (!updated) return { success: false, error: `Submission '${id}' not found`, isNotFound: true, statusCode: 404 };
+        await logApiAudit(ctx, `/api/v1/site-tools/submissions/${id}`, 'PATCH', 200, id);
+        return { success: true, data: { status: 'updated', submission: updated } };
+      }
+
+      // --- MAATVERSE ---
+      case 'site_maatverse_list_sections': {
+        let sections: any[] = [];
+        if (db) {
+          try {
+            const { data } = await db.from('maatverse_sections').select('*').order('sort_order', { ascending: true });
+            if (data && data.length > 0) sections = data;
+          } catch {}
+        }
+        if (sections.length === 0 && store.maatverse_sections) {
+          sections = [...store.maatverse_sections];
+        }
+        return { success: true, data: { count: sections.length, sections } };
+      }
+
+      case 'site_maatverse_create_section': {
+        if (!args.title) return { success: false, error: 'title is required', statusCode: 400 };
+        const slug = args.slug || String(args.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const newSec = {
+          id: crypto.randomUUID ? crypto.randomUUID() : `sec_${Date.now()}`,
+          title: args.title,
+          slug,
+          description: args.description || '',
+          cover_url: args.cover_url || null,
+          sort_order: args.sort_order ?? 10,
+          status: args.status || 'published',
+          is_mock: Boolean(args.is_mock),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        if (db) {
+          try {
+            const { data } = await db.from('maatverse_sections').insert([newSec]).select().single();
+            if (data) {
+              await logApiAudit(ctx, '/api/v1/admin/maatverse/sections', 'POST', 201, data.id);
+              return { success: true, data: { status: 'created', section: data } };
+            }
+          } catch {}
+        }
+        if (!store.maatverse_sections) store.maatverse_sections = [];
+        store.maatverse_sections.push(newSec);
+        await logApiAudit(ctx, '/api/v1/admin/maatverse/sections', 'POST', 201, newSec.id);
+        return { success: true, data: { status: 'created', section: newSec } };
+      }
+
+      case 'site_maatverse_update_section': {
+        const id = args.id;
+        if (!id) return { success: false, error: 'id is required', statusCode: 400 };
+        const updates: any = { ...args, updated_at: new Date().toISOString() };
+        delete updates.id;
+
+        let updated: any = null;
+        if (db) {
+          try {
+            const { data } = await db.from('maatverse_sections').update(updates).eq('id', id).select().maybeSingle();
+            if (data) updated = data;
+          } catch {}
+        }
+        if (!updated && store.maatverse_sections) {
+          const found = store.maatverse_sections.find((s: any) => s.id === id);
+          if (found) {
+            Object.assign(found, updates);
+            updated = found;
+          }
+        }
+        if (!updated) return { success: false, error: `Section '${id}' not found`, isNotFound: true, statusCode: 404 };
+        await logApiAudit(ctx, `/api/v1/admin/maatverse/sections/${id}`, 'PATCH', 200, id);
+        return { success: true, data: { status: 'updated', section: updated } };
+      }
+
+      case 'site_maatverse_delete_section': {
+        const id = args.id;
+        if (!id) return { success: false, error: 'id is required', statusCode: 400 };
+        if (db) {
+          try {
+            await db.from('maatverse_sections').delete().eq('id', id);
+          } catch {}
+        }
+        if (store.maatverse_sections) {
+          store.maatverse_sections = store.maatverse_sections.filter((s: any) => s.id !== id);
+        }
+        if (store.maatverse_entries) {
+          store.maatverse_entries = store.maatverse_entries.filter((e: any) => e.section_id !== id);
+        }
+        await logApiAudit(ctx, `/api/v1/admin/maatverse/sections/${id}`, 'DELETE', 200, id);
+        return { success: true, data: { status: 'deleted', id } };
+      }
+
+      case 'site_maatverse_list_entries': {
+        let entries: any[] = [];
+        if (db) {
+          try {
+            let q = db.from('maatverse_entries').select('*').order('sort_order', { ascending: true });
+            if (args.section_slug) q = q.eq('section_slug', args.section_slug);
+            const { data } = await q;
+            if (data && data.length > 0) entries = data;
+          } catch {}
+        }
+        if (entries.length === 0 && store.maatverse_entries) {
+          entries = store.maatverse_entries.filter((e: any) => {
+            if (args.section_slug && e.section_slug !== args.section_slug) return false;
+            return true;
+          });
+        }
+        return { success: true, data: { count: entries.length, entries } };
+      }
+
+      case 'site_maatverse_create_entry': {
+        if (!args.section_id || !args.title || !args.body) {
+          return { success: false, error: 'section_id, title, and body are required', statusCode: 400 };
+        }
+        const slug = args.slug || String(args.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const newEntry = {
+          id: crypto.randomUUID ? crypto.randomUUID() : `ent_${Date.now()}`,
+          section_id: args.section_id,
+          section_slug: args.section_slug || '',
+          title: args.title,
+          slug,
+          subtitle: args.subtitle || null,
+          body: args.body,
+          media_type: args.media_type || 'text',
+          media_url: args.media_url || null,
+          sort_order: args.sort_order ?? 10,
+          featured: Boolean(args.featured),
+          status: args.status || 'published',
+          is_mock: Boolean(args.is_mock),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        if (db) {
+          try {
+            const { data } = await db.from('maatverse_entries').insert([newEntry]).select().single();
+            if (data) {
+              await logApiAudit(ctx, '/api/v1/admin/maatverse/entries', 'POST', 201, data.id);
+              return { success: true, data: { status: 'created', entry: data } };
+            }
+          } catch {}
+        }
+        if (!store.maatverse_entries) store.maatverse_entries = [];
+        store.maatverse_entries.push(newEntry);
+        await logApiAudit(ctx, '/api/v1/admin/maatverse/entries', 'POST', 201, newEntry.id);
+        return { success: true, data: { status: 'created', entry: newEntry } };
+      }
+
+      case 'site_maatverse_update_entry': {
+        const id = args.id;
+        if (!id) return { success: false, error: 'id is required', statusCode: 400 };
+        const updates: any = { ...args, updated_at: new Date().toISOString() };
+        delete updates.id;
+
+        let updated: any = null;
+        if (db) {
+          try {
+            const { data } = await db.from('maatverse_entries').update(updates).eq('id', id).select().maybeSingle();
+            if (data) updated = data;
+          } catch {}
+        }
+        if (!updated && store.maatverse_entries) {
+          const found = store.maatverse_entries.find((e: any) => e.id === id);
+          if (found) {
+            Object.assign(found, updates);
+            updated = found;
+          }
+        }
+        if (!updated) return { success: false, error: `Entry '${id}' not found`, isNotFound: true, statusCode: 404 };
+        await logApiAudit(ctx, `/api/v1/admin/maatverse/entries/${id}`, 'PATCH', 200, id);
+        return { success: true, data: { status: 'updated', entry: updated } };
+      }
+
+      case 'site_maatverse_delete_entry': {
+        const id = args.id;
+        if (!id) return { success: false, error: 'id is required', statusCode: 400 };
+        if (db) {
+          try {
+            await db.from('maatverse_entries').delete().eq('id', id);
+          } catch {}
+        }
+        if (store.maatverse_entries) {
+          store.maatverse_entries = store.maatverse_entries.filter((e: any) => e.id !== id);
+        }
+        await logApiAudit(ctx, `/api/v1/admin/maatverse/entries/${id}`, 'DELETE', 200, id);
         return { success: true, data: { status: 'deleted', id } };
       }
 

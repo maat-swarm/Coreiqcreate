@@ -14,7 +14,8 @@ import {
   UploadCloud,
   Briefcase,
   ShoppingBag,
-  Newspaper
+  Newspaper,
+  Sparkles
 } from 'lucide-react';
 import { CommandTab } from '../../types/command';
 
@@ -35,6 +36,7 @@ export const COMMAND_TABS: { id: ExtendedCommandTab; label: string; icon: React.
   { id: 'brain', label: 'Agent Brain', icon: Brain },
   { id: 'api_keys', label: 'API Keys', icon: Key },
   { id: 'tools', label: 'Tools', icon: Wrench },
+  { id: 'maatverse', label: "Ma'atverse", icon: Sparkles },
   { id: 'platforms', label: 'Platforms', icon: Globe },
   { id: 'content', label: 'Content', icon: FolderKanban },
   { id: 'use_cases', label: 'Use Cases', icon: Briefcase },

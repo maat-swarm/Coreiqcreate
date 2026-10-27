@@ -13,7 +13,8 @@ import { ScrollReveal } from '../components/common/ScrollReveal';
 import { PageBackground } from '../components/environment/PageBackground';
 import { MaatverseStage } from '../components/tools/MaatverseStage';
 import { ToolCard } from '../components/tools/ToolCard';
-import { usePublicSiteTools } from '../services/siteTools';
+import { ToolActionModal } from '../components/tools/ToolActionModal';
+import { usePublicSiteTools, launchTool, PublicSiteTool } from '../services/siteTools';
 import { TOOL_PHILOSOPHY, TOOL_CATEGORIES } from '../data/toolsData';
 import { NavRoute } from '../types';
 
@@ -24,7 +25,9 @@ interface ToolsPageProps {
 
 export const ToolsPage: React.FC<ToolsPageProps> = ({ onNavigate, onAsk }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const { tools, isPlaceholder, loading, error, reload } = usePublicSiteTools();
+  const { tools, loading, error, reload } = usePublicSiteTools();
+  const [activeModalTool, setActiveModalTool] = useState<PublicSiteTool | null>(null);
+  const [launchingSlug, setLaunchingSlug] = useState<string | null>(null);
 
   const toolPills = [
     { label: 'Browse tools', query: 'Show me all tools in Core IQ' },
@@ -34,7 +37,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ onNavigate, onAsk }) => {
 
   // Distinct category chips from tools list or fallback
   const categories = useMemo(() => {
-    if (isPlaceholder || tools.length === 0) {
+    if (tools.length === 0) {
       return TOOL_CATEGORIES;
     }
     const set = new Set<string>();
@@ -42,7 +45,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ onNavigate, onAsk }) => {
       if (t.category) set.add(t.category);
     });
     return ['All', ...Array.from(set)];
-  }, [tools, isPlaceholder]);
+  }, [tools]);
 
   // First 3 tools in display order feed "Start here"
   const startHereTools = useMemo(() => {
@@ -59,6 +62,55 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ onNavigate, onAsk }) => {
     if (selectedCategory === 'All') return remainingTools;
     return remainingTools.filter((t) => t.category === selectedCategory);
   }, [remainingTools, selectedCategory]);
+
+  const handleToolSelect = async (tool: PublicSiteTool) => {
+    if (tool.launch_type === 'coming_soon') {
+      return;
+    }
+
+    // Modal based: in_app or paid tools
+    if (tool.launch_type === 'in_app' || tool.is_paid || tool.launch_type === 'payment') {
+      setActiveModalTool(tool);
+      return;
+    }
+
+    // Free link or download: call server launch endpoint
+    try {
+      setLaunchingSlug(tool.slug);
+      const res = await launchTool(tool.slug);
+
+      if (res.action === 'link') {
+        const url = res.url.trim();
+        if (url.startsWith('https://')) {
+          window.open(url, '_blank', 'noopener,noreferrer');
+          return;
+        }
+        const cleanPath = url.replace(/^\//, '');
+        const knownRoutes = ['home', 'use-cases', 'apps', 'learn', 'tools', 'about', 'news', 'ask', 'command', 'maatverse'];
+        if (knownRoutes.includes(cleanPath)) {
+          onNavigate(cleanPath as NavRoute);
+          return;
+        }
+        if (url.startsWith('/')) {
+          window.location.assign(url);
+          return;
+        }
+      } else if (res.action === 'download') {
+        const link = document.createElement('a');
+        link.href = res.url;
+        link.download = res.fileName || `${tool.slug}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else if (res.action === 'in_app' || res.action === 'paid_required') {
+        setActiveModalTool(tool);
+      }
+    } catch (err: any) {
+      console.error('Launch failed:', err);
+    } finally {
+      setLaunchingSlug(null);
+    }
+  };
 
   return (
     <div className="w-full relative min-h-screen">
@@ -94,7 +146,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ onNavigate, onAsk }) => {
                 />
               </div>
 
-              {/* Sentinel carousel directly below AskCoreIQ */}
+              {/* Sentinel carousel directly below AskCoreIQ (renders tools.showcase) */}
               <div className="pt-2">
                 <CoreIQSentinel
                   page="tools"
@@ -160,10 +212,6 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ onNavigate, onAsk }) => {
             </button>
           </div>
         ) : (
-          /* Start Here Layout:
-             mobile: first card full width, next two side by side (2 columns)
-             lg: 3 equal large cards with mono numbers 01, 02, 03 overlapping top-left
-          */
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {startHereTools.map((tool, idx) => {
               const numStr = `0${idx + 1}`;
@@ -179,6 +227,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ onNavigate, onAsk }) => {
                     variant="hero"
                     heroNumber={numStr}
                     onNavigate={onNavigate}
+                    onSelectTool={handleToolSelect}
                   />
                 </div>
               );
@@ -187,7 +236,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ onNavigate, onAsk }) => {
         )}
       </section>
 
-      {/* 4. DIVIDER: 1px hairline with a centred small gold diamond (CSS only) */}
+      {/* 4. DIVIDER: 1px hairline with a centred small gold diamond */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-6 sm:my-8 lg:my-14 relative" aria-hidden="true">
         <div className="border-t border-slate-800/80 w-full relative">
           <div
@@ -294,27 +343,14 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ onNavigate, onAsk }) => {
               </div>
             ))}
           </div>
-        ) : remainingTools.length === 0 ? (
-          <div className="p-8 sm:p-12 text-center rounded-2xl bg-[#060b1c]/60 border border-slate-800/80 space-y-2">
-            <p className="text-base font-semibold text-slate-200">More tools are on the way.</p>
-            <p className="text-xs text-slate-400">
-              New utilities are added regularly. Have a specific automation in mind?
-            </p>
-          </div>
         ) : filteredGridTools.length === 0 ? (
           <div className="p-8 sm:p-12 text-center rounded-2xl bg-[#060b1c]/60 border border-slate-800/80 space-y-2">
-            <p className="text-sm font-semibold text-slate-300">
-              No tools found in the &ldquo;{selectedCategory}&rdquo; category.
+            <p className="text-base font-semibold text-slate-200">No tools found in this category.</p>
+            <p className="text-xs text-slate-400">
+              Select another category or explore all available utilities above.
             </p>
-            <button
-              onClick={() => setSelectedCategory('All')}
-              className="px-4 py-2 rounded-xl bg-cyan-500/15 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/25 border border-cyan-500/30 transition-colors min-h-[44px]"
-            >
-              Show all tools
-            </button>
           </div>
         ) : (
-          /* Grid: 2 columns from 360px, 3 from 768px, 4 from 1280px */
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {filteredGridTools.map((tool) => (
               <ToolCard
@@ -322,61 +358,63 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ onNavigate, onAsk }) => {
                 tool={tool}
                 variant="grid"
                 onNavigate={onNavigate}
+                onSelectTool={handleToolSelect}
               />
             ))}
           </div>
         )}
       </section>
 
-      {/* 6. DESIGN PHILOSOPHY SECTION (UNCHANGED) */}
-      <section className="py-20 lg:py-28 border-t border-slate-800/60 bg-[#03081c]/50 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <span className="text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase">
-              DESIGN PHILOSOPHY
+      {/* 6. PHILOSOPHY SECTION */}
+      <section className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full border-t border-slate-800/80">
+        <ScrollReveal>
+          <div className="text-center space-y-3 mb-10 sm:mb-14">
+            <span
+              className="text-xs font-mono tracking-[0.25em] uppercase font-bold"
+              style={{ color: '#C9A24B' }}
+            >
+              PHILOSOPHY
             </span>
-            <h2 className="text-4xl sm:text-5xl font-bold text-white font-display">
-              Why single-purpose <span className="gradient-text-primary">tools?</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white font-display">
+              Built for production velocity.
             </h2>
-            <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
-              When software tries to do everything, it usually does nothing well. We believe in sharp, precision utilities that get out of your way.
-            </p>
           </div>
+        </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {TOOL_PHILOSOPHY.map((item) => {
-              const Icon = 
-                item.iconName === 'Zap' ? Zap :
-                item.iconName === 'Crosshair' ? Crosshair : Layers;
-
-              return (
-                <div 
-                  key={item.title}
-                  className="p-8 rounded-2xl coreiq-glass-card space-y-4 border border-cyan-500/15"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center">
-                    <Icon className="w-6 h-6 text-cyan-300" />
-                  </div>
-                  <h3 className="text-white font-bold text-xl">
-                    {item.title}
-                  </h3>
-                  <p className="text-slate-300 text-sm leading-relaxed">
-                    {item.description}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {TOOL_PHILOSOPHY.map((item) => (
+            <div
+              key={item.title}
+              className="p-6 rounded-2xl bg-[#060b1c]/60 border border-slate-800/80 space-y-3"
+            >
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                {item.title === 'Speed' && <Zap className="w-5 h-5" />}
+                {item.title === 'Focus' && <Crosshair className="w-5 h-5" />}
+                {item.title === 'Composability' && <Layers className="w-5 h-5" />}
+              </div>
+              <h3 className="text-lg font-bold text-white">{item.title}</h3>
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                {item.description}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* 7. BOTTOM CTA BANNER (UNCHANGED) */}
-      <CosmicCTABanner
-        eyebrow="HAVE SOMETHING SPECIFIC IN MIND?"
-        headline="Let's build it."
-        subtext="Tell Core IQ what you need and we'll help you find the right tool, or create something custom."
-        inputPlaceholder="Ask CoreIQ anything..."
-        onAsk={onAsk}
+      {/* 7. BOTTOM CTA BANNER */}
+      <section className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <CosmicCTABanner
+          headline="Need a custom tool or automated pipeline?"
+          subtext="We engineer specialized workflows and AI microservices tailored to your exact operational stack."
+          onAsk={(q) => (onAsk ? onAsk(q) : onNavigate('ask'))}
+        />
+      </section>
+
+      {/* Action modal for in_app and paid submissions */}
+      <ToolActionModal
+        tool={activeModalTool}
+        isOpen={Boolean(activeModalTool)}
+        onClose={() => setActiveModalTool(null)}
       />
     </div>
   );
