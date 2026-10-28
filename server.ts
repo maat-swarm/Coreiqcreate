@@ -1,3 +1,4 @@
+import http from 'http';
 import cors from 'cors';
 import { buildSystemPrompt } from './coreiq-agent/loader';
 import 'dotenv/config';
@@ -63,7 +64,17 @@ async function mem0Save(userMsg: string, assistantMsg: string): Promise<void> {
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
-const PORT = 3000;
+
+function parseArg(flag: string): string | undefined {
+  const index = process.argv.indexOf(flag);
+  if (index !== -1 && index < process.argv.length - 1) {
+    return process.argv[index + 1];
+  }
+  return undefined;
+}
+
+const PORT = parseInt(process.env.PORT || parseArg('--port') || parseArg('-p') || '3000', 10);
+const HOST = process.env.HOST || parseArg('--host') || '0.0.0.0';
 
 app.use(express.json());
 app.use('/media', express.static(path.join(process.cwd(), 'public', 'media')));
@@ -4676,7 +4687,10 @@ const systemPrompt = buildSystemPrompt() || agentConfig?.system_prompt || 'You a
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -4688,9 +4702,49 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`CoreIQ Command Engine & API Gateway active on http://0.0.0.0:${PORT}`);
+  const server = http.createServer(app);
+
+  let retries = 5;
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE' && retries > 0) {
+      retries--;
+      console.warn(`[Server] Port ${PORT} is in use, retrying in 1s (${retries} retries left)...`);
+      setTimeout(() => {
+        try {
+          server.close();
+        } catch {}
+        server.listen(PORT, HOST);
+      }, 1000);
+    } else {
+      console.error('[Server] Fatal listen error:', err);
+      process.exit(1);
+    }
+  });
+
+  server.listen(PORT, HOST, () => {
+    console.log(`CoreIQ Command Engine & API Gateway active on http://${HOST}:${PORT}`);
   });
 }
 
-startServer();
+// Global exception handling to prevent dev server crash
+process.on('uncaughtException', (err) => {
+  console.error('[Uncaught Exception]:', err?.message || err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Unhandled Rejection]:', reason);
+});
+
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM, closing server cleanly...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT, closing server cleanly...');
+  process.exit(0);
+});
+
+startServer().catch((err) => {
+  console.error('[Server] Failed to start server:', err);
+});

@@ -129,6 +129,39 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+
+  const handleToggleSpeech = (messageId: string, text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      return;
+    }
+
+    if (speakingMessageId === messageId) {
+      window.speechSynthesis.cancel();
+      setSpeakingMessageId(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onend = () => {
+      setSpeakingMessageId((current) => (current === messageId ? null : current));
+    };
+    utterance.onerror = () => {
+      setSpeakingMessageId((current) => (current === messageId ? null : current));
+    };
+
+    setSpeakingMessageId(messageId);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   // Memoized tabs and static Maatverse collections
   const tabs = useMemo<TabConfig[]>(() => STATIC_TABS, []);
@@ -869,8 +902,20 @@ export const Ask: React.FC<AskProps> = ({ onNavigate, initialPrompt }) => {
                       : 'bg-black/60 text-white/95 border border-cyan-500/25 shadow-[0_0_20px_rgba(34,211,238,0.08)]'
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-1 text-[11px] font-mono uppercase tracking-wider text-cyan-400">
-                    {m.role === 'user' ? 'You' : 'CoreIQ Engine'}
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-cyan-400">
+                      {m.role === 'user' ? 'You' : 'CoreIQ Engine'}
+                    </div>
+                    {m.role === 'assistant' && (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSpeech(m.id, m.content)}
+                        aria-label={speakingMessageId === m.id ? 'Stop reading aloud' : 'Read aloud'}
+                        className="text-[11px] font-mono px-2 py-0.5 rounded border border-cyan-500/30 text-cyan-300 hover:text-white hover:border-cyan-400 bg-cyan-950/40 transition-colors cursor-pointer"
+                      >
+                        {speakingMessageId === m.id ? 'Stop' : 'Read aloud'}
+                      </button>
+                    )}
                   </div>
                   <div>{m.content}</div>
                   {m.role === 'assistant' && hasBlueprintContent(m.content, m.blueprint) && (
