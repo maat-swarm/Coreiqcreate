@@ -101,7 +101,16 @@ export interface ApiAuditItem {
 }
 
 export type LeadSource = 'website' | 'api' | 'manual';
-export type LeadStatus = 'new' | 'in_progress' | 'done';
+export type LeadStatus = 'new' | 'in_progress' | 'done' | 'test';
+
+export interface SiteVisitRecord {
+  id?: string;
+  created_at: string;
+  visitor_id: string;
+  path: string;
+  referrer_domain?: string | null;
+  device_type?: string | null;
+}
 
 export interface ChatMessageTurn {
   sender: 'user' | 'coreiq' | 'operator';

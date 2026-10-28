@@ -17,7 +17,10 @@ import {
   Phone,
   Layers,
   Bell,
-  Download
+  Download,
+  CheckSquare,
+  Square,
+  AlertCircle
 } from 'lucide-react';
 import { LeadItem, SocialMessageItem, UnifiedInboxItem, LeadStatus } from '../../types/command';
 import { CoreIQData } from '../../services/supabase';
@@ -38,9 +41,22 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
 }) => {
   const [filterSource, setFilterSource] = useState<'all' | 'website' | 'social'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | LeadStatus>('all');
+  const [filterNoContact, setFilterNoContact] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedItem, setSelectedItem] = useState<UnifiedInboxItem | null>(null);
   const [showSimulateModal, setShowSimulateModal] = useState(false);
   const [simType, setSimType] = useState<'website' | 'social'>('website');
+
+  // Deletion modal & async feedback state
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
+    isOpen: boolean;
+    items: UnifiedInboxItem[];
+  }>({ isOpen: false, items: [] });
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [feedbackBanner, setFeedbackBanner] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   // New simulation form state
   const [simName, setSimName] = useState('');
@@ -49,19 +65,49 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
   const [simPlatform, setSimPlatform] = useState('instagram');
   const [simIntent, setSimIntent] = useState('automation');
 
+  const hasRealContact = (contact?: string | null): boolean => {
+    if (!contact) return false;
+    const trimmed = contact.trim();
+    if (!trimmed) return false;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+/;
+    const phoneRegex = /(?:\+?\d[\d\s\-()]{6,}\d)/;
+    return emailRegex.test(trimmed) || phoneRegex.test(trimmed);
+  };
+
   // Merge unified items sorted by date descending
   const unifiedItems: UnifiedInboxItem[] = [
     ...leads.map((l) => ({ ...l, itemType: 'lead' as const })),
     ...socialMessages.map((s) => ({ ...s, itemType: 'social' as const })),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+  // Count items with no real contact details
+  const noContactCount = unifiedItems.filter((item) => {
+    const contact = item.itemType === 'lead' ? item.client_contact : item.sender_contact;
+    return !hasRealContact(contact);
+  }).length;
+
   // Filter items
   const filteredItems = unifiedItems.filter((item) => {
     if (filterSource === 'website' && item.itemType !== 'lead') return false;
     if (filterSource === 'social' && item.itemType !== 'social') return false;
     if (filterStatus !== 'all' && item.status !== filterStatus) return false;
+    if (filterNoContact) {
+      const contact = item.itemType === 'lead' ? item.client_contact : item.sender_contact;
+      if (hasRealContact(contact)) return false;
+    }
     return true;
   });
+
+  const allFilteredSelected =
+    filteredItems.length > 0 && filteredItems.every((item) => selectedIds.has(item.id));
+
+  const handleToggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredItems.map((i) => i.id)));
+    }
+  };
 
   const handleStatusChange = async (item: UnifiedInboxItem, newStatus: LeadStatus) => {
     if (item.itemType === 'lead') {
@@ -75,12 +121,89 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
     }
   };
 
-  const handleDeleteItem = async (item: UnifiedInboxItem) => {
+  const handleToggleTestStatus = async (item: UnifiedInboxItem) => {
+    const newStatus: LeadStatus = item.status === 'test' ? 'new' : 'test';
     if (item.itemType === 'lead') {
-      await CoreIQData.deleteLead(item.id);
+      await CoreIQData.updateLead(item.id, {
+        status: newStatus,
+        crm_skipped_reason: newStatus === 'test' ? 'test' : null,
+      });
+    } else {
+      await CoreIQData.updateSocialStatus(item.id, newStatus);
     }
     onRefresh();
-    if (selectedItem?.id === item.id) setSelectedItem(null);
+    if (selectedItem && selectedItem.id === item.id) {
+      setSelectedItem({ ...selectedItem, status: newStatus });
+    }
+    setFeedbackBanner({
+      type: 'success',
+      message:
+        newStatus === 'test'
+          ? 'Marked as test lead (never syncs to CRM, excluded from analytics).'
+          : 'Lead restored to active queue.',
+    });
+  };
+
+  const executeDelete = async (itemsToDelete: UnifiedInboxItem[]) => {
+    setIsDeleting(true);
+    try {
+      const leadIds = itemsToDelete.filter((i) => i.itemType === 'lead').map((i) => i.id);
+      const socialIds = itemsToDelete.filter((i) => i.itemType === 'social').map((i) => i.id);
+
+      let totalDeleted = 0;
+      let errorMsg: string | undefined;
+
+      if (leadIds.length > 0) {
+        const res = await CoreIQData.deleteLeads(leadIds);
+        totalDeleted += res.count;
+        if (res.error) errorMsg = res.error;
+      }
+
+      if (socialIds.length > 0) {
+        const res = await CoreIQData.deleteSocialMessages(socialIds);
+        totalDeleted += res.count;
+        if (res.error && !errorMsg) errorMsg = res.error;
+      }
+
+      if (errorMsg && totalDeleted === 0) {
+        setFeedbackBanner({
+          type: 'error',
+          message: `Database error while deleting: ${errorMsg}`,
+        });
+      } else {
+        setFeedbackBanner({
+          type: 'success',
+          message: `Deleted ${totalDeleted} record${totalDeleted === 1 ? '' : 's'} successfully.`,
+        });
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          itemsToDelete.forEach((i) => next.delete(i.id));
+          return next;
+        });
+        if (selectedItem && itemsToDelete.some((i) => i.id === selectedItem.id)) {
+          setSelectedItem(null);
+        }
+        onRefresh();
+      }
+    } catch (err: any) {
+      setFeedbackBanner({
+        type: 'error',
+        message: `Deletion failed: ${err?.message || err}`,
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmModal({ isOpen: false, items: [] });
+    }
+  };
+
+  const handleExportItemsJson = (itemsToExport: UnifiedInboxItem[]) => {
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(itemsToExport, null, 2))}`;
+    const link = document.createElement('a');
+    link.setAttribute('href', jsonString);
+    link.setAttribute('download', `coreiq_inbox_backup_${Date.now()}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleSimulateSubmit = async (e: React.FormEvent) => {
@@ -245,11 +368,68 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
               <span>Done</span>
             </button>
+            <button
+              onClick={() => setFilterStatus('test')}
+              className={`px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
+                filterStatus === 'test' ? 'bg-amber-500/20 text-amber-300 font-medium' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+              <span>Test</span>
+            </button>
           </div>
+
+          {/* Filter Chip: No contact details */}
+          <button
+            onClick={() => setFilterNoContact(!filterNoContact)}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all min-h-[44px] ${
+              filterNoContact
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.2)]'
+                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+            }`}
+            title="Filter test chats and records with no email or phone"
+          >
+            <Filter className="w-3.5 h-3.5 text-rose-400" />
+            <span>No contact details ({noContactCount})</span>
+          </button>
         </div>
 
-        {/* Action Buttons: Export & Test Simulation */}
+        {/* Action Buttons: Batch Actions, Export & Test Simulation */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Select all (filtered) */}
+          <button
+            onClick={handleToggleSelectAll}
+            disabled={filteredItems.length === 0}
+            className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-40 min-h-[44px] ${
+              allFilteredSelected
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+            }`}
+            title="Select all currently filtered records"
+          >
+            {allFilteredSelected ? (
+              <CheckSquare className="w-4 h-4 text-cyan-400" />
+            ) : (
+              <Square className="w-4 h-4 text-slate-400" />
+            )}
+            <span>{allFilteredSelected ? 'Deselect all' : `Select all (${filteredItems.length})`}</span>
+          </button>
+
+          {/* Delete selected */}
+          {selectedIds.size > 0 && (
+            <button
+              onClick={() => {
+                const itemsToDelete = unifiedItems.filter((i) => selectedIds.has(i.id));
+                setDeleteConfirmModal({ isOpen: true, items: itemsToDelete });
+              }}
+              className="px-3.5 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/50 text-xs font-bold text-rose-300 hover:text-white flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(244,63,94,0.25)] min-h-[44px]"
+              title="Delete selected records with confirmation"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+              <span>Delete selected ({selectedIds.size})</span>
+            </button>
+          )}
+
           <button
             onClick={handleExportCsv}
             disabled={filteredItems.length === 0}
@@ -280,6 +460,33 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Operation Feedback Banner */}
+      {feedbackBanner && (
+        <div
+          className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs font-medium transition-all ${
+            feedbackBanner.type === 'success'
+              ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+              : 'bg-rose-950/40 border-rose-500/40 text-rose-300'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {feedbackBanner.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+            )}
+            <span>{feedbackBanner.message}</span>
+          </div>
+          <button
+            onClick={() => setFeedbackBanner(null)}
+            className="p-1 hover:text-white text-slate-400 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+            aria-label="Dismiss feedback notification"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Main Inbox Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -313,7 +520,7 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
                 <div
                   key={item.id}
                   onClick={() => setSelectedItem(item)}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden select-none active:scale-[0.99] ${
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden select-none active:scale-[0.99] flex items-start gap-3 ${
                     isSelected
                       ? 'bg-[#0a122e] border-cyan-400/80 shadow-[0_0_20px_rgba(25,217,255,0.2)]'
                       : item.status === 'new'
@@ -326,92 +533,135 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
                     <div className="absolute top-0 left-0 bottom-0 w-1 bg-cyan-400 shadow-[0_0_10px_#19d9ff]" />
                   )}
 
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    {/* Source tag & Name */}
-                    <div className="flex items-center gap-2">
-                      {isLead ? (
-                        <>
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 flex items-center gap-1">
-                            <Globe className="w-3 h-3" />
-                            <span>Website Lead</span>
+                  {/* Row Checkbox (44px touch target) */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(item.id)) {
+                          next.delete(item.id);
+                        } else {
+                          next.add(item.id);
+                        }
+                        return next;
+                      });
+                    }}
+                    aria-label={`Select ${isLead ? item.client_name : item.sender_name}`}
+                    className="p-2 -ml-1 text-slate-500 hover:text-cyan-300 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer flex-shrink-0 transition-colors"
+                  >
+                    {selectedIds.has(item.id) ? (
+                      <CheckSquare className="w-4 h-4 text-cyan-400" />
+                    ) : (
+                      <Square className="w-4 h-4 text-slate-600 hover:text-slate-400" />
+                    )}
+                  </button>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      {/* Source tag & Name */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {isLead ? (
+                          <>
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 flex items-center gap-1">
+                              <Globe className="w-3 h-3" />
+                              <span>Website Lead</span>
+                            </span>
+                            {item.status === 'test' || (item as LeadItem).crm_skipped_reason === 'test' ? (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-slate-900 border border-slate-700 text-slate-400 flex items-center gap-1">
+                                Test lead - not sent
+                              </span>
+                            ) : (item as LeadItem).crm_client_code ? (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center gap-1">
+                                CRM {(item as LeadItem).crm_client_code}
+                              </span>
+                            ) : (item as LeadItem).crm_synced_at ? (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center gap-1">
+                                CRM synced
+                              </span>
+                            ) : (item as LeadItem).crm_skipped_reason === 'no_consent' ? (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-slate-900 border border-slate-700 text-slate-400 flex items-center gap-1">
+                                not sent (no consent)
+                              </span>
+                            ) : (item as LeadItem).crm_skipped_reason === 'failed' || (item as LeadItem).crm_skipped_reason === 'crm_dead' ? (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center gap-1">
+                                CRM failed
+                              </span>
+                            ) : !hasRealContact((item as LeadItem).client_contact) || (item as LeadItem).crm_skipped_reason === 'no_contact' ? (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-slate-900 border border-slate-700 text-slate-400 flex items-center gap-1">
+                                No contact - not sent
+                              </span>
+                            ) : (item as LeadItem).crm_skipped_reason ? (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-slate-900 border border-slate-700 text-slate-400 flex items-center gap-1">
+                                not sent ({(item as LeadItem).crm_skipped_reason})
+                              </span>
+                            ) : (item as LeadItem).session_id && hasRealContact((item as LeadItem).client_contact) ? (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-amber-500/15 border border-amber-500/30 text-amber-300 flex items-center gap-1">
+                                CRM pending
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-slate-900 border border-slate-700 text-slate-400 flex items-center gap-1">
+                                No contact - not sent
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-violet-500/15 border border-violet-500/30 text-violet-300 flex items-center gap-1 uppercase">
+                            <MessageSquare className="w-3 h-3" />
+                            <span>{item.source}</span>
                           </span>
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border flex items-center gap-1 ${
-                              (item as LeadItem).crm_client_code
-                                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-                                : (item as LeadItem).crm_skipped_reason === 'no_consent'
-                                ? 'bg-slate-900 border-slate-700 text-slate-400'
-                                : (item as LeadItem).crm_skipped_reason === 'failed' || (item as LeadItem).crm_skipped_reason === 'crm_dead'
-                                ? 'bg-rose-500/15 border-rose-500/30 text-rose-300'
-                                : (item as LeadItem).crm_skipped_reason
-                                ? 'bg-slate-900 border-slate-700 text-slate-400'
-                                : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
-                            }`}
-                          >
-                            {(item as LeadItem).crm_client_code
-                              ? `CRM ${(item as LeadItem).crm_client_code}`
-                              : (item as LeadItem).crm_skipped_reason === 'no_consent'
-                              ? 'not sent (no consent)'
-                              : (item as LeadItem).crm_skipped_reason === 'failed' || (item as LeadItem).crm_skipped_reason === 'crm_dead'
-                              ? 'CRM failed'
-                              : (item as LeadItem).crm_skipped_reason
-                              ? `not sent (${(item as LeadItem).crm_skipped_reason})`
-                              : 'CRM pending'}
+                        )}
+
+                        {isLead && item.intent_type && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800">
+                            {item.intent_type}
                           </span>
-                        </>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-violet-500/15 border border-violet-500/30 text-violet-300 flex items-center gap-1 uppercase">
-                          <MessageSquare className="w-3 h-3" />
-                          <span>{item.source}</span>
-                        </span>
-                      )}
+                        )}
+                      </div>
 
-                      {isLead && item.intent_type && (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800">
-                          {item.intent_type}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Timestamp */}
-                    <span className="text-[11px] font-mono text-slate-500">
-                      {dayStr} {dateStr}
-                    </span>
-                  </div>
-
-                  {/* Sender Name & Preview */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-bold text-white truncate">
-                        {isLead ? item.client_name : item.sender_name}
-                      </h4>
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          item.status === 'new'
-                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                            : item.status === 'in_progress'
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        }`}
-                      >
-                        {item.status.replace('_', ' ')}
+                      {/* Timestamp */}
+                      <span className="text-[11px] font-mono text-slate-500 flex-shrink-0">
+                        {dayStr} {dateStr}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
-                      {isLead
-                        ? item.client_message || item.conversation_summary || 'Website discovery session logged.'
-                        : item.message_text}
-                    </p>
-                  </div>
+                    {/* Sender Name & Preview */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-white truncate">
+                          {isLead ? item.client_name : item.sender_name}
+                        </h4>
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                            item.status === 'test'
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              : item.status === 'new'
+                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                              : item.status === 'in_progress'
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          }`}
+                        >
+                          {item.status.replace('_', ' ')}
+                        </span>
+                      </div>
 
-                  {/* Contact info snippet */}
-                  <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
-                    <span className="truncate">{isLead ? item.client_contact : item.sender_contact}</span>
-                    <span className="text-cyan-400 font-medium flex items-center gap-1 hover:underline">
-                      <span>Inspect</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </span>
+                      <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                        {isLead
+                          ? item.client_message || item.conversation_summary || 'Website discovery session logged.'
+                          : item.message_text}
+                      </p>
+                    </div>
+
+                    {/* Contact info snippet */}
+                    <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
+                      <span className="truncate">{isLead ? item.client_contact : item.sender_contact}</span>
+                      <span className="text-cyan-400 font-medium flex items-center gap-1 hover:underline">
+                        <span>Inspect</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
@@ -437,29 +687,43 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
                     {selectedItem.itemType === 'lead' ? 'WEBSITE LEAD' : `SOCIAL: ${selectedItem.source.toUpperCase()}`}
                   </span>
                   {selectedItem.itemType === 'lead' && (
-                    <span
-                      className={`px-2.5 py-0.5 rounded-md text-xs font-mono font-bold border flex items-center gap-1 ${
-                        (selectedItem as LeadItem).crm_client_code
-                          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                          : (selectedItem as LeadItem).crm_skipped_reason === 'no_consent'
-                          ? 'bg-slate-900 border-slate-700 text-slate-400'
-                          : (selectedItem as LeadItem).crm_skipped_reason === 'failed' || (selectedItem as LeadItem).crm_skipped_reason === 'crm_dead'
-                          ? 'bg-rose-500/20 border-rose-500/40 text-rose-300'
-                          : (selectedItem as LeadItem).crm_skipped_reason
-                          ? 'bg-slate-900 border-slate-700 text-slate-400'
-                          : 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                      }`}
-                    >
-                      {(selectedItem as LeadItem).crm_client_code
-                        ? `CRM ${(selectedItem as LeadItem).crm_client_code}`
-                        : (selectedItem as LeadItem).crm_skipped_reason === 'no_consent'
-                        ? 'not sent (no consent)'
-                        : (selectedItem as LeadItem).crm_skipped_reason === 'failed' || (selectedItem as LeadItem).crm_skipped_reason === 'crm_dead'
-                        ? 'CRM failed'
-                        : (selectedItem as LeadItem).crm_skipped_reason
-                        ? `not sent (${(selectedItem as LeadItem).crm_skipped_reason})`
-                        : 'CRM pending'}
-                    </span>
+                    selectedItem.status === 'test' || (selectedItem as LeadItem).crm_skipped_reason === 'test' ? (
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-mono font-semibold bg-slate-900 border border-slate-700 text-slate-400">
+                        Test lead - not sent
+                      </span>
+                    ) : (selectedItem as LeadItem).crm_client_code ? (
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-mono font-bold bg-emerald-500/20 border border-emerald-500/40 text-emerald-300">
+                        CRM {(selectedItem as LeadItem).crm_client_code}
+                      </span>
+                    ) : (selectedItem as LeadItem).crm_synced_at ? (
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-mono font-semibold bg-emerald-500/20 border border-emerald-500/40 text-emerald-300">
+                        CRM synced
+                      </span>
+                    ) : (selectedItem as LeadItem).crm_skipped_reason === 'no_consent' ? (
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-mono bg-slate-900 border border-slate-700 text-slate-400">
+                        not sent (no consent)
+                      </span>
+                    ) : (selectedItem as LeadItem).crm_skipped_reason === 'failed' || (selectedItem as LeadItem).crm_skipped_reason === 'crm_dead' ? (
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-mono bg-rose-500/20 border border-rose-500/40 text-rose-300">
+                        CRM failed
+                      </span>
+                    ) : !hasRealContact((selectedItem as LeadItem).client_contact) || (selectedItem as LeadItem).crm_skipped_reason === 'no_contact' ? (
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-mono bg-slate-900 border border-slate-700 text-slate-400">
+                        No contact - not sent
+                      </span>
+                    ) : (selectedItem as LeadItem).crm_skipped_reason ? (
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-mono bg-slate-900 border border-slate-700 text-slate-400">
+                        not sent ({(selectedItem as LeadItem).crm_skipped_reason})
+                      </span>
+                    ) : (selectedItem as LeadItem).session_id && hasRealContact((selectedItem as LeadItem).client_contact) ? (
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-mono bg-amber-500/20 border border-amber-500/40 text-amber-300">
+                        CRM pending
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-mono bg-slate-900 border border-slate-700 text-slate-400">
+                        No contact - not sent
+                      </span>
+                    )
                   )}
                   <span className="text-xs text-slate-400 font-mono">
                     {new Date(selectedItem.created_at).toLocaleString()}
@@ -476,7 +740,7 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
               {/* Close button for mobile */}
               <button
                 onClick={() => setSelectedItem(null)}
-                className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800"
+                className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
                 aria-label="Close details"
               >
                 <X className="w-4 h-4" />
@@ -490,26 +754,43 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
                 <select
                   value={selectedItem.status}
                   onChange={(e) => handleStatusChange(selectedItem, e.target.value as LeadStatus)}
-                  className="bg-slate-900 border border-slate-700 text-xs text-white font-medium rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-400"
+                  className="bg-slate-900 border border-slate-700 text-xs text-white font-medium rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-400 min-h-[44px]"
                 >
                   <option value="new">New</option>
                   <option value="in_progress">In Progress</option>
                   <option value="done">Done</option>
+                  <option value="test">Test</option>
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleToggleTestStatus(selectedItem)}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all min-h-[44px] cursor-pointer ${
+                    selectedItem.status === 'test'
+                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                  title="Test leads never sync to CRM and never count in analytics"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{selectedItem.status === 'test' ? 'Unmark Test' : 'Mark as Test'}</span>
+                </button>
+
                 <button
                   onClick={() => onConvertToTask(selectedItem)}
-                  className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(25,217,255,0.2)]"
+                  className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(25,217,255,0.2)] min-h-[44px]"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Convert to Task</span>
                 </button>
+
                 <button
-                  onClick={() => handleDeleteItem(selectedItem)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 transition-colors"
+                  onClick={() => setDeleteConfirmModal({ isOpen: true, items: [selectedItem] })}
+                  className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
                   title="Delete record"
+                  aria-label="Delete record"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -704,6 +985,68 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation & Export Delete Modal */}
+      {deleteConfirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#02050f]/85 backdrop-blur-md">
+          <div className="w-full max-w-md bg-[#060b1c] border border-rose-500/40 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-rose-400" />
+                <span>Confirm Permanent Deletion</span>
+              </h3>
+              <button
+                onClick={() => setDeleteConfirmModal({ isOpen: false, items: [] })}
+                className="p-1 rounded-lg text-slate-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+                aria-label="Close dialog"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs text-slate-300">
+              <p>
+                You are about to delete{' '}
+                <span className="font-bold text-white font-mono">{deleteConfirmModal.items.length}</span>{' '}
+                record{deleteConfirmModal.items.length === 1 ? '' : 's'} from the database.
+              </p>
+              <p className="text-rose-400/90 font-medium">
+                Nothing is deleted automatically. This operation cannot be reversed once confirmed.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                onClick={() => handleExportItemsJson(deleteConfirmModal.items)}
+                className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white flex items-center justify-center gap-1.5 transition-colors min-h-[44px] cursor-pointer"
+                title="Download backup before deleting"
+              >
+                <Download className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Export JSON first</span>
+              </button>
+              <div className="flex-1 flex gap-2">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setDeleteConfirmModal({ isOpen: false, items: [] })}
+                  className="flex-1 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white text-xs font-medium min-h-[44px] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => executeDelete(deleteConfirmModal.items)}
+                  className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 min-h-[44px] cursor-pointer shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+                >
+                  {isDeleting ? 'Deleting...' : `Delete ${deleteConfirmModal.items.length}`}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ import { SiteVisualEnvironment } from './components/environment/SiteVisualEnviro
 import { useScrollReveal } from './hooks/useScrollReveal';
 import { NavRoute } from './types';
 import { seedManifestPlaceholders } from './services/contentResolver';
+import { trackPageView } from './services/visitorTracking';
 import { HomePage } from './pages/HomePage';
 
 export type AppRoute =
@@ -111,6 +112,10 @@ export default function App() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
+
+  useEffect(() => {
+    trackPageView(currentRoute);
+  }, [currentRoute]);
 
   const navigateTo = (route: string, query?: string) => {
     const targetRoute = route === 'solutions' ? 'use-cases' : route;

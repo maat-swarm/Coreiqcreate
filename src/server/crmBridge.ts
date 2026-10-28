@@ -248,7 +248,10 @@ export function buildPayload(input: RawCrmInput): CrmPayload {
  * Validates whether the lead qualifies for CRM intake queuing.
  * Returns null if qualified, or a skipped reason string if not.
  */
-export function getSkippedReason(input: RawCrmInput): 'no_consent' | 'no_contact' | null {
+export function getSkippedReason(input: RawCrmInput): 'no_consent' | 'no_contact' | 'test' | null {
+  if ((input as any).is_test === true || (input as any).status === 'test') {
+    return 'test';
+  }
   if (input.consent !== true) {
     return 'no_consent';
   }

@@ -12,7 +12,9 @@ import {
   ApiKeyItem,
   ApiScope,
   ApiAuditItem,
+  SiteVisitRecord,
 } from '../types/command';
+import { getOrCreateVisitorId } from './visitorTracking';
 
 // Storage keys
 const LS_URL_KEY = 'coreiq_supabase_url';
@@ -507,8 +509,11 @@ export const CoreIQData = {
   },
 
   async insertLead(lead: Omit<LeadItem, 'id' | 'created_at'>): Promise<LeadItem> {
+    const visitorId = getOrCreateVisitorId();
+
     const newLead: LeadItem = {
       ...lead,
+      session_id: lead.session_id || visitorId || null,
       id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `lead_${Date.now()}`,
       created_at: new Date().toISOString(),
     };
@@ -518,7 +523,9 @@ export const CoreIQData = {
       try {
         const { data, error } = await client.from('leads').insert([newLead]).select().single();
         if (!error && data) {
-          window.dispatchEvent(new CustomEvent('coreiq_new_inbox_item', { detail: data }));
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('coreiq_new_inbox_item', { detail: data }));
+          }
           return data as LeadItem;
         }
       } catch (e) {
@@ -529,7 +536,9 @@ export const CoreIQData = {
     const current = getLocalTable<LeadItem>('leads');
     const updated = [newLead, ...current];
     setLocalTable('leads', updated);
-    window.dispatchEvent(new CustomEvent('coreiq_new_inbox_item', { detail: newLead }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('coreiq_new_inbox_item', { detail: newLead }));
+    }
     return newLead;
   },
 
@@ -572,17 +581,41 @@ export const CoreIQData = {
     setLocalTable('leads', updated);
   },
 
-  async deleteLead(id: string): Promise<void> {
+  async deleteLead(id: string): Promise<boolean> {
+    const res = await this.deleteLeads([id]);
+    return res.count > 0;
+  },
+
+  async deleteLeads(ids: string[]): Promise<{ count: number; error?: string }> {
+    if (!ids || ids.length === 0) return { count: 0 };
     const client = getSupabase();
+    let totalDeleted = 0;
     if (client) {
       try {
-        await client.from('leads').delete().eq('id', id);
-      } catch (e) {
-        console.warn('Supabase lead delete error:', e);
+        const chunkSize = 40;
+        for (let i = 0; i < ids.length; i += chunkSize) {
+          const chunk = ids.slice(i, i + chunkSize);
+          const { error, count } = await client
+            .from('leads')
+            .delete({ count: 'exact' })
+            .in('id', chunk);
+          if (error) {
+            console.error('Supabase deleteLeads chunk error:', error);
+            return { count: totalDeleted, error: error.message };
+          }
+          totalDeleted += count !== null && count !== undefined ? count : chunk.length;
+        }
+      } catch (e: any) {
+        console.warn('Supabase leads batch delete error:', e);
+        return { count: totalDeleted, error: e?.message || 'Delete operation failed' };
       }
+    } else {
+      totalDeleted = ids.length;
     }
+    const idSet = new Set(ids);
     const current = getLocalTable<LeadItem>('leads');
-    setLocalTable('leads', current.filter((item) => item.id !== id));
+    setLocalTable('leads', current.filter((item) => !idSet.has(item.id)));
+    return { count: totalDeleted };
   },
 
   // --- INBOX: SOCIAL MESSAGES ---
@@ -614,7 +647,9 @@ export const CoreIQData = {
       try {
         const { data, error } = await client.from('social_messages').insert([newMsg]).select().single();
         if (!error && data) {
-          window.dispatchEvent(new CustomEvent('coreiq_new_inbox_item', { detail: data }));
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('coreiq_new_inbox_item', { detail: data }));
+          }
           return data as SocialMessageItem;
         }
       } catch (e) {
@@ -625,7 +660,9 @@ export const CoreIQData = {
     const current = getLocalTable<SocialMessageItem>('social_messages');
     const updated = [newMsg, ...current];
     setLocalTable('social_messages', updated);
-    window.dispatchEvent(new CustomEvent('coreiq_new_inbox_item', { detail: newMsg }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('coreiq_new_inbox_item', { detail: newMsg }));
+    }
     return newMsg;
   },
 
@@ -640,6 +677,76 @@ export const CoreIQData = {
     }
     const current = getLocalTable<SocialMessageItem>('social_messages');
     setLocalTable('social_messages', current.map((i) => (i.id === id ? { ...i, status } : i)));
+  },
+
+  async deleteSocialMessage(id: string): Promise<boolean> {
+    const res = await this.deleteSocialMessages([id]);
+    return res.count > 0;
+  },
+
+  async deleteSocialMessages(ids: string[]): Promise<{ count: number; error?: string }> {
+    if (!ids || ids.length === 0) return { count: 0 };
+    const client = getSupabase();
+    let totalDeleted = 0;
+    if (client) {
+      try {
+        const chunkSize = 40;
+        for (let i = 0; i < ids.length; i += chunkSize) {
+          const chunk = ids.slice(i, i + chunkSize);
+          const { error, count } = await client
+            .from('social_messages')
+            .delete({ count: 'exact' })
+            .in('id', chunk);
+          if (error) {
+            console.error('Supabase deleteSocialMessages chunk error:', error);
+            return { count: totalDeleted, error: error.message };
+          }
+          totalDeleted += count !== null && count !== undefined ? count : chunk.length;
+        }
+      } catch (e: any) {
+        console.warn('Supabase social batch delete error:', e);
+        return { count: totalDeleted, error: e?.message || 'Delete operation failed' };
+      }
+    } else {
+      totalDeleted = ids.length;
+    }
+    const idSet = new Set(ids);
+    const current = getLocalTable<SocialMessageItem>('social_messages');
+    setLocalTable('social_messages', current.filter((item) => !idSet.has(item.id)));
+    return { count: totalDeleted };
+  },
+
+  // --- VISITOR ANALYTICS ---
+  async getSiteVisits(days = 30, limit = 1000): Promise<SiteVisitRecord[]> {
+    const client = getSupabase();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffIso = cutoffDate.toISOString();
+
+    if (client) {
+      try {
+        const { data, error } = await client
+          .from('site_visits')
+          .select('*')
+          .gte('created_at', cutoffIso)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        if (!error && data) {
+          return data as SiteVisitRecord[];
+        }
+      } catch (e) {
+        console.warn('Error querying site_visits:', e);
+      }
+    }
+
+    try {
+      const localVisits: SiteVisitRecord[] = JSON.parse(
+        localStorage.getItem('coreiq_local_site_visits') || '[]'
+      );
+      return localVisits.filter((v) => new Date(v.created_at) >= cutoffDate).slice(0, limit);
+    } catch {
+      return [];
+    }
   },
 
   // --- TASKS ---
