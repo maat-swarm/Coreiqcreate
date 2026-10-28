@@ -1,0 +1,144 @@
+{
+  "timestamp": "2026-10-27T21:50:02.904Z",
+  "git": {
+    "tag": "pre-persistence-fix-2026-10-27",
+    "status": "clean"
+  },
+  "tables": {
+    "leads": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "social_messages": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "tasks": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "clients": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "agent_config": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "agent_tools": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "platforms": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "content": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "swarm_comms": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "api_keys": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "media_slots": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "media_slot_items": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "use_case_categories": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "use_cases": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "use_case_files": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "store_apps": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "app_requests": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "app_access_links": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "app_downloads": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "store_settings": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "news_articles": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "site_tools": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "site_tool_private": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "tool_submissions": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "crm_outbox": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "maatverse_sections": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    },
+    "maatverse_entries": {
+      "count": 0,
+      "rows": [],
+      "source": "none"
+    }
+  }
+}

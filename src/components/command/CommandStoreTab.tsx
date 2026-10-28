@@ -31,7 +31,8 @@ import {
   Eye,
   EyeOff,
   MoveUp,
-  MoveDown
+  MoveDown,
+  Download
 } from 'lucide-react';
 import {
   StoreApp,
@@ -593,6 +594,36 @@ export const CommandStoreTab: React.FC = () => {
     }
   };
 
+  const handleExportRequestsCsv = () => {
+    const headers = ['ID', 'App ID', 'User Name', 'User Email', 'Message', 'Status', 'Created At'];
+    const rows = requests.map((r) => [
+      `"${r.id}"`,
+      `"${r.app_id || ''}"`,
+      `"${(r.user_name || '').replace(/"/g, '""')}"`,
+      `"${(r.user_email || '').replace(/"/g, '""')}"`,
+      `"${(r.message || '').replace(/"/g, '""')}"`,
+      `"${r.status}"`,
+      `"${r.created_at}"`,
+    ].join(','));
+    const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers.join(','), ...rows].join('\n'));
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', `coreiq_store_requests_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportRequestsJson = () => {
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(requests, null, 2))}`;
+    const link = document.createElement('a');
+    link.setAttribute('href', jsonString);
+    link.setAttribute('download', `coreiq_store_requests_${Date.now()}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Payment settings handlers
   const handleSavePaymentConfig = async () => {
     try {
@@ -1006,18 +1037,42 @@ export const CommandStoreTab: React.FC = () => {
       {/* SUB-TAB 2: CUSTOMER REQUESTS */}
       {activeSubTab === 'requests' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#060b1e]/90 border border-slate-800/80">
-            <span className="text-xs font-mono text-slate-400">Filter requests by status:</span>
-            <select
-              value={requestFilter}
-              onChange={(e) => setRequestFilter(e.target.value)}
-              className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 min-h-[44px]"
-            >
-              <option value="all">All Statuses</option>
-              <option value="new">New</option>
-              <option value="contacted">Contacted</option>
-              <option value="closed">Closed</option>
-            </select>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-[#060b1e]/90 border border-slate-800/80">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-slate-400">Filter requests by status:</span>
+              <select
+                value={requestFilter}
+                onChange={(e) => setRequestFilter(e.target.value)}
+                className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+              >
+                <option value="all">All Statuses ({requests.length})</option>
+                <option value="new">New</option>
+                <option value="contacted">Contacted</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportRequestsCsv}
+                disabled={requests.length === 0}
+                className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors disabled:opacity-40 min-h-[44px]"
+                title="Export requests as CSV"
+              >
+                <Download className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Export CSV</span>
+              </button>
+
+              <button
+                onClick={handleExportRequestsJson}
+                disabled={requests.length === 0}
+                className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors disabled:opacity-40 min-h-[44px]"
+                title="Export requests as JSON"
+              >
+                <Download className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Export JSON</span>
+              </button>
+            </div>
           </div>
 
           {loadingRequests && (

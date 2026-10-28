@@ -12,6 +12,7 @@ import {
 import { NavRoute } from '../types';
 import { useMediaSlot } from '../services/mediaSlots';
 import { getManifestEntry } from '../data/contentManifest';
+import { useContent } from '../services/contentResolver';
 
 /**
  * Manifest Key Check Report (against src/data/contentManifest.ts):
@@ -189,9 +190,14 @@ function StepCard({ stepNumber, videoSlotKey, pdfSlotKey }: StepCardProps) {
   const { items: pdfItems } = useMediaSlot(pdfSlotKey);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Check manifest key for step title (e.g. learn.step1.title)
+  // Check dynamic resolved content, falling back to manifest default
   const manifestTitleEntry = getManifestEntry(`learn.step${stepNumber}.title`);
-  const stepTitle = manifestTitleEntry?.defaultTitle || `[Placeholder: Step ${stepNumber} Title]`;
+  const { content: dynamicContent } = useContent(`learn.step${stepNumber}.title`);
+  const stepTitle =
+    dynamicContent?.title ||
+    dynamicContent?.body ||
+    manifestTitleEntry?.defaultTitle ||
+    `[Placeholder: Step ${stepNumber} Title]`;
 
   const publishedVideos = (videoItems || []).filter((v) => v.published);
   const videoItem = publishedVideos.length > 0 ? publishedVideos[0] : null;
@@ -317,9 +323,18 @@ function StepCard({ stepNumber, videoSlotKey, pdfSlotKey }: StepCardProps) {
 function LearnAppPromoCard() {
   const appNameEntry = getManifestEntry('learn.app.name');
   const appDescEntry = getManifestEntry('learn.app.description');
+  const { content: nameContent } = useContent('learn.app.name');
+  const { content: descContent } = useContent('learn.app.description');
 
-  const appName = appNameEntry?.defaultTitle || '[Placeholder: Learn AI App]';
+  const appName =
+    nameContent?.title ||
+    nameContent?.body ||
+    appNameEntry?.defaultTitle ||
+    '[Placeholder: Learn AI App]';
   const appDescription =
+    descContent?.summary ||
+    descContent?.body ||
+    descContent?.title ||
     appDescEntry?.defaultSummary ||
     '[Placeholder: Companion mobile app for on-the-go lessons, flash scenarios, and workflow exercises.]';
 

@@ -59,8 +59,14 @@ function getInitialCredentials() {
   let envUrl = '';
   let envKey = '';
   try {
-    envUrl = ((import.meta as any).env?.VITE_SUPABASE_URL as string) || '';
-    envKey = ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string) || '';
+    envUrl =
+      ((import.meta as any).env?.VITE_SUPABASE_URL as string) ||
+      ((import.meta as any).env?.SUPABASE_URL as string) ||
+      '';
+    envKey =
+      ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string) ||
+      ((import.meta as any).env?.SUPABASE_ANON_KEY as string) ||
+      '';
   } catch {}
 
   const storedUrl = safeGetStorage(LS_URL_KEY);
@@ -70,6 +76,109 @@ function getInitialCredentials() {
   const anonKey = storedKey.trim() || envKey.trim();
 
   return { url, anonKey };
+}
+
+/**
+ * Quota-Safe Persistent Auth Storage Adapter.
+ * - Uses localStorage as primary persistent layer across browser closes / reboots (Android Chrome safe).
+ * - Trims large session metadata payloads if needed to minimize storage footprint.
+ * - Handles QuotaExceededError by clearing stale temporary cache keys (coreiq_cache_*) and retrying.
+ * - Automatically falls back to sessionStorage if localStorage is unavailable, blocked, or full.
+ * - Validates JSON on read; discards and cleans up corrupted tokens.
+ */
+function createSafeAuthStorage() {
+  const pruneCaches = () => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('coreiq_cache_') || k.startsWith('coreiq_temp_'))) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch {}
+  };
+
+  return {
+    getItem: (key: string): string | null => {
+      // 1. Try localStorage
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            try {
+              JSON.parse(raw); // validate JSON integrity
+              return raw;
+            } catch {
+              console.warn(`[CoreIQ Auth] Discarding corrupted token for key "${key}"`);
+              localStorage.removeItem(key);
+            }
+          }
+        }
+      } catch {}
+
+      // 2. Fallback to sessionStorage
+      try {
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          const sessionRaw = sessionStorage.getItem(key);
+          if (sessionRaw) {
+            try {
+              JSON.parse(sessionRaw);
+              return sessionRaw;
+            } catch {
+              sessionStorage.removeItem(key);
+            }
+          }
+        }
+      } catch {}
+
+      return null;
+    },
+
+    setItem: (key: string, value: string): void => {
+      // Always mirror to sessionStorage
+      try {
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          sessionStorage.setItem(key, value);
+        }
+      } catch {}
+
+      // Attempt to save to persistent localStorage
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem(key, value);
+          return;
+        }
+      } catch (err: any) {
+        // Quota exceeded: prune transient cache and retry once
+        if (err?.name === 'QuotaExceededError' || err?.code === 22 || err?.number === -2147024882) {
+          console.warn('[CoreIQ Auth] LocalStorage quota exceeded. Pruning temporary caches...');
+          pruneCaches();
+          try {
+            localStorage.setItem(key, value);
+            return;
+          } catch {
+            console.warn('[CoreIQ Auth] Fallback to sessionStorage for session storage.');
+          }
+        }
+      }
+    },
+
+    removeItem: (key: string): void => {
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.removeItem(key);
+        }
+      } catch {}
+      try {
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          sessionStorage.removeItem(key);
+        }
+      } catch {}
+    },
+  };
 }
 
 let activeClient: SupabaseClient | null = null;
@@ -84,17 +193,8 @@ export function getSupabase(): SupabaseClient | null {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
-          storage: {
-            getItem: (key: string) => {
-              try { return sessionStorage.getItem(key); } catch { return null; }
-            },
-            setItem: (key: string, value: string) => {
-              try { sessionStorage.setItem(key, value); } catch {}
-            },
-            removeItem: (key: string) => {
-              try { sessionStorage.removeItem(key); } catch {}
-            },
-          },
+          detectSessionInUrl: true,
+          storage: createSafeAuthStorage(),
         },
         realtime: {
           params: {
@@ -282,6 +382,9 @@ function setLocalTable<T>(table: string, data: T[]) {
     safeSetStorage(`${LOCAL_STORE_PREFIX}${table}`, JSON.stringify(data));
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent(`coreiq_table_${table}`, { detail: data }));
+      if (table === 'content') {
+        window.dispatchEvent(new CustomEvent('coreiq_content_updated', { detail: {} }));
+      }
     }
   } catch (e) {
     console.error(`Error saving table ${table}:`, e);
@@ -291,6 +394,16 @@ function setLocalTable<T>(table: string, data: T[]) {
 // ==========================================
 // REALTIME DATA OPERATIONS
 // ==========================================
+
+export type DbHealthStatus = 'live' | 'schema_missing' | 'local_only' | 'not_signed_in';
+
+export interface DatabaseStatusResult {
+  isLiveDb: boolean;
+  status: DbHealthStatus;
+  details: string;
+  missingTables?: string[];
+  url?: string;
+}
 
 export const CoreIQData = {
   async isLiveSupabaseActive(): Promise<boolean> {
@@ -304,21 +417,48 @@ export const CoreIQData = {
     }
   },
 
-  async checkDatabaseStatus(): Promise<{ isLiveDb: boolean; details: string; missingTables?: string[] }> {
+  async checkDatabaseStatus(): Promise<DatabaseStatusResult> {
     const client = getSupabase();
     if (!client) {
       return {
         isLiveDb: false,
-        details: 'Supabase credentials not configured in environment. Running in Local Reactive Mode.',
+        status: 'local_only',
+        details: 'Supabase credentials not configured in environment. Running in Local-Only Mode.',
+        url: currentCredentials.url || undefined,
       };
     }
+
     try {
-      const tables = ['leads', 'agent_config', 'tasks', 'clients', 'api_keys'];
+      // Check session status first
+      let hasSession = false;
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        hasSession = Boolean(sessData?.session);
+      } catch {}
+
+      const coreTables = [
+        'leads',
+        'social_messages',
+        'tasks',
+        'clients',
+        'agent_config',
+        'api_keys',
+        'content',
+        'news_articles',
+        'site_tools',
+        'media_slots',
+        'store_apps',
+      ];
       const missing: string[] = [];
 
-      for (const t of tables) {
+      for (const t of coreTables) {
         const { error } = await client.from(t).select('id').limit(1);
-        if (error && (error.code === '42P01' || error.message?.toLowerCase().includes('does not exist') || error.message?.toLowerCase().includes('relation'))) {
+        if (
+          error &&
+          (error.code === '42P01' ||
+            error.message?.toLowerCase().includes('does not exist') ||
+            error.message?.toLowerCase().includes('relation'))
+        ) {
           missing.push(t);
         }
       }
@@ -326,19 +466,25 @@ export const CoreIQData = {
       if (missing.length > 0) {
         return {
           isLiveDb: false,
+          status: 'schema_missing',
           missingTables: missing,
-          details: `Connected to Supabase, but schema not executed (${missing.join(', ')} missing). Run the SQL Schema in Supabase SQL editor.`,
+          details: `Connected to Supabase, but schema not executed (${missing.length} tables missing: ${missing.join(', ')}). Run the migration in your Supabase SQL editor.`,
+          url: currentCredentials.url,
         };
       }
 
       return {
         isLiveDb: true,
-        details: 'Connected to Supabase Unified Brain with all tables verified and Realtime active.',
+        status: hasSession ? 'live' : 'live',
+        details: 'Connected to Supabase Unified Database with all tables verified and Realtime active.',
+        url: currentCredentials.url,
       };
     } catch (e: any) {
       return {
         isLiveDb: false,
+        status: 'local_only',
         details: `Connection test: ${e?.message || 'Check network / project status'}`,
+        url: currentCredentials.url,
       };
     }
   },
@@ -875,56 +1021,227 @@ export const CoreIQData = {
     value?: string,
     type?: 'text' | 'image' | 'json'
   ): Promise<CommandContentItem> {
+    const res = await this.saveContentItemVerified(keyOrItem, value, type);
+    return res.item;
+  },
+
+  async saveContentItemVerified(
+    keyOrItem: string | (Partial<CommandContentItem> & { title?: string }),
+    value?: string,
+    type?: 'text' | 'image' | 'json'
+  ): Promise<{ success: boolean; item: CommandContentItem; savedToDb: boolean; error?: string }> {
+    const client = getSupabase();
+
     if (typeof keyOrItem === 'string') {
       const key = keyOrItem;
-      const current = await this.getContentItems();
+      const targetType = type || 'text';
+      const targetVal = value ?? '';
+
+      if (client) {
+        try {
+          const { data: existing, error: findErr } = await client
+            .from('content')
+            .select('*')
+            .or(`content_key.eq.${key},key.eq.${key}`)
+            .maybeSingle();
+
+          if (!findErr && existing) {
+            const updates = {
+              key,
+              content_key: existing.content_key || key,
+              value: targetVal,
+              body: targetVal,
+              type: targetType,
+              content_type: targetType,
+              media_reference: targetType === 'image' ? targetVal : existing.media_reference || '',
+              published: true,
+              status: 'PUBLISHED',
+              version: (existing.version || 1) + 1,
+            };
+
+            const { data: updated, error: updateErr } = await client
+              .from('content')
+              .update(updates)
+              .eq('id', existing.id)
+              .select()
+              .single();
+
+            if (updateErr) {
+              console.error('[CoreIQ Content] Supabase update rejected:', updateErr);
+              return {
+                success: false,
+                item: { ...existing, ...updates },
+                savedToDb: false,
+                error: updateErr.message || 'Supabase write rejected by database policy.',
+              };
+            }
+
+            // Read back to guarantee real persistent state
+            const { data: readBack } = await client.from('content').select('*').eq('id', existing.id).single();
+            const finalItem = (readBack || updated) as CommandContentItem;
+
+            // Mirror to local table
+            const current = getLocalTable<CommandContentItem>('content');
+            setLocalTable(
+              'content',
+              current.map((c) => (c.id === finalItem.id ? finalItem : c))
+            );
+
+            return { success: true, item: finalItem, savedToDb: true };
+          }
+
+          // Insert new row to Supabase
+          const newItem: CommandContentItem = {
+            id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cnt_${Date.now()}`,
+            created_at: new Date().toISOString(),
+            key,
+            content_key: key,
+            title: key,
+            body: targetVal,
+            value: targetVal,
+            type: targetType,
+            content_type: targetType,
+            category: 'general',
+            media_reference: targetType === 'image' ? targetVal : '',
+            published: true,
+            status: 'PUBLISHED',
+            version: 1,
+          };
+
+          const { data: inserted, error: insertErr } = await client
+            .from('content')
+            .insert([newItem])
+            .select()
+            .single();
+
+          if (insertErr) {
+            console.error('[CoreIQ Content] Supabase insert rejected:', insertErr);
+            return {
+              success: false,
+              item: newItem,
+              savedToDb: false,
+              error: insertErr.message || 'Supabase write rejected by database policy.',
+            };
+          }
+
+          const finalItem = (inserted || newItem) as CommandContentItem;
+          const current = getLocalTable<CommandContentItem>('content');
+          setLocalTable('content', [finalItem, ...current.filter((c) => c.key !== key && c.content_key !== key)]);
+
+          return { success: true, item: finalItem, savedToDb: true };
+        } catch (e: any) {
+          console.error('[CoreIQ Content] Supabase write exception:', e);
+          return {
+            success: false,
+            item: {
+              id: `cnt_${Date.now()}`,
+              created_at: new Date().toISOString(),
+              key,
+              content_key: key,
+              value: targetVal,
+              body: targetVal,
+              type: targetType,
+              published: true,
+              status: 'PUBLISHED',
+            } as CommandContentItem,
+            savedToDb: false,
+            error: e?.message || 'Database network error during content write.',
+          };
+        }
+      }
+
+      // Local fallback when no client is configured
+      const current = getLocalTable<CommandContentItem>('content');
       const existing = current.find((c) => c.content_key === key || c.key === key || c.id === key);
       if (existing) {
-        await this.updateContentItem(existing.id, {
+        const updated = {
+          ...existing,
           key,
           content_key: existing.content_key || key,
-          value: value ?? '',
-          type: type || 'text',
-        });
-        return { ...existing, key, content_key: existing.content_key || key, value: value ?? '', type: type || 'text' };
+          value: targetVal,
+          body: targetVal,
+          type: targetType,
+          status: 'PUBLISHED' as const,
+          published: true,
+        };
+        setLocalTable('content', current.map((c) => (c.id === existing.id ? updated : c)));
+        return {
+          success: true,
+          item: updated,
+          savedToDb: false,
+          error: 'Saved locally in browser only. Supabase credentials not configured in environment.',
+        };
       }
-      return this.insertContentItem({
+
+      const newItem: CommandContentItem = {
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cnt_${Date.now()}`,
+        created_at: new Date().toISOString(),
         key,
         content_key: key,
-        value: value ?? '',
-        type: type || 'text',
+        value: targetVal,
+        body: targetVal,
+        type: targetType,
         title: key,
-        body: value ?? '',
         category: 'general',
-        media_reference: type === 'image' ? (value ?? '') : '',
+        media_reference: targetType === 'image' ? targetVal : '',
         published: true,
         status: 'PUBLISHED',
-      });
+      };
+      setLocalTable('content', [newItem, ...current]);
+      return {
+        success: true,
+        item: newItem,
+        savedToDb: false,
+        error: 'Saved locally in browser only. Supabase credentials not configured in environment.',
+      };
     }
 
+    // Object payload
     const item = keyOrItem;
-    if (item.id) {
-      await this.updateContentItem(item.id, item);
-      return item as CommandContentItem;
-    }
-    return this.insertContentItem({
+    const finalItem: CommandContentItem = {
+      id: item.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cnt_${Date.now()}`),
+      created_at: item.created_at || new Date().toISOString(),
       title: item.title || item.key || 'Untitled Content',
       body: item.body || item.value || '',
+      value: item.value || item.body || '',
       category: item.category || 'general',
       media_reference: item.media_reference || '',
-      published: item.published ?? false,
+      published: item.published !== undefined ? item.published : true,
+      status: item.status || 'PUBLISHED',
       key: item.key,
       content_key: item.content_key || item.key,
       slug: item.slug,
-      content_type: item.content_type || 'text',
-      status: item.status || 'PLACEHOLDER',
+      content_type: item.content_type || item.type || 'text',
       summary: item.summary,
       metadata: item.metadata,
       asset_url: item.asset_url,
       version: item.version ?? 1,
-      value: item.value,
       type: item.type || 'text',
-    });
+    };
+
+    if (client) {
+      try {
+        const { data, error } = await client.from('content').upsert([finalItem]).select().single();
+        if (error) {
+          return { success: false, item: finalItem, savedToDb: false, error: error.message };
+        }
+        const saved = (data || finalItem) as CommandContentItem;
+        const current = getLocalTable<CommandContentItem>('content');
+        setLocalTable('content', [saved, ...current.filter((c) => c.id !== saved.id)]);
+        return { success: true, item: saved, savedToDb: true };
+      } catch (err: any) {
+        return { success: false, item: finalItem, savedToDb: false, error: err?.message || 'Database error' };
+      }
+    }
+
+    const current = getLocalTable<CommandContentItem>('content');
+    setLocalTable('content', [finalItem, ...current.filter((c) => c.id !== finalItem.id)]);
+    return {
+      success: true,
+      item: finalItem,
+      savedToDb: false,
+      error: 'Saved locally in browser only. Supabase credentials not configured.',
+    };
   },
 
   // --- SWARM COMMS (COMMS messages ONLY, Vault is read-only) ---

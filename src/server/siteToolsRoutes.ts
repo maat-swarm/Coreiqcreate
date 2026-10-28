@@ -1,6 +1,8 @@
 import { Express, Request, Response, NextFunction } from 'express';
 import { SupabaseClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import multer from 'multer';
 import { z } from 'zod';
 import { ToolFormField, ToolSubmissionItem } from '../types/command';
@@ -635,10 +637,15 @@ export function registerSiteToolsRoutes(app: Express, deps: SiteToolsDeps) {
 
     if (adminSupabase) {
       try {
-        await adminSupabase.from('site_tools').insert([newToolRow]);
+        const { error: toolErr } = await adminSupabase.from('site_tools').insert([newToolRow]);
+        if (toolErr && !isSchemaMissing(toolErr)) {
+          console.error('[site_tools insert error]', toolErr);
+          return res.status(500).json({ error: 'Database Write Error', message: toolErr.message });
+        }
         await adminSupabase.from('site_tool_private').insert([privateRow]);
-      } catch (e) {
+      } catch (e: any) {
         console.warn('[site_tools create db catch]', e);
+        return res.status(500).json({ error: 'Database Write Exception', message: e?.message });
       }
     }
 
@@ -882,13 +889,29 @@ export function registerSiteToolsRoutes(app: Express, deps: SiteToolsDeps) {
               image_path: storagePath,
             });
           }
-        } catch {}
+          console.error('[Tool Image Upload Storage Error]', upErr);
+          return res.status(500).json({ error: 'Storage Upload Failed', message: upErr.message });
+        } catch (uploadEx: any) {
+          console.error('[Tool Image Upload Exception]', uploadEx);
+          return res.status(500).json({ error: 'Storage Exception', message: uploadEx?.message });
+        }
       }
 
       // Local fallback
+      try {
+        const localDir = path.join(process.cwd(), 'public', 'media', 'tools');
+        if (!fs.existsSync(localDir)) {
+          fs.mkdirSync(localDir, { recursive: true });
+        }
+        fs.writeFileSync(path.join(localDir, `${fileId}.${ext}`), file.buffer);
+      } catch (diskErr) {
+        console.warn('Local disk write error:', diskErr);
+      }
+
       return res.json({
         image_url: `/media/${storagePath}`,
         image_path: storagePath,
+        warning: 'Saved to local ephemeral disk. Configure Supabase storage to persist uploads.',
       });
     }
   );

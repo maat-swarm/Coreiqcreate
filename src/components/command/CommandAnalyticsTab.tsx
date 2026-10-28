@@ -55,10 +55,10 @@ export const CommandAnalyticsTab: React.FC<CommandAnalyticsTabProps> = ({
       const leadDate = new Date(l.created_at);
       return leadDate.toDateString() === d.toDateString();
     }).length;
-    return { day: dayKey, count: count || Math.max(1, (i * 2) % 5) }; // baseline visual sparkline if freshly started
+    return { day: dayKey, count };
   });
 
-  const maxVolume = Math.max(...last7Days.map((d) => d.count), 5);
+  const maxVolume = Math.max(...last7Days.map((d) => d.count), 1);
 
   return (
     <div className="space-y-4">

@@ -13,7 +13,8 @@ import {
   Sparkles,
   X,
   Activity,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { ContentItem } from '../../types/command';
 import { CoreIQData } from '../../services/supabase';
@@ -32,6 +33,7 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
   const [subTab, setSubTab] = useState<'copy' | 'media'>('copy');
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<Record<string, boolean>>({});
+  const [saveFeedback, setSaveFeedback] = useState<Record<string, { savedToDb: boolean; error?: string } | null>>({});
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // New Media / Content Modal
@@ -46,12 +48,16 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
 
   const handleSaveItem = async (key: string, type: 'text' | 'image' | 'json') => {
     const valueToSave = editedValues[key] ?? contentItems.find((c) => c.key === key)?.value ?? '';
-    await CoreIQData.saveContentItem(key, valueToSave, type);
+    const res = await CoreIQData.saveContentItemVerified(key, valueToSave, type);
     
-    setSaveStatus((prev) => ({ ...prev, [key]: true }));
+    setSaveFeedback((prev) => ({
+      ...prev,
+      [key]: { savedToDb: res.savedToDb, error: res.error },
+    }));
+
     setTimeout(() => {
-      setSaveStatus((prev) => ({ ...prev, [key]: false }));
-    }, 2500);
+      setSaveFeedback((prev) => ({ ...prev, [key]: null }));
+    }, 4500);
 
     onRefresh();
   };
@@ -296,22 +302,34 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
                     className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs sm:text-sm text-white focus:outline-none focus:border-cyan-400 leading-relaxed font-sans"
                   />
 
-                  <div className="flex items-center justify-between pt-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                     <span className="text-[10px] font-mono text-slate-500">
                       Last modified {new Date(item.updated_at || item.created_at || Date.now()).toLocaleString()}
                     </span>
 
-                    <button
-                      onClick={() => handleSaveItem(item.key, 'text')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                        isSaved
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(25,217,255,0.2)]'
-                      }`}
-                    >
-                      {isSaved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-                      <span>{isSaved ? 'Published to Site!' : 'Publish Override'}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {saveFeedback[item.key] && (
+                        saveFeedback[item.key]!.savedToDb ? (
+                          <span className="px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-mono flex items-center gap-1 font-semibold animate-in fade-in">
+                            <Check className="w-3 h-3 text-emerald-400" />
+                            Saved to database
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[11px] font-mono flex items-center gap-1 font-semibold animate-in fade-in" title={saveFeedback[item.key]!.error}>
+                            <AlertTriangle className="w-3 h-3 text-rose-400" />
+                            NOT saved: {saveFeedback[item.key]!.error || 'Local cache only'}
+                          </span>
+                        )
+                      )}
+
+                      <button
+                        onClick={() => handleSaveItem(item.key, 'text')}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(25,217,255,0.2)]"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>Publish Override</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

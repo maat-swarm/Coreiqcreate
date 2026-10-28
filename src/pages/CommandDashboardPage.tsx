@@ -18,7 +18,9 @@ import {
   CoreIQAuth,
   isSupabaseConfigured, 
   getSupabaseCredentials,
-  DEFAULT_COREIQ_SYSTEM_PROMPT 
+  DEFAULT_COREIQ_SYSTEM_PROMPT,
+  DatabaseStatusResult,
+  DbHealthStatus
 } from '../services/supabase';
 import { playCommandAlertChime } from '../utils/sound';
 import { CommandNav } from '../components/command/CommandNav';
@@ -97,6 +99,12 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
   const [isConnectedToSupabase, setIsConnectedToSupabase] = useState(false);
   const [isLiveDb, setIsLiveDb] = useState(false);
   const [dbStatusDetails, setDbStatusDetails] = useState<string>('');
+  const [dbHealth, setDbHealth] = useState<DatabaseStatusResult>({
+    isLiveDb: false,
+    status: isSupabaseConfigured() ? 'schema_missing' : 'local_only',
+    details: 'Checking database connectivity...',
+    missingTables: [],
+  });
   const { url: currentSupabaseUrl, anonKey: currentSupabaseKey } = getSupabaseCredentials();
 
   // Track previous counts for arrival alerts
@@ -130,6 +138,7 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
 
       // Check database status
       const dbStatus = await CoreIQData.checkDatabaseStatus();
+      setDbHealth(dbStatus);
       setIsLiveDb(dbStatus.isLiveDb);
       setDbStatusDetails(dbStatus.details);
 
@@ -375,25 +384,59 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
         </div>
       </header>
 
-      {/* Database Setup Warning Banner if Supabase is connected but tables not yet executed */}
-      {isConnectedToSupabase && !isLiveDb && (
-        <div className="bg-amber-950/80 border-b border-amber-500/30 py-2.5 px-4">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2 text-amber-300">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
-              <span>
-                <strong>Supabase Schema Setup:</strong> The 10 CoreIQ tables haven't been detected in your remote Supabase project yet.
+      {/* Persistent Database Health Strip */}
+      <div className={`border-b px-3 sm:px-6 py-2.5 text-xs transition-colors backdrop-blur-md ${
+        dbHealth.status === 'live'
+          ? 'bg-emerald-950/40 border-emerald-500/20 text-emerald-300'
+          : dbHealth.status === 'schema_missing'
+          ? 'bg-amber-950/60 border-amber-500/30 text-amber-300'
+          : dbHealth.status === 'not_signed_in'
+          ? 'bg-purple-950/60 border-purple-500/30 text-purple-300'
+          : 'bg-rose-950/60 border-rose-500/30 text-rose-300'
+      }`}>
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+              dbHealth.status === 'live' ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]' :
+              dbHealth.status === 'schema_missing' ? 'bg-amber-400 animate-pulse shadow-[0_0_8px_#fbbf24]' :
+              dbHealth.status === 'not_signed_in' ? 'bg-purple-400 shadow-[0_0_8px_#c084fc]' :
+              'bg-rose-400 shadow-[0_0_8px_#f87171]'
+            }`} />
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="font-mono font-bold uppercase tracking-wider text-[11px]">
+                {dbHealth.status === 'live' && '🟢 Live Database'}
+                {dbHealth.status === 'schema_missing' && '🟡 Schema Missing'}
+                {dbHealth.status === 'local_only' && '🔴 Local-Only Mode'}
+                {dbHealth.status === 'not_signed_in' && '🔒 Not Signed In'}
+              </span>
+              <span className="text-slate-300">
+                {dbHealth.status === 'live' && 'Remote Supabase connected. All 10 operational tables verified with Realtime sync.'}
+                {dbHealth.status === 'schema_missing' && `Supabase connected, but missing tables: ${(dbHealth.missingTables || []).join(', ')}. Run migration in Supabase SQL editor.`}
+                {dbHealth.status === 'local_only' && 'Supabase credentials not configured in environment. Changes exist in this browser only and will NOT appear on the public site.'}
+                {dbHealth.status === 'not_signed_in' && 'No active operator session. Writes to secured tables will be blocked by RLS policies.'}
               </span>
             </div>
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="self-start sm:self-auto px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold font-mono text-[11px] hover:bg-amber-400 transition-colors"
-            >
-              Copy Schema SQL (1-Click)
-            </button>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+            {dbHealth.status === 'schema_missing' && (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-2.5 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-mono text-[11px] font-semibold transition-colors"
+              >
+                Copy Missing Schema SQL
+              </button>
+            )}
+            {dbHealth.status === 'local_only' && (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-2.5 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 font-mono text-[11px] font-semibold transition-colors"
+              >
+                Configure Supabase
+              </button>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
       {/* Realtime In-App Alert Banner */}
       {inAppAlert && (
@@ -445,6 +488,17 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
 
       {/* Main Operating Surface Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        
+        {/* Persistent Warning Banner when in Local-Only Mode */}
+        {dbHealth.status === 'local_only' && (
+          <div className="mb-4 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-start gap-2.5 text-xs">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+            <div className="flex-1">
+              <strong className="font-semibold text-rose-200">Local-Only Mode Warning: </strong>
+              Supabase credentials are not active in this environment. Content, tools, and news items saved here are stored in your browser's local storage only and will NOT appear on the public live site.
+            </div>
+          </div>
+        )}
         
         {activeTab === 'inbox' && (
           <CommandInboxTab

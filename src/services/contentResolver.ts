@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { ContentType, ContentStatus, CommandContentItem } from '../types/command';
 import {
   CONTENT_MANIFEST,
@@ -46,9 +47,11 @@ export async function resolveContent(contentKey: string): Promise<ResolvedConten
 
     if (item) {
       const normalizedStatus = (item.status || '').toUpperCase();
-      const isPublished = normalizedStatus === 'PUBLISHED' || item.published === true;
+      const isPublished =
+        normalizedStatus === 'PUBLISHED' ||
+        (item.published === true && normalizedStatus !== 'DRAFT' && normalizedStatus !== 'ARCHIVED');
 
-      if (isPublished && normalizedStatus === 'PUBLISHED') {
+      if (isPublished) {
         return {
           content_key: item.content_key || contentKey,
           status: 'PUBLISHED',
@@ -208,3 +211,43 @@ export async function seedManifestPlaceholders(): Promise<number> {
 
   return seedPromise;
 }
+
+/**
+ * React hook to reactively subscribe to resolved content by key.
+ * Automatically updates when 'coreiq_content_updated' custom event is dispatched.
+ */
+export function useContent(contentKey: string) {
+  const [content, setContent] = useState<ResolvedContent | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    resolveContent(contentKey).then((res) => {
+      if (mounted) {
+        setContent(res);
+        setLoading(false);
+      }
+    });
+
+    const handleUpdate = (e: any) => {
+      if (!e.detail?.contentKey || e.detail.contentKey === contentKey) {
+        resolveContent(contentKey).then((res) => {
+          if (mounted) setContent(res);
+        });
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('coreiq_content_updated', handleUpdate);
+    }
+    return () => {
+      mounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('coreiq_content_updated', handleUpdate);
+      }
+    };
+  }, [contentKey]);
+
+  return { content, loading };
+}
+

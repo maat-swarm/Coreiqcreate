@@ -16,7 +16,8 @@ import {
   Mail, 
   Phone,
   Layers,
-  Bell
+  Bell,
+  Download
 } from 'lucide-react';
 import { LeadItem, SocialMessageItem, UnifiedInboxItem, LeadStatus } from '../../types/command';
 import { CoreIQData } from '../../services/supabase';
@@ -125,6 +126,41 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
     onRefresh();
   };
 
+  const handleExportCsv = () => {
+    const headers = ['ID', 'Type', 'Source', 'Client/Sender', 'Contact', 'Message', 'Summary', 'Status', 'Created At'];
+    const rows = filteredItems.map((item) => {
+      const isLead = item.itemType === 'lead';
+      return [
+        `"${item.id}"`,
+        `"${item.itemType}"`,
+        `"${item.source || ''}"`,
+        `"${(isLead ? item.client_name : item.sender_name) || ''}"`,
+        `"${(isLead ? item.client_contact : item.sender_contact) || ''}"`,
+        `"${(isLead ? item.client_message || '' : item.message_text || '').replace(/"/g, '""')}"`,
+        `"${(isLead ? item.conversation_summary || '' : '').replace(/"/g, '""')}"`,
+        `"${item.status}"`,
+        `"${item.created_at}"`,
+      ].join(',');
+    });
+    const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers.join(','), ...rows].join('\n'));
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', `coreiq_inbox_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportJson = () => {
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(filteredItems, null, 2))}`;
+    const link = document.createElement('a');
+    link.setAttribute('href', jsonString);
+    link.setAttribute('download', `coreiq_inbox_export_${Date.now()}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-4">
       
@@ -212,15 +248,35 @@ export const CommandInboxTab: React.FC<CommandInboxTabProps> = ({
           </div>
         </div>
 
-        {/* Action Button: Test Simulation */}
-        <div className="flex items-center gap-2">
+        {/* Action Buttons: Export & Test Simulation */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleExportCsv}
+            disabled={filteredItems.length === 0}
+            className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors disabled:opacity-40 min-h-[44px]"
+            title="Export filtered inbox records as CSV"
+          >
+            <Download className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Export CSV</span>
+          </button>
+
+          <button
+            onClick={handleExportJson}
+            disabled={filteredItems.length === 0}
+            className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors disabled:opacity-40 min-h-[44px]"
+            title="Export filtered inbox records as JSON"
+          >
+            <Download className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Export JSON</span>
+          </button>
+
           <button
             onClick={() => setShowSimulateModal(true)}
-            className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-1.5 transition-colors min-h-[44px]"
+            className="px-3.5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-xs font-semibold text-cyan-200 hover:text-white flex items-center gap-1.5 transition-colors min-h-[44px]"
             title="Create an inbound inquiry test record"
           >
             <Plus className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Test Inbound Arrival</span>
+            <span>Test Inbound</span>
           </button>
         </div>
       </div>
