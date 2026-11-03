@@ -1,14 +1,41 @@
-/* Suppress global layout header and footer when dedicated Ask page is mounted */
-body.ask-page-active > div > header,
-body.ask-page-active header.sticky,
+/* Only suppress global layout footer on Ask page so the full-screen layout fits 100dvh */
 body.ask-page-active footer {
   display: none !important;
 }
 
-/* Ensure Ask page takes full screen with zero outer margin/padding conflicts */
+/* Lock outer page so only the message list scrolls inside /ask */
+html:has(body.ask-page-active),
+body.ask-page-active {
+  overflow: hidden !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overscroll-behavior: none !important;
+}
+
+body.ask-page-active > div {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
 body.ask-page-active main {
   padding-top: 0 !important;
   margin-top: 0 !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+
+/* Hide keyboard shortcuts on touch devices */
+@media (pointer: coarse) {
+  .keyboard-hints {
+    display: none !important;
+  }
 }
 
 .cta-btn {

@@ -16,6 +16,7 @@ export function ScrambleText({
   className = '',
 }: ScrambleTextProps) {
   const [displayed, setDisplayed] = useState(text);
+  const [isDone, setIsDone] = useState(false);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -43,22 +44,34 @@ export function ScrambleText({
           rafId = requestAnimationFrame(step);
         } else {
           setDisplayed(text);
+          setIsDone(true);
         }
       };
       rafId = requestAnimationFrame(step);
     }, delay);
 
     return () => {
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-      }
+      if (timeoutId !== null) clearTimeout(timeoutId);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, [text, duration, delay]);
 
-  return <span className={className}>{displayed}</span>;
+  if (isDone) {
+    return <span className={className}>{text}</span>;
+  }
+
+  return (
+    <span className={`inline-grid grid-cols-1 grid-rows-1 ${className}`}>
+      {/* Invisible full text reserving exact layout dimensions and line wrap from frame 0 */}
+      <span className="col-start-1 row-start-1 invisible select-none pointer-events-none" aria-hidden="true">
+        {text}
+      </span>
+      {/* Animated scrambling layer in same grid cell */}
+      <span className="col-start-1 row-start-1" aria-hidden="true">
+        {displayed}
+      </span>
+    </span>
+  );
 }
 
 export default ScrambleText;

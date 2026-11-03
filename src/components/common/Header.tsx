@@ -162,14 +162,14 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
               e.preventDefault();
               handleNavClick('ask');
             }}
-            className="p-2 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 active:scale-90 transition-transform flex items-center justify-center"
+            className="p-2 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 active:scale-90 transition-transform flex items-center justify-center min-w-[44px] min-h-[44px]"
             aria-label="Ask CoreIQ"
           >
             <Sparkles className="w-4 h-4 animate-pulse" />
           </a>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-slate-400 hover:text-white focus:outline-none active:scale-90 transition-transform"
+            className="p-2 text-slate-400 hover:text-white focus:outline-none active:scale-90 transition-transform min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer"
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
