@@ -8,7 +8,6 @@ interface AskCoreIQBarProps {
   onAsk: (query: string) => void;
   className?: string;
   size?: 'default' | 'large';
-  disabled?: boolean;
 }
 
 export const AskCoreIQBar: React.FC<AskCoreIQBarProps> = ({
@@ -17,7 +16,6 @@ export const AskCoreIQBar: React.FC<AskCoreIQBarProps> = ({
   onAsk,
   className = '',
   size = 'default',
-  disabled = false,
 }) => {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -31,8 +29,7 @@ export const AskCoreIQBar: React.FC<AskCoreIQBarProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const targetQuery = query.trim();
-    if (!targetQuery || disabled) return;
+    const targetQuery = query.trim() || "Tell me what I can build with Core IQ";
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('coreiq:submit', { detail: { query: targetQuery } }));
     }
@@ -40,12 +37,10 @@ export const AskCoreIQBar: React.FC<AskCoreIQBarProps> = ({
   };
 
   const handlePillClick = (pillQuery: string) => {
-    const targetQuery = pillQuery.trim();
-    if (!targetQuery || disabled) return;
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('coreiq:submit', { detail: { query: targetQuery } }));
+      window.dispatchEvent(new CustomEvent('coreiq:submit', { detail: { query: pillQuery } }));
     }
-    onAsk(targetQuery);
+    onAsk(pillQuery);
   };
 
   const isLarge = size === 'large';
@@ -102,7 +97,7 @@ export const AskCoreIQBar: React.FC<AskCoreIQBarProps> = ({
               : 'inset 0 0 16px rgba(25, 217, 255, 0.08), 0 4px 20px rgba(0, 0, 0, 0.4)',
           }}
         >
-          {/* Star/spark icon */}
+          {/* Star/spark icon: rotates 360 degrees once (0.5s) on focus */}
           <motion.div
             className="shrink-0 mr-3"
             animate={isFocused ? { rotate: 360 } : { rotate: 0 }}
@@ -122,22 +117,20 @@ export const AskCoreIQBar: React.FC<AskCoreIQBarProps> = ({
             onFocus={() => handleFocusChange(true)}
             onBlur={() => handleFocusChange(false)}
             placeholder={placeholder}
-            disabled={disabled}
-            className="w-full bg-transparent text-white placeholder-slate-400 focus:outline-none text-sm sm:text-base font-medium pr-3 disabled:opacity-50"
+            className="w-full bg-transparent text-white placeholder-slate-400 focus:outline-none text-sm sm:text-base font-medium pr-3"
           />
 
           <motion.button
             type="submit"
-            disabled={disabled || !query.trim()}
-            whileHover={!disabled && query.trim() ? { scale: 1.05 } : undefined}
-            whileTap={!disabled && query.trim() ? { scale: 0.95 } : undefined}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             animate={{
               boxShadow: isFocused
                 ? '0 0 24px rgba(25, 217, 255, 0.6)'
                 : '0 0 14px rgba(25, 217, 255, 0.4)',
             }}
             transition={{ duration: 0.25 }}
-            className="shrink-0 w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 flex items-center justify-center focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 flex items-center justify-center focus:outline-none"
             aria-label="Submit prompt"
           >
             <ArrowRight className="w-5 h-5 stroke-[2.5]" />
@@ -152,8 +145,7 @@ export const AskCoreIQBar: React.FC<AskCoreIQBarProps> = ({
                 key={idx}
                 type="button"
                 onClick={() => handlePillClick(pill.query || pill.label)}
-                disabled={disabled}
-                className="group inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-full text-xs font-medium text-slate-300 bg-[#091129]/80 hover:bg-cyan-500/10 border border-[rgba(150,185,255,0.16)] hover:border-cyan-400/60 hover:text-cyan-300 transition-all duration-200 hover:-translate-y-0.5 shadow-sm cursor-pointer disabled:opacity-50"
+                className="group inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-300 bg-[#091129]/80 hover:bg-cyan-500/10 border border-[rgba(150,185,255,0.16)] hover:border-cyan-400/60 hover:text-cyan-300 transition-all duration-200 hover:-translate-y-0.5 shadow-sm"
               >
                 <span>{pill.label}</span>
                 <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-cyan-400" />
