@@ -73,8 +73,8 @@ function parseArg(flag: string): string | undefined {
   return undefined;
 }
 
-const PORT = parseInt(process.env.PORT || parseArg('--port') || parseArg('-p') || '3000', 10);
-const HOST = process.env.HOST || parseArg('--host') || '0.0.0.0';
+const PORT = parseInt(parseArg('--port') || parseArg('-p') || process.env.PORT || '3000', 10);
+const HOST = parseArg('--host') || process.env.HOST || '0.0.0.0';
 
 app.use(express.json());
 app.use('/media', express.static(path.join(process.cwd(), 'public', 'media')));
