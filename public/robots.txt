@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Disallow: /command
+Disallow: /apps/access/
+
+Sitemap: https://coreiqcreate-ten.vercel.app/sitemap.xml
