@@ -251,7 +251,8 @@ export type ContentType =
   | 'video'
   | 'external'
   | 'resource'
-  | 'coming_soon';
+  | 'coming_soon'
+  | 'json';
 
 export type ContentStatus = 
   | 'MISSING'

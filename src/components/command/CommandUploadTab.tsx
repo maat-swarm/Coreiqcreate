@@ -39,6 +39,7 @@ import {
 
 const AVAILABLE_PAGES = [
   { id: 'home', label: 'Home Page' },
+  { id: 'services', label: 'Services' },
   { id: 'use-cases', label: 'Use Cases' },
   { id: 'apps', label: 'Apps & Websites' },
   { id: 'learn', label: 'Learn & Education' },

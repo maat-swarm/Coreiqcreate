@@ -14,12 +14,14 @@ import {
   X,
   Activity,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Briefcase
 } from 'lucide-react';
 import { ContentItem } from '../../types/command';
 import { CoreIQData } from '../../services/supabase';
 import { evaluateContentHealth } from '../../data/contentManifest';
 import { seedManifestPlaceholders } from '../../services/contentResolver';
+import { CommandServicesTab } from './CommandServicesTab';
 
 interface CommandContentTabProps {
   contentItems: ContentItem[];
@@ -30,7 +32,7 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
   contentItems,
   onRefresh,
 }) => {
-  const [subTab, setSubTab] = useState<'copy' | 'media'>('copy');
+  const [subTab, setSubTab] = useState<'copy' | 'media' | 'services'>('copy');
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<Record<string, boolean>>({});
   const [saveFeedback, setSaveFeedback] = useState<Record<string, { savedToDb: boolean; error?: string } | null>>({});
@@ -229,11 +231,22 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
               <ImageIcon className="w-3.5 h-3.5" />
               <span>Media Library ({mediaItems.length})</span>
             </button>
+            <button
+              onClick={() => setSubTab('services')}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                subTab === 'services'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>Services Page</span>
+            </button>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {contentItems.length === 0 && (
+          {contentItems.length === 0 && subTab !== 'services' && (
             <button
               onClick={handleSeedDefaults}
               className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
@@ -241,13 +254,15 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
               Load Default Content
             </button>
           )}
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-transform active:scale-98 shadow-[0_0_15px_rgba(25,217,255,0.25)] min-h-[44px]"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Add {subTab === 'copy' ? 'Copy String' : 'Media Asset'}</span>
-          </button>
+          {subTab !== 'services' && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-transform active:scale-98 shadow-[0_0_15px_rgba(25,217,255,0.25)] min-h-[44px]"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Add {subTab === 'copy' ? 'Copy String' : 'Media Asset'}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -419,6 +434,11 @@ export const CommandContentTab: React.FC<CommandContentTabProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* SUB-VIEW 3: SERVICES PAGE DEDICATED LIVE EDITOR */}
+      {subTab === 'services' && (
+        <CommandServicesTab onRefreshParent={onRefresh} />
       )}
 
       {/* Add Item Modal */}

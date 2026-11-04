@@ -200,6 +200,15 @@
   animation: capabilityIconGlow 2.8s ease-in-out infinite;
 }
 
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.333333%);
+  }
+}
+
 /* ==========================================================================
    4. PROCESS SECTION FLOW & TOPOGRAPHY
    ========================================================================== */

@@ -371,6 +371,17 @@ const localStore: Record<string, any[]> = {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
+    {
+      slot_key: 'services.feature_video',
+      page: 'services',
+      label: 'Services Feature Video',
+      allowed_types: ['video', 'url', 'image'],
+      max_items: 2,
+      max_bytes: 52428800,
+      aspect: '16:9',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
   ],
   media_slot_items: [],
   agent_config: [

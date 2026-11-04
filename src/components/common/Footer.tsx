@@ -38,6 +38,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <h4 className="text-white font-semibold text-sm tracking-wide">Ecosystem</h4>
             <ul className="space-y-2.5">
               <li>
+                <button onClick={() => onNavigate('services')} className="hover:text-cyan-300 transition-colors font-medium text-cyan-200/90">
+                  Services & Solutions
+                </button>
+              </li>
+              <li>
                 <button onClick={() => onNavigate('use-cases')} className="hover:text-cyan-300 transition-colors">
                   Use Cases
                 </button>

@@ -21,6 +21,7 @@ export type AppRoute =
 
 const VALID_NAV_ROUTES: readonly NavRoute[] = [
   'home',
+  'services',
   'use-cases',
   'solutions',
   'apps',
@@ -34,6 +35,7 @@ const VALID_NAV_ROUTES: readonly NavRoute[] = [
 ];
 
 // Lazy loaded secondary page components for performance
+const ServicesPage = React.lazy(() => import('./pages/ServicesPage').then((m) => ({ default: m.ServicesPage })));
 const UseCasesPage = React.lazy(() => import('./pages/UseCasesPage').then((m) => ({ default: m.UseCasesPage })));
 const SolutionsPage = React.lazy(() => import('./pages/SolutionsPage').then((m) => ({ default: m.SolutionsPage })));
 const AppsPage = React.lazy(() => import('./pages/AppsPage').then((m) => ({ default: m.AppsPage })));
@@ -70,6 +72,7 @@ export default function App() {
       } catch {}
       return 'use-cases';
     }
+    if (p === 'services') return 'services';
     if (p === 'use-cases') return 'use-cases';
     if (p === 'apps') return 'apps';
     if (p === 'learn') return 'learn';
@@ -164,6 +167,7 @@ export default function App() {
             className="relative z-10 w-full"
           >
             {currentRoute === 'home' && <HomePage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
+            {currentRoute === 'services' && <ServicesPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'use-cases' && <UseCasesPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'solutions' && <UseCasesPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}
             {currentRoute === 'apps' && <AppsPage onNavigate={navigateTo} onAsk={(q) => navigateTo('ask', q)} />}

@@ -19,6 +19,11 @@ export const AtmosphericLayer: React.FC<AtmosphericLayerProps> = ({
       secondary: 'rgba(134, 88, 255, 0.14)', // Violet
       glow: 'rgba(228, 71, 255, 0.08)', // Magenta
     },
+    services: {
+      primary: 'rgba(25, 217, 255, 0.22)', // Electric Cyan
+      secondary: 'rgba(57, 123, 255, 0.16)', // Deep Blue
+      glow: 'rgba(134, 88, 255, 0.12)', // Subtle Violet
+    },
     'use-cases': {
       primary: 'rgba(25, 217, 255, 0.20)', // Cyan infrastructure
       secondary: 'rgba(57, 123, 255, 0.15)', // Blue

@@ -909,6 +909,18 @@ export const CONTENT_MANIFEST: ContentManifestEntry[] = [
     defaultTitle: 'Improve Continuously',
     defaultSummary: 'Treat systems as living organisms that adapt with feedback loops and performance telemetry.',
   },
+  {
+    page: '/services',
+    content_key: 'services.page',
+    content_type: 'json',
+    required: true,
+    defaultTitle: 'AI Automation & Intelligent Systems Services',
+    defaultSummary: 'Structured content for the CoreIQ Services page including SEO, hero, problems, 6 core services, blueprints, delivery journey, and FAQs.',
+    metadata: {
+      route: '/services',
+      version: 1,
+    },
+  },
 ];
 
 /**

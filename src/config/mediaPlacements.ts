@@ -1,6 +1,6 @@
 export type SlotPlacement = {
   slotKey: string;
-  page: 'home' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' | 'news' | 'site' | 'maatverse';
+  page: 'home' | 'services' | 'solutions' | 'apps' | 'learn' | 'tools' | 'about' | 'news' | 'site' | 'maatverse';
   route: string;
   component: string;
   position: string;
@@ -321,6 +321,23 @@ export const MEDIA_PLACEMENTS: Record<string, SlotPlacement> = {
     videoMaxBytes: 6291456,
     aspectRatio: '16:9',
     fields: ['order'],
+  },
+  'services.feature_video': {
+    slotKey: 'services.feature_video',
+    page: 'services',
+    route: '/services',
+    component: 'ServicesVideoSection',
+    position: 'Section E: Optional feature video demonstration with click-to-play, accessible controls, and custom video poster.',
+    wired: true,
+    label: 'Services Feature Video',
+    type: 'VIDEO',
+    allowedTypes: ['video', 'url', 'image'],
+    capacity: 2,
+    maxSize: 52428800,
+    videoMaxBytes: 52428800,
+    imageMaxBytes: 5242880,
+    aspectRatio: '16:9',
+    fields: ['title', 'caption'],
   },
 };
 
