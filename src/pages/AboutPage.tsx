@@ -7,7 +7,8 @@ import {
   X, 
   Lock, 
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  FileText
 } from 'lucide-react';
 import { NavRoute } from '../types';
 
@@ -147,6 +148,28 @@ const SECTIONS = [
 export const AboutPage: React.FC<AboutPageProps> = () => {
   const [activeSection, setActiveSection] = useState('hero');
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [dynamicDocuments, setDynamicDocuments] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/v1/documents')
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch documents');
+        return res.json();
+      })
+      .then((data) => {
+        if (isMounted && data?.documents && Array.isArray(data.documents) && data.documents.length > 0) {
+          setDynamicDocuments(data.documents);
+        }
+      })
+      .catch(() => {
+        // Fallback to static documents
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -645,28 +668,55 @@ export const AboutPage: React.FC<AboutPageProps> = () => {
 
                 {/* Document List */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {LEGAL_DOCUMENTS.map((doc) => {
-                    const isLive = doc.status === 'live' && doc.href;
+                  {(dynamicDocuments || LEGAL_DOCUMENTS).map((doc: any) => {
+                    const isDynamic = Boolean(doc.slug);
+                    const isLive = isDynamic
+                      ? doc.status === 'published' && Boolean(doc.url)
+                      : doc.status === 'live' && Boolean(doc.href);
+                    const href = isDynamic ? doc.url : doc.href;
+                    const key = isDynamic ? doc.slug : doc.title;
+
                     if (isLive) {
+                      const sizeLabel = doc.file_size_bytes
+                        ? doc.file_size_bytes >= 1048576
+                          ? `${(doc.file_size_bytes / 1048576).toFixed(1)} MB`
+                          : `${Math.round(doc.file_size_bytes / 1024)} KB`
+                        : null;
+
                       return (
                         <a
-                          key={doc.title}
-                          href={doc.href}
-                          className="p-3.5 rounded-xl border border-slate-300 bg-white hover:border-slate-400 flex items-center justify-between text-slate-900 text-sm font-medium transition-colors"
+                          key={key}
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-3.5 rounded-xl border border-slate-300 bg-white hover:border-slate-400 hover:shadow-sm flex items-center justify-between text-slate-900 text-sm font-medium transition-all group"
                         >
-                          <span>{doc.title}</span>
-                          <ArrowUpRight className="w-4 h-4 text-slate-500" />
+                          <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                            <FileText className="w-4 h-4 text-cyan-600 shrink-0" />
+                            <span className="truncate">{doc.title}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {sizeLabel && (
+                              <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
+                                {sizeLabel}
+                              </span>
+                            )}
+                            <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wider">
+                              PDF
+                            </span>
+                            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 transition-colors" />
+                          </div>
                         </a>
                       );
                     }
 
                     return (
                       <div
-                        key={doc.title}
+                        key={key}
                         className="p-3.5 rounded-xl border border-slate-200 bg-slate-100 flex items-center justify-between text-slate-500 text-sm select-none"
                       >
-                        <span className="font-medium text-slate-700">{doc.title}</span>
-                        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-200 text-slate-600 tracking-wide">
+                        <span className="font-medium text-slate-700 truncate pr-2">{doc.title}</span>
+                        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-200 text-slate-600 tracking-wide shrink-0">
                           In preparation
                         </span>
                       </div>

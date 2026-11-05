@@ -15,7 +15,8 @@ import {
   Briefcase,
   ShoppingBag,
   Newspaper,
-  Sparkles
+  Sparkles,
+  FileText
 } from 'lucide-react';
 import { CommandTab } from '../../types/command';
 
@@ -40,6 +41,7 @@ export const COMMAND_TABS: { id: ExtendedCommandTab; label: string; icon: React.
   { id: 'platforms', label: 'Platforms', icon: Globe },
   { id: 'content', label: 'Content', icon: FolderKanban },
   { id: 'use_cases', label: 'Use Cases', icon: Briefcase },
+  { id: 'documents', label: 'Documents', icon: FileText },
   { id: 'news', label: 'News', icon: Newspaper },
   { id: 'store', label: 'Store', icon: ShoppingBag },
   { id: 'upload', label: 'Media Slots', icon: UploadCloud },

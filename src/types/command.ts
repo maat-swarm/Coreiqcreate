@@ -8,12 +8,38 @@ export type CommandTab =
   | 'platforms'
   | 'content'
   | 'use_cases'
+  | 'documents'
   | 'news'
   | 'store'
   | 'upload'
   | 'swarm'
   | 'analytics'
   | 'maatverse';
+
+export type LegalDocumentCategory = 'legal' | 'compliance' | 'policy' | 'agreement' | 'other';
+export type LegalDocumentStatus = 'draft' | 'published' | 'archived';
+
+export interface LegalDocumentItem {
+  id: string;
+  slug: string;
+  title: string;
+  category: LegalDocumentCategory;
+  description?: string | null;
+  status: LegalDocumentStatus;
+  version: number;
+  storage_path?: string | null;
+  file_name?: string | null;
+  file_size_bytes?: number | null;
+  file_mime_type?: string | null;
+  file_sha256?: string | null;
+  published_at?: string | null;
+  archived_at?: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  url?: string;
+  has_file?: boolean;
+}
 
 export interface NewsArticleItem {
   id: string;

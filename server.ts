@@ -110,6 +110,236 @@ const localStore: Record<string, any[]> = {
   tasks: [],
   clients: [],
   content: [],
+  legal_documents: [
+    {
+      id: 'doc-001',
+      slug: 'terms-and-conditions',
+      title: 'Terms and Conditions',
+      category: 'legal',
+      description: 'Core customer terms covering ordering, delivery, refunds, cancellations, and disputes.',
+      status: 'draft',
+      version: 1,
+      storage_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      file_mime_type: null,
+      file_sha256: null,
+      published_at: null,
+      archived_at: null,
+      sort_order: 10,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'doc-002',
+      slug: 'privacy-policy',
+      title: 'Privacy Policy',
+      category: 'policy',
+      description: 'How we collect, process, store, and protect your personal information under POPIA and GDPR.',
+      status: 'draft',
+      version: 1,
+      storage_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      file_mime_type: null,
+      file_sha256: null,
+      published_at: null,
+      archived_at: null,
+      sort_order: 20,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'doc-003',
+      slug: 'terms-of-use',
+      title: 'Terms of Use',
+      category: 'legal',
+      description: 'Rules and acceptable use guidelines for visiting and interacting with CoreIQ Create.',
+      status: 'draft',
+      version: 1,
+      storage_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      file_mime_type: null,
+      file_sha256: null,
+      published_at: null,
+      archived_at: null,
+      sort_order: 30,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'doc-004',
+      slug: 'ai-use-disclosure',
+      title: 'AI Use & Disclosure Policy',
+      category: 'policy',
+      description: 'How artificial intelligence models are deployed, guarded, and audited across our systems.',
+      status: 'draft',
+      version: 1,
+      storage_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      file_mime_type: null,
+      file_sha256: null,
+      published_at: null,
+      archived_at: null,
+      sort_order: 40,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'doc-005',
+      slug: 'data-processing-addendum',
+      title: 'Data Processing Addendum',
+      category: 'compliance',
+      description: 'Contractual data protection commitments for enterprise clients and personal data operators.',
+      status: 'draft',
+      version: 1,
+      storage_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      file_mime_type: null,
+      file_sha256: null,
+      published_at: null,
+      archived_at: null,
+      sort_order: 50,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'doc-006',
+      slug: 'cookie-notice',
+      title: 'Cookie Notice',
+      category: 'policy',
+      description: 'Overview of essential, preference, and analytics cookies used across our platform.',
+      status: 'draft',
+      version: 1,
+      storage_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      file_mime_type: null,
+      file_sha256: null,
+      published_at: null,
+      archived_at: null,
+      sort_order: 60,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'doc-007',
+      slug: 'service-level-agreement',
+      title: 'Service Level Agreement',
+      category: 'agreement',
+      description: 'Uptime, response time, and maintenance guarantees for maintained tier clients.',
+      status: 'draft',
+      version: 1,
+      storage_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      file_mime_type: null,
+      file_sha256: null,
+      published_at: null,
+      archived_at: null,
+      sort_order: 70,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'doc-008',
+      slug: 'security-whitepaper',
+      title: 'Security Whitepaper',
+      category: 'compliance',
+      description: 'Architecture, encryption standards, access controls, and vulnerability disclosure practices.',
+      status: 'draft',
+      version: 1,
+      storage_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      file_mime_type: null,
+      file_sha256: null,
+      published_at: null,
+      archived_at: null,
+      sort_order: 80,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'doc-009',
+      slug: 'refund-cancellation-policy',
+      title: 'Refund & Cancellation Policy',
+      category: 'policy',
+      description: 'Clear refund windows, milestone cancellations, and payment dispute procedures for PayFast.',
+      status: 'draft',
+      version: 1,
+      storage_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      file_mime_type: null,
+      file_sha256: null,
+      published_at: null,
+      archived_at: null,
+      sort_order: 90,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'doc-010',
+      slug: 'delivery-fulfillment-policy',
+      title: 'Delivery & Fulfillment Policy',
+      category: 'policy',
+      description: 'Turnaround timelines, digital artifact delivery, and acceptance criteria for client builds.',
+      status: 'draft',
+      version: 1,
+      storage_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      file_mime_type: null,
+      file_sha256: null,
+      published_at: null,
+      archived_at: null,
+      sort_order: 100,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'doc-011',
+      slug: 'paia-manual',
+      title: 'PAIA Manual',
+      category: 'compliance',
+      description: 'Promotion of Access to Information Act manual and request procedures.',
+      status: 'draft',
+      version: 1,
+      storage_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      file_mime_type: null,
+      file_sha256: null,
+      published_at: null,
+      archived_at: null,
+      sort_order: 110,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'doc-012',
+      slug: 'merchant-compliance-notice',
+      title: 'Merchant Compliance Notice',
+      category: 'legal',
+      description: 'PayFast and South African payment gateway registration, merchant details, and billing policies.',
+      status: 'draft',
+      version: 1,
+      storage_path: null,
+      file_name: null,
+      file_size_bytes: null,
+      file_mime_type: null,
+      file_sha256: null,
+      published_at: null,
+      archived_at: null,
+      sort_order: 120,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  ],
   api_keys: [
     {
       id: 'key_local_dev_master',
@@ -2876,6 +3106,595 @@ app.delete('/api/v1/admin/use-cases/:id', authenticateApiKey, async (req, res) =
 
   localStore.use_cases = (localStore.use_cases || []).filter((u: any) => u.id !== id);
   localStore.use_case_files = (localStore.use_case_files || []).filter((f: any) => f.use_case_id !== id);
+
+  return res.json({ status: 'deleted', id });
+});
+
+// -----------------------------------------------------------------------------
+// LEGAL DOCUMENTS ENGINE (PAYFAST COMPLIANCE)
+// -----------------------------------------------------------------------------
+
+function sanitizeLegalSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+// GET /api/v1/documents — public metadata list for Trust and documents section
+app.get('/api/v1/documents', async (req, res) => {
+  let allDocs: any[] = [];
+  const client = adminSupabase || supabase;
+
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('legal_documents')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (!error && data && data.length > 0) {
+        allDocs = data;
+      }
+    } catch (e) {
+      console.warn('Supabase fetch legal_documents warning:', e);
+    }
+  }
+
+  if (!allDocs.length) {
+    allDocs = (localStore.legal_documents || []).slice().sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  }
+
+  // Safe public view: NEVER expose internal storage_path or private bucket info
+  const safeDocs = allDocs.map((doc: any) => ({
+    id: doc.id,
+    slug: doc.slug,
+    title: doc.title,
+    category: doc.category,
+    description: doc.description || null,
+    status: doc.status === 'published' ? 'published' : 'in_preparation',
+    version: doc.version || 1,
+    file_name: doc.file_name || null,
+    file_size_bytes: doc.file_size_bytes ? Number(doc.file_size_bytes) : null,
+    url: doc.status === 'published' ? `/api/v1/documents/${doc.slug}/file` : undefined,
+    has_file: Boolean(doc.storage_path),
+    sort_order: doc.sort_order ?? 0,
+    updated_at: doc.updated_at,
+  }));
+
+  return res.json({ count: safeDocs.length, documents: safeDocs });
+});
+
+// GET /api/v1/documents/:slug/file — public file redirect via 300s signed URL
+app.get('/api/v1/documents/:slug/file', async (req, res) => {
+  const { slug } = req.params;
+  let doc: any = null;
+  const client = adminSupabase || supabase;
+
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('legal_documents')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+      if (!error && data) {
+        doc = data;
+      }
+    } catch {}
+  }
+
+  if (!doc) {
+    doc = (localStore.legal_documents || []).find((d: any) => d.slug === slug);
+  }
+
+  if (!doc || doc.status !== 'published' || !doc.storage_path) {
+    return res.status(404).json({
+      error: 'Not Found',
+      message: `Document '${slug}' is not published or no file is attached.`,
+    });
+  }
+
+  // 1. If Supabase client configured, generate a short-lived 5-minute signed URL
+  if (client) {
+    try {
+      const { data: signedData, error: signedErr } = await client.storage
+        .from('legal-documents')
+        .createSignedUrl(doc.storage_path, 300); // 300 seconds = 5 minutes
+
+      if (!signedErr && signedData?.signedUrl) {
+        return res.redirect(302, signedData.signedUrl);
+      }
+    } catch (err) {
+      console.warn('Supabase signed URL error for legal document:', err);
+    }
+  }
+
+  // 2. Local disk fallback
+  const localFilePath = path.join(process.cwd(), 'public', 'media', 'legal-documents', doc.storage_path);
+  if (fs.existsSync(localFilePath)) {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${doc.file_name || `${slug}.pdf`}"`);
+    return fs.createReadStream(localFilePath).pipe(res);
+  }
+
+  return res.status(404).json({
+    error: 'File Missing',
+    message: 'The requested document file could not be located in storage.',
+  });
+});
+
+// GET /api/v1/admin/documents — admin list of all legal documents
+app.get('/api/v1/admin/documents', authenticateApiKey, async (req, res) => {
+  let allDocs: any[] = [];
+  const client = adminSupabase || supabase;
+
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('legal_documents')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (!error && data && data.length > 0) {
+        allDocs = data;
+      }
+    } catch (e) {
+      console.warn('Supabase admin fetch legal_documents warning:', e);
+    }
+  }
+
+  if (!allDocs.length) {
+    allDocs = (localStore.legal_documents || []).slice().sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  }
+
+  const populated = allDocs.map((d: any) => ({
+    ...d,
+    has_file: Boolean(d.storage_path),
+    url: d.status === 'published' ? `/api/v1/documents/${d.slug}/file` : undefined,
+  }));
+
+  return res.json({ count: populated.length, documents: populated });
+});
+
+// POST /api/v1/admin/documents — create a new document entry
+app.post('/api/v1/admin/documents', authenticateApiKey, async (req, res) => {
+  const { title, slug, category, description, sort_order } = req.body;
+
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: 'Bad Request', message: 'Document title is required.' });
+  }
+
+  const cleanSlug = sanitizeLegalSlug(slug || title);
+  if (!cleanSlug) {
+    return res.status(400).json({ error: 'Bad Request', message: 'A valid slug could not be generated.' });
+  }
+
+  const validCategories = ['legal', 'compliance', 'policy', 'agreement', 'other'];
+  const cleanCategory = validCategories.includes(category) ? category : 'legal';
+
+  const newDoc = {
+    id: crypto.randomUUID ? crypto.randomUUID() : `doc_${Date.now()}`,
+    slug: cleanSlug,
+    title: title.trim(),
+    category: cleanCategory,
+    description: description ? String(description).trim() : null,
+    status: 'draft',
+    version: 1,
+    storage_path: null,
+    file_name: null,
+    file_size_bytes: null,
+    file_mime_type: 'application/pdf',
+    file_sha256: null,
+    published_at: null,
+    archived_at: null,
+    sort_order: sort_order ? parseInt(sort_order, 10) : 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('legal_documents')
+        .insert([newDoc])
+        .select()
+        .single();
+      if (!error && data) {
+        return res.status(201).json({
+          status: 'created',
+          document: { ...data, has_file: false },
+        });
+      }
+      if (error?.code === '23505') {
+        return res.status(409).json({ error: 'Conflict', message: `A document with slug '${cleanSlug}' already exists.` });
+      }
+    } catch (e) {
+      console.warn('Supabase create legal_document error:', e);
+    }
+  }
+
+  if (!localStore.legal_documents) localStore.legal_documents = [];
+  const existing = localStore.legal_documents.find((d: any) => d.slug === cleanSlug);
+  if (existing) {
+    return res.status(409).json({ error: 'Conflict', message: `A document with slug '${cleanSlug}' already exists.` });
+  }
+
+  localStore.legal_documents.push(newDoc);
+  return res.status(201).json({ status: 'created', document: { ...newDoc, has_file: false } });
+});
+
+// PATCH /api/v1/admin/documents/:id — update document metadata
+app.patch('/api/v1/admin/documents/:id', authenticateApiKey, async (req, res) => {
+  const { id } = req.params;
+  const client = adminSupabase || supabase;
+
+  // Fetch current doc to verify state
+  let currentDoc: any = null;
+  if (client) {
+    try {
+      const { data } = await client.from('legal_documents').select('*').eq('id', id).single();
+      if (data) currentDoc = data;
+    } catch {}
+  }
+  if (!currentDoc) {
+    currentDoc = (localStore.legal_documents || []).find((d: any) => d.id === id);
+  }
+
+  if (!currentDoc) {
+    return res.status(404).json({ error: 'Not Found', message: `Document '${id}' not found.` });
+  }
+
+  const updates: Record<string, any> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (req.body.title !== undefined) updates.title = String(req.body.title).trim();
+  if (req.body.description !== undefined) updates.description = String(req.body.description).trim();
+  if (req.body.sort_order !== undefined) updates.sort_order = parseInt(req.body.sort_order, 10) || 0;
+  if (req.body.category !== undefined) updates.category = req.body.category;
+
+  // Slug lock: cannot change slug if document is published or was ever published
+  if (req.body.slug !== undefined) {
+    const isLocked = currentDoc.status === 'published' || currentDoc.published_at != null;
+    if (isLocked && sanitizeLegalSlug(req.body.slug) !== currentDoc.slug) {
+      return res.status(400).json({
+        error: 'Slug Locked',
+        message: 'The URL slug of a published document is locked to preserve public permalinks.',
+      });
+    }
+    if (!isLocked) {
+      updates.slug = sanitizeLegalSlug(req.body.slug);
+    }
+  }
+
+  let updatedRecord: any = null;
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('legal_documents')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) {
+        updatedRecord = data;
+      }
+    } catch (e) {
+      console.warn('Supabase update legal_document error:', e);
+    }
+  }
+
+  const existingLocal = (localStore.legal_documents || []).find((d: any) => d.id === id);
+  if (existingLocal) {
+    Object.assign(existingLocal, updates);
+    if (!updatedRecord) updatedRecord = existingLocal;
+  }
+
+  if (!updatedRecord) {
+    return res.status(500).json({ error: 'Update Failed', message: 'Could not update document record.' });
+  }
+
+  return res.json({
+    status: 'updated',
+    document: {
+      ...updatedRecord,
+      has_file: Boolean(updatedRecord.storage_path),
+      url: updatedRecord.status === 'published' ? `/api/v1/documents/${updatedRecord.slug}/file` : undefined,
+    },
+  });
+});
+
+// POST /api/v1/admin/documents/:id/upload — upload or replace PDF for document
+app.post(
+  '/api/v1/admin/documents/:id/upload',
+  authenticateApiKey,
+  mediaUploadMiddleware,
+  async (req, res) => {
+    const { id } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ error: 'Bad Request', message: 'No file uploaded.' });
+    }
+
+    // 1. File size verification (max 4 MB)
+    const MAX_SIZE = 4 * 1024 * 1024;
+    if (req.file.buffer.length > MAX_SIZE) {
+      return res.status(413).json({
+        error: 'Payload Too Large',
+        message: 'Compliance documents must not exceed 4MB.',
+      });
+    }
+
+    // 2. Extension verification (.pdf)
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    if (ext !== '.pdf') {
+      return res.status(400).json({
+        error: 'Invalid File Extension',
+        message: 'Only .pdf documents are supported.',
+      });
+    }
+
+    // 3. Magic bytes check: First 5 bytes must be %PDF-
+    const magic = req.file.buffer.subarray(0, 5).toString('ascii');
+    if (magic !== '%PDF-') {
+      return res.status(400).json({
+        error: 'Invalid PDF Content',
+        message: 'File header does not match valid PDF magic bytes (%PDF-).',
+      });
+    }
+
+    // Fetch current document
+    const client = adminSupabase || supabase;
+    let currentDoc: any = null;
+    if (client) {
+      try {
+        const { data } = await client.from('legal_documents').select('*').eq('id', id).single();
+        if (data) currentDoc = data;
+      } catch {}
+    }
+    if (!currentDoc) {
+      currentDoc = (localStore.legal_documents || []).find((d: any) => d.id === id);
+    }
+
+    if (!currentDoc) {
+      return res.status(404).json({ error: 'Not Found', message: `Document '${id}' not found.` });
+    }
+
+    // Calculate sha256 checksum
+    const sha256Hash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+
+    // Remove old file from storage if replacing
+    if (currentDoc.storage_path) {
+      if (client) {
+        try {
+          await client.storage.from('legal-documents').remove([currentDoc.storage_path]);
+        } catch (e) {
+          console.warn('Failed to delete old legal document from Supabase storage:', e);
+        }
+      }
+      try {
+        const oldLocal = path.join(process.cwd(), 'public', 'media', 'legal-documents', currentDoc.storage_path);
+        if (fs.existsSync(oldLocal)) {
+          fs.unlinkSync(oldLocal);
+        }
+      } catch {}
+    }
+
+    const nextVersion = (currentDoc.version || 1) + (currentDoc.storage_path ? 1 : 0);
+    const safeFilename = `v${nextVersion}_${Date.now()}.pdf`;
+    const storagePath = `${currentDoc.slug}/${safeFilename}`;
+
+    // Upload to Supabase Storage (private bucket)
+    if (client) {
+      try {
+        await client.storage
+          .from('legal-documents')
+          .upload(storagePath, req.file.buffer, {
+            contentType: 'application/pdf',
+            upsert: true,
+          });
+      } catch (err) {
+        console.warn('Supabase legal-documents upload warning:', err);
+      }
+    }
+
+    // Write to local disk fallback
+    const localDir = path.join(process.cwd(), 'public', 'media', 'legal-documents', currentDoc.slug);
+    try {
+      await fs.promises.mkdir(localDir, { recursive: true });
+      await fs.promises.writeFile(path.join(localDir, safeFilename), req.file.buffer);
+    } catch (e) {
+      console.warn('Local disk fallback write warning:', e);
+    }
+
+    const updates = {
+      storage_path: storagePath,
+      file_name: req.file.originalname,
+      file_size_bytes: req.file.buffer.length,
+      file_mime_type: 'application/pdf',
+      file_sha256: sha256Hash,
+      version: nextVersion,
+      updated_at: new Date().toISOString(),
+    };
+
+    let updatedDoc: any = null;
+    if (client) {
+      try {
+        const { data, error } = await client
+          .from('legal_documents')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+        if (!error && data) {
+          updatedDoc = data;
+        }
+      } catch (e) {
+        console.warn('Supabase update doc after upload error:', e);
+      }
+    }
+
+    const existingLocal = (localStore.legal_documents || []).find((d: any) => d.id === id);
+    if (existingLocal) {
+      Object.assign(existingLocal, updates);
+      if (!updatedDoc) updatedDoc = existingLocal;
+    }
+
+    return res.status(200).json({
+      status: 'uploaded',
+      document: {
+        ...updatedDoc,
+        has_file: true,
+        url: updatedDoc?.status === 'published' ? `/api/v1/documents/${updatedDoc.slug}/file` : undefined,
+      },
+    });
+  }
+);
+
+// POST /api/v1/admin/documents/:id/publish — publish document (guard: must have file)
+app.post('/api/v1/admin/documents/:id/publish', authenticateApiKey, async (req, res) => {
+  const { id } = req.params;
+  const client = adminSupabase || supabase;
+
+  let currentDoc: any = null;
+  if (client) {
+    try {
+      const { data } = await client.from('legal_documents').select('*').eq('id', id).single();
+      if (data) currentDoc = data;
+    } catch {}
+  }
+  if (!currentDoc) {
+    currentDoc = (localStore.legal_documents || []).find((d: any) => d.id === id);
+  }
+
+  if (!currentDoc) {
+    return res.status(404).json({ error: 'Not Found', message: `Document '${id}' not found.` });
+  }
+
+  if (!currentDoc.storage_path) {
+    return res.status(400).json({
+      error: 'Missing File',
+      message: 'Cannot publish a document without an uploaded PDF file.',
+    });
+  }
+
+  const updates = {
+    status: 'published',
+    published_at: currentDoc.published_at || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  let updatedDoc: any = null;
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('legal_documents')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) updatedDoc = data;
+    } catch {}
+  }
+
+  const existingLocal = (localStore.legal_documents || []).find((d: any) => d.id === id);
+  if (existingLocal) {
+    Object.assign(existingLocal, updates);
+    if (!updatedDoc) updatedDoc = existingLocal;
+  }
+
+  return res.json({
+    status: 'published',
+    document: {
+      ...updatedDoc,
+      has_file: true,
+      url: `/api/v1/documents/${updatedDoc.slug}/file`,
+    },
+  });
+});
+
+// POST /api/v1/admin/documents/:id/unpublish — unpublish document
+app.post('/api/v1/admin/documents/:id/unpublish', authenticateApiKey, async (req, res) => {
+  const { id } = req.params;
+  const client = adminSupabase || supabase;
+
+  const updates = {
+    status: 'draft',
+    updated_at: new Date().toISOString(),
+  };
+
+  let updatedDoc: any = null;
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('legal_documents')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) updatedDoc = data;
+    } catch {}
+  }
+
+  const existingLocal = (localStore.legal_documents || []).find((d: any) => d.id === id);
+  if (existingLocal) {
+    Object.assign(existingLocal, updates);
+    if (!updatedDoc) updatedDoc = existingLocal;
+  }
+
+  if (!updatedDoc) {
+    return res.status(404).json({ error: 'Not Found', message: `Document '${id}' not found.` });
+  }
+
+  return res.json({
+    status: 'unpublished',
+    document: {
+      ...updatedDoc,
+      has_file: Boolean(updatedDoc.storage_path),
+      url: undefined,
+    },
+  });
+});
+
+// DELETE /api/v1/admin/documents/:id — delete document
+app.delete('/api/v1/admin/documents/:id', authenticateApiKey, async (req, res) => {
+  const { id } = req.params;
+  const client = adminSupabase || supabase;
+
+  let currentDoc: any = null;
+  if (client) {
+    try {
+      const { data } = await client.from('legal_documents').select('*').eq('id', id).single();
+      if (data) currentDoc = data;
+    } catch {}
+  }
+  if (!currentDoc) {
+    currentDoc = (localStore.legal_documents || []).find((d: any) => d.id === id);
+  }
+
+  if (currentDoc?.storage_path) {
+    if (client) {
+      try {
+        await client.storage.from('legal-documents').remove([currentDoc.storage_path]);
+      } catch {}
+    }
+    try {
+      const localFile = path.join(process.cwd(), 'public', 'media', 'legal-documents', currentDoc.storage_path);
+      if (fs.existsSync(localFile)) {
+        fs.unlinkSync(localFile);
+      }
+    } catch {}
+  }
+
+  if (client) {
+    try {
+      await client.from('legal_documents').delete().eq('id', id);
+    } catch {}
+  }
+
+  localStore.legal_documents = (localStore.legal_documents || []).filter((d: any) => d.id !== id);
 
   return res.json({ status: 'deleted', id });
 });
