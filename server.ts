@@ -1795,10 +1795,11 @@ async function deleteStorageFile(storagePath: string | null | undefined) {
       await fs.promises.unlink(localFilePath).catch(() => {});
     }
   } catch {}
-  if (supabase) {
+  const storageClient = adminSupabase || supabase;
+  if (storageClient) {
     try {
       const cleanPath = storagePath.replace(/^media\//, '');
-      await supabase.storage.from('media').remove([cleanPath]);
+      await storageClient.storage.from('media').remove([cleanPath]);
     } catch {}
   }
 }
@@ -1997,11 +1998,19 @@ app.post(
         return res.status(400).json({ error: 'Missing File', message: `A file upload is required for media type '${type}'.` });
       }
 
-      // Check file size
+      // Check file size against slot maximum
       if (req.file.size > slot.max_bytes) {
         return res.status(413).json({
           error: 'Payload Too Large',
           message: `File size (${req.file.size} bytes) exceeds slot limit of ${slot.max_bytes} bytes (${Math.round(slot.max_bytes / 1024)} KB).`,
+        });
+      }
+
+      // Check documented 5 MB limit specifically for image files
+      if (type === 'image' && req.file.size > 5242880) {
+        return res.status(413).json({
+          error: 'Payload Too Large',
+          message: `Image file size (${req.file.size} bytes) exceeds the maximum allowed limit of 5 MB (5,242,880 bytes).`,
         });
       }
 
@@ -2035,10 +2044,11 @@ app.post(
     }
 
     // 6. Check slot capacity & single-item replacement
+    const dbClient = adminSupabase || supabase;
     let currentItems: any[] = [];
-    if (supabase) {
+    if (dbClient) {
       try {
-        const { data } = await supabase.from('media_slot_items').select('*').eq('slot_key', slot_key);
+        const { data } = await dbClient.from('media_slot_items').select('*').eq('slot_key', slot_key);
         if (data) currentItems = data;
       } catch {}
     }
@@ -2050,9 +2060,9 @@ app.post(
       // Single-item slot replacement: remove existing old asset & file
       for (const oldItem of currentItems) {
         await deleteStorageFile(oldItem.storage_path);
-        if (supabase) {
+        if (dbClient) {
           try {
-            await supabase.from('media_slot_items').delete().eq('id', oldItem.id);
+            await dbClient.from('media_slot_items').delete().eq('id', oldItem.id);
           } catch {}
         }
       }
@@ -2083,7 +2093,7 @@ app.post(
 
       storagePath = `media/${slot_key}/${itemId}.${ext}`;
 
-      // Write to public disk storage
+      // Write to public disk storage fallback
       try {
         const targetDir = path.join(process.cwd(), 'public', 'media', slot_key);
         await fs.promises.mkdir(targetDir, { recursive: true });
@@ -2095,12 +2105,21 @@ app.post(
       }
 
       // Upload to Supabase storage bucket if configured
-      if (supabase) {
+      const storageClient = adminSupabase || supabase;
+      if (storageClient) {
         try {
-          await supabase.storage
+          const { error: uploadErr } = await storageClient.storage
             .from('media')
             .upload(`${slot_key}/${itemId}.${ext}`, req.file.buffer, { contentType: detectedMime, upsert: true });
-          const { data } = supabase.storage.from('media').getPublicUrl(`${slot_key}/${itemId}.${ext}`);
+
+          if (uploadErr && (uploadErr.message?.includes('not found') || uploadErr.message?.includes('Bucket') || (uploadErr as any).statusCode === '404')) {
+            await storageClient.storage.createBucket('media', { public: true });
+            await storageClient.storage
+              .from('media')
+              .upload(`${slot_key}/${itemId}.${ext}`, req.file.buffer, { contentType: detectedMime, upsert: true });
+          }
+
+          const { data } = storageClient.storage.from('media').getPublicUrl(`${slot_key}/${itemId}.${ext}`);
           if (data?.publicUrl) {
             finalUrl = data.publicUrl;
           }
@@ -2132,9 +2151,9 @@ app.post(
       updated_at: new Date().toISOString(),
     };
 
-    if (supabase) {
+    if (dbClient) {
       try {
-        const { data, error } = await supabase.from('media_slot_items').insert([newItem]).select().single();
+        const { data, error } = await dbClient.from('media_slot_items').insert([newItem]).select().single();
         if (!error && data) {
           localStore.media_slot_items = [data, ...(localStore.media_slot_items || [])];
           return res.status(201).json({ status: 'created', item: data });
@@ -2154,11 +2173,12 @@ app.patch('/api/v1/media/slots/:slot_key/items/:id', authenticateApiKey, require
   res.setHeader('Cache-Control', 'no-store');
   const { slot_key, id } = req.params;
   const updates = req.body || {};
+  const dbClient = adminSupabase || supabase;
 
   let existing: any = null;
-  if (supabase) {
+  if (dbClient) {
     try {
-      const { data } = await supabase.from('media_slot_items').select('*').eq('id', id).eq('slot_key', slot_key).maybeSingle();
+      const { data } = await dbClient.from('media_slot_items').select('*').eq('id', id).eq('slot_key', slot_key).maybeSingle();
       if (data) existing = data;
     } catch {}
   }
@@ -2198,9 +2218,9 @@ app.patch('/api/v1/media/slots/:slot_key/items/:id', authenticateApiKey, require
   if (updates.sort_order !== undefined) payload.sort_order = Number(updates.sort_order);
   if (updates.published !== undefined) payload.published = Boolean(updates.published);
 
-  if (supabase) {
+  if (dbClient) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await dbClient
         .from('media_slot_items')
         .update(payload)
         .eq('id', id)
@@ -2223,6 +2243,7 @@ app.put('/api/v1/media/slots/:slot_key/order', authenticateApiKey, requireScope(
   res.setHeader('Cache-Control', 'no-store');
   const { slot_key } = req.params;
   const itemIds: string[] = req.body?.item_ids || [];
+  const dbClient = adminSupabase || supabase;
 
   if (!Array.isArray(itemIds)) {
     return res.status(400).json({ error: 'Bad Request', message: 'item_ids must be an array of item IDs.' });
@@ -2230,9 +2251,9 @@ app.put('/api/v1/media/slots/:slot_key/order', authenticateApiKey, requireScope(
 
   for (let idx = 0; idx < itemIds.length; idx++) {
     const id = itemIds[idx];
-    if (supabase) {
+    if (dbClient) {
       try {
-        await supabase
+        await dbClient
           .from('media_slot_items')
           .update({ sort_order: idx, updated_at: new Date().toISOString() })
           .eq('id', id)
@@ -2253,11 +2274,12 @@ app.put('/api/v1/media/slots/:slot_key/order', authenticateApiKey, requireScope(
 app.delete('/api/v1/media/slots/:slot_key/items/:id', authenticateApiKey, requireScope('WRITE_MEDIA'), async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const { slot_key, id } = req.params;
+  const dbClient = adminSupabase || supabase;
 
   let existing: any = null;
-  if (supabase) {
+  if (dbClient) {
     try {
-      const { data } = await supabase.from('media_slot_items').select('*').eq('id', id).eq('slot_key', slot_key).maybeSingle();
+      const { data } = await dbClient.from('media_slot_items').select('*').eq('id', id).eq('slot_key', slot_key).maybeSingle();
       if (data) existing = data;
     } catch {}
   }
@@ -2272,9 +2294,9 @@ app.delete('/api/v1/media/slots/:slot_key/items/:id', authenticateApiKey, requir
   // Remove storage asset
   await deleteStorageFile(existing.storage_path);
 
-  if (supabase) {
+  if (dbClient) {
     try {
-      await supabase.from('media_slot_items').delete().eq('id', id).eq('slot_key', slot_key);
+      await dbClient.from('media_slot_items').delete().eq('id', id).eq('slot_key', slot_key);
     } catch {}
   }
 
