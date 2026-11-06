@@ -18,9 +18,16 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8">
           {/* Brand Column */}
           <div className="lg:col-span-2 space-y-6">
-            <div onClick={() => onNavigate('home')} className="inline-block cursor-pointer">
+            <a 
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate('home');
+              }} 
+              className="inline-block cursor-pointer focus:outline-none"
+            >
               <CoreIQLogo size="lg" />
-            </div>
+            </a>
             <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
               CoreIQ is an intelligent creation environment. We connect ideas with intelligence and action to help you build software, autonomous agents, and scalable automations.
             </p>
@@ -38,35 +45,77 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <h4 className="text-white font-semibold text-sm tracking-wide">Ecosystem</h4>
             <ul className="space-y-2.5">
               <li>
-                <button onClick={() => onNavigate('services')} className="hover:text-cyan-300 transition-colors font-medium text-cyan-200/90">
+                <a 
+                  href="/services"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('services');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors font-medium text-cyan-200/90 inline-block"
+                >
                   Services & Solutions
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('use-cases')} className="hover:text-cyan-300 transition-colors">
+                <a 
+                  href="/use-cases"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('use-cases');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors inline-block"
+                >
                   Use Cases
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('apps')} className="hover:text-cyan-300 transition-colors">
+                <a 
+                  href="/apps"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('apps');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors inline-block"
+                >
                   Applications
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('tools')} className="hover:text-cyan-300 transition-colors">
+                <a 
+                  href="/tools"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('tools');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors inline-block"
+                >
                   Tool Library
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('learn')} className="hover:text-cyan-300 transition-colors">
+                <a 
+                  href="/learn"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('learn');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors inline-block"
+                >
                   Learn & Intelligence
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('news')} className="hover:text-cyan-300 transition-colors flex items-center gap-1.5">
+                <a 
+                  href="/news"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('news');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors flex items-center gap-1.5"
+                >
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                   <span>AI News & Signals</span>
-                </button>
+                </a>
               </li>
             </ul>
           </div>
@@ -76,24 +125,52 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <h4 className="text-white font-semibold text-sm tracking-wide">Capabilities</h4>
             <ul className="space-y-2.5">
               <li>
-                <button onClick={() => onNavigate('use-cases')} className="hover:text-cyan-300 transition-colors">
+                <a 
+                  href="/use-cases"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('use-cases');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors inline-block"
+                >
                   AI Agents
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('use-cases')} className="hover:text-cyan-300 transition-colors">
+                <a 
+                  href="/use-cases"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('use-cases');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors inline-block"
+                >
                   Workflow Automation
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('use-cases')} className="hover:text-cyan-300 transition-colors">
+                <a 
+                  href="/use-cases"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('use-cases');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors inline-block"
+                >
                   Web & Native Apps
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('use-cases')} className="hover:text-cyan-300 transition-colors">
+                <a 
+                  href="/use-cases"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('use-cases');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors inline-block"
+                >
                   Voice AI Interfaces
-                </button>
+                </a>
               </li>
             </ul>
           </div>
@@ -103,37 +180,66 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <h4 className="text-white font-semibold text-sm tracking-wide">Creation</h4>
             <ul className="space-y-2.5">
               <li>
-                <button 
-                  onClick={() => onNavigate('ask')} 
+                <a 
+                  href="/ask"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('ask');
+                  }} 
                   className="flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Ask CoreIQ</span>
-                </button>
+                </a>
               </li>
               <li>
-                <button 
-                  onClick={() => onNavigate('command')} 
+                <a 
+                  href="/command"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('command');
+                  }} 
                   className="flex items-center gap-1.5 text-slate-300 hover:text-cyan-300 transition-colors font-mono text-xs"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                   <span>CoreIQ Command</span>
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('about')} className="hover:text-cyan-300 transition-colors">
+                <a 
+                  href="/about"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('about');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors inline-block"
+                >
                   About Philosophy
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('tools')} className="hover:text-cyan-300 transition-colors">
+                <a 
+                  href="/tools"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('tools');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors inline-block"
+                >
                   Writing Assistant
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => onNavigate('apps')} className="hover:text-cyan-300 transition-colors">
+                <a 
+                  href="/apps"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate('apps');
+                  }} 
+                  className="hover:text-cyan-300 transition-colors inline-block"
+                >
                   ImageForge Studio
-                </button>
+                </a>
               </li>
             </ul>
           </div>
@@ -147,9 +253,16 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div className="flex items-center gap-6">
             <span>Intelligent Creation Environment</span>
             <span>•</span>
-            <button onClick={() => onNavigate('about')} className="hover:text-slate-300 transition-colors">
+            <a 
+              href="/about"
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate('about');
+              }} 
+              className="hover:text-slate-300 transition-colors cursor-pointer"
+            >
               Core Principles
-            </button>
+            </a>
           </div>
         </div>
       </div>

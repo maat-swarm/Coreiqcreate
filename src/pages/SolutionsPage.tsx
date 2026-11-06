@@ -174,13 +174,17 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
                   </div>
 
                   {/* Orbit Node: APPS (Right) */}
-                  <div 
-                    onClick={() => onNavigate('apps')}
+                  <a 
+                    href="/apps"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onNavigate('apps');
+                    }}
                     className="animate-float-subtle absolute top-1/2 -right-6 -translate-y-1/2 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/90 border border-purple-400/60 text-purple-200 text-xs font-semibold shadow-[0_0_18px_rgba(168,85,247,0.4)] cursor-pointer hover:scale-110 hover:border-purple-300 hover:shadow-[0_0_24px_rgba(168,85,247,0.7)] transition-all"
                   >
                     <LayoutGrid className="w-3.5 h-3.5 text-purple-400" />
                     <span>APPS</span>
-                  </div>
+                  </a>
 
                   {/* Orbit Node: WEB (Bottom Right) */}
                   <div 
@@ -301,13 +305,17 @@ export const SolutionsPage: React.FC<SolutionsPageProps> = ({ onNavigate, onAsk 
             Describe your project, workflow challenge, or product idea. We'll map the exact architecture and system to build it.
           </p>
           <div className="pt-2">
-            <button
-              onClick={() => onNavigate('ask')}
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-base font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:shadow-[0_0_40px_rgba(34,211,238,0.6)] transition-all duration-200"
+            <a
+              href="/ask"
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate('ask');
+              }}
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-base font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:shadow-[0_0_40px_rgba(34,211,238,0.6)] transition-all duration-200 cursor-pointer"
             >
               <span>Ask CoreIQ</span>
               <ArrowRight className="w-5 h-5" />
-            </button>
+            </a>
           </div>
         </div>
       </section>

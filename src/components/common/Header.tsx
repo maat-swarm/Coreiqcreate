@@ -75,11 +75,17 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
             const isHovered = hoveredNav === item.id;
             const isUnderlined = targetUnderlineId === item.id;
 
+            const href = item.id === 'home' ? '/' : `/${item.id}`;
+
             if (item.id === 'command') {
               return (
-                <button
+                <a
                   key={item.id}
-                  onClick={() => handleNavClick(item.id)}
+                  href={href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavClick(item.id);
+                  }}
                   className={`group relative text-sm font-medium px-3 py-1 rounded-md border border-cyan-400/60 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 hover:text-white transition-all duration-200 cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                     isActive ? 'bg-cyan-500/20 text-white border-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]' : ''
                   }`}
@@ -88,14 +94,18 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                     <span>Command</span>
                   </span>
-                </button>
+                </a>
               );
             }
 
             return (
-              <button
+              <a
                 key={item.id}
-                onClick={() => handleNavClick(item.id)}
+                href={href}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleNavClick(item.id);
+                }}
                 onMouseEnter={() => setHoveredNav(item.id)}
                 className="group relative text-sm font-medium py-2 px-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-lg cursor-pointer select-none"
               >
@@ -130,7 +140,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
                 {isActive && !isUnderlined && (
                   <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#19d9ff] shadow-[0_0_8px_#19d9ff] pointer-events-none" />
                 )}
-              </button>
+              </a>
             );
           })}
         </nav>
@@ -191,10 +201,15 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
             <div className="px-4 pt-3 pb-6 space-y-2">
               {NAV_ITEMS.map((item) => {
                 const isActive = currentRoute === item.id;
+                const href = item.id === 'home' ? '/' : `/${item.id}`;
                 return (
-                  <button
+                  <a
                     key={item.id}
-                    onClick={() => handleNavClick(item.id)}
+                    href={href}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleNavClick(item.id);
+                    }}
                     className={`flex items-center justify-between w-full px-4 py-3 rounded-xl text-base font-medium transition-colors ${
                       isActive
                         ? 'bg-cyan-500/15 text-white border border-cyan-500/30'
@@ -203,7 +218,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, onNavigate }) => {
                   >
                     <span>{item.label}</span>
                     {isActive && <span className="w-2 h-2 rounded-full bg-[#19d9ff] shadow-[0_0_8px_#19d9ff]" />}
-                  </button>
+                  </a>
                 );
               })}
               <div className="pt-4">

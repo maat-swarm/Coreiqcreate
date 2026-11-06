@@ -108,14 +108,21 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
               { Icon:LayoutGrid,c:'purple',label:'Apps & Websites',desc:"Digital experiences that don't just look premium — they perform.",             r:'apps'      },
               { Icon:GraduationCap,c:'pink',label:'Learn & Grow',  desc:'Practical AI education for people who want to build real things.',         r:'learn'     },
             ].map(({ Icon, c, label, desc, r }) => (
-              <div key={label} onClick={() => onNavigate(r as NavRoute)}
-                className={`reveal-up group cursor-pointer p-5 rounded-2xl bg-slate-900/35 hover:bg-slate-900/70 border border-slate-800/80 hover:border-${c}-400/40 shadow-lg hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] hover:-translate-y-1.5 transition-all duration-300`}>
+              <a
+                key={label}
+                href={r === 'home' ? '/' : `/${r === 'solutions' ? 'use-cases' : r}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate(r as NavRoute);
+                }}
+                className={`reveal-up group block cursor-pointer p-5 rounded-2xl bg-slate-900/35 hover:bg-slate-900/70 border border-slate-800/80 hover:border-${c}-400/40 shadow-lg hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] hover:-translate-y-1.5 transition-all duration-300`}
+              >
                 <div className={`w-11 h-11 rounded-xl bg-gradient-to-br from-${c}-500/20 to-${c}-600/30 border border-${c}-400/30 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-[0_0_18px_rgba(34,211,238,0.25)] transition-all duration-300`}>
                   <Icon className={`w-5 h-5 text-${c}-400 group-hover:rotate-6 transition-transform`} />
                 </div>
                 <h3 className={`text-white font-semibold text-base mb-1.5 group-hover:text-${c}-300 transition-colors`}>{label}</h3>
                 <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">{desc}</p>
-              </div>
+              </a>
             ))}
           </div>
         </div>
@@ -186,9 +193,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
             </div>
             <div className="lg:col-span-5 space-y-5">
               <p className="text-slate-300 text-sm sm:text-base leading-relaxed">CoreIQ isn't just a website — it's a living, evolving platform where ideas become solutions, powered by AI, the swarm and a universe of integrations.</p>
-              <button onClick={() => onNavigate('solutions')} className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm font-semibold group transition-colors">
+              <a
+                href="/use-cases"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate('solutions');
+                }}
+                className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm font-semibold group transition-colors cursor-pointer"
+              >
                 <span>Explore Core IQ</span><ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1.5" />
-              </button>
+              </a>
             </div>
           </div>
         </div>
@@ -201,9 +215,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
             <span className="reveal-up text-xs font-semibold tracking-[0.25em] text-cyan-400 uppercase block mb-2">Explore Core IQ</span>
             <h2 className="reveal-up text-3xl sm:text-4xl font-bold text-white font-display">What would you like to create?</h2>
           </div>
-          <button onClick={() => onNavigate('solutions')} className="reveal-up inline-flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-cyan-300 transition-colors group">
+          <a
+            href="/use-cases"
+            onClick={(e) => {
+              e.preventDefault();
+              onNavigate('solutions');
+            }}
+            className="reveal-up inline-flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-cyan-300 transition-colors group cursor-pointer"
+          >
             <span>View all solutions</span><ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-          </button>
+          </a>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 stagger-children">
           {[
@@ -213,8 +234,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
             { Icon:Monitor,   c:'emerald',label:'Websites',     desc:'Modern, scalable web experiences.',           r:'apps'      },
             { Icon:Layers,    c:'indigo', label:'Integrations', desc:'Connect everything in your ecosystem.',       r:'solutions' },
           ].map(({ Icon, c, label, desc, r }) => (
-            <div key={label} onClick={() => onNavigate(r as NavRoute)}
-              className="reveal-up group cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-56 hover:-translate-y-2 hover:shadow-[0_16px_40px_rgba(0,0,0,0.8),0_0_30px_rgba(34,211,238,0.2)] transition-all duration-300">
+            <a
+              key={label}
+              href={r === 'home' ? '/' : `/${r === 'solutions' ? 'use-cases' : r}`}
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate(r as NavRoute);
+              }}
+              className="reveal-up group block cursor-pointer p-6 rounded-2xl coreiq-glass-card flex flex-col justify-between h-56 hover:-translate-y-2 hover:shadow-[0_16px_40px_rgba(0,0,0,0.8),0_0_30px_rgba(34,211,238,0.2)] transition-all duration-300"
+            >
               <div className="flex items-center justify-between">
                 <div className={`w-11 h-11 rounded-xl bg-${c}-500/15 border border-${c}-500/30 flex items-center justify-center group-hover:scale-110 group-hover:shadow-[0_0_16px_rgba(34,211,238,0.3)] transition-all duration-300`}>
                   <Icon className={`w-5 h-5 text-${c}-400 group-hover:rotate-6 transition-transform`} />
@@ -225,7 +253,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onAsk }) => {
                 <h3 className={`text-white font-bold text-lg mb-1 group-hover:text-${c}-300 transition-colors`}>{label}</h3>
                 <p className="text-slate-400 text-xs leading-relaxed">{desc}</p>
               </div>
-            </div>
+            </a>
           ))}
         </div>
       </section>

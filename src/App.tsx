@@ -8,6 +8,7 @@ import { useScrollReveal } from './hooks/useScrollReveal';
 import { NavRoute } from './types';
 import { seedManifestPlaceholders } from './services/contentResolver';
 import { trackPageView } from './services/visitorTracking';
+import { applyRouteSeo } from './services/routeSeo';
 import { HomePage } from './pages/HomePage';
 
 export type AppRoute =
@@ -118,6 +119,7 @@ export default function App() {
 
   useEffect(() => {
     trackPageView(currentRoute);
+    applyRouteSeo(currentRoute);
   }, [currentRoute]);
 
   const navigateTo = (route: string, query?: string) => {

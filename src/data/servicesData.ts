@@ -101,9 +101,9 @@ export interface ServicesPageContent {
 
 export const DEFAULT_SERVICES_CONTENT: ServicesPageContent = {
   seo: {
-    title: 'AI Automation Services South Africa | AI Agents & Custom Solutions | CoreIQ Create',
+    title: 'AI Agents, Workflow Automation & Custom Systems | CoreIQ Create',
     description:
-      'CoreIQ builds AI agents, workflow automation, WhatsApp chatbots, voice AI and custom apps for businesses in South Africa, across Africa and worldwide.',
+      'CoreIQ Create builds AI agents, workflow automation, WhatsApp and voice AI, and custom systems for businesses in South Africa, Africa and worldwide.',
     canonicalUrl: '/services',
   },
   hero: {

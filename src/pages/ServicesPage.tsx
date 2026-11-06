@@ -125,7 +125,9 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onNavigate, onAsk })
     // Canonical Link Tag
     let canonicalTag = document.querySelector('link[rel="canonical"]');
     const originalCanonical = canonicalTag ? canonicalTag.getAttribute('href') : null;
-    const siteUrl = 'https://coreiqcreate.co.za';
+    const siteUrl = typeof window !== 'undefined' && window.location.origin.includes('vercel.app')
+      ? window.location.origin
+      : 'https://coreiqcreate-ten.vercel.app';
     const canonicalUrl = `${siteUrl}${content.seo.canonicalUrl.startsWith('/') ? content.seo.canonicalUrl : `/${content.seo.canonicalUrl}`}`;
     if (canonicalTag) {
       canonicalTag.setAttribute('href', canonicalUrl);
@@ -706,13 +708,17 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({ onNavigate, onAsk })
 
                     {/* Dedicated Apps link for Service 05 */}
                     {service.number === '05' && (
-                      <button
-                        onClick={() => onNavigate('apps')}
+                      <a
+                        href="/apps"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onNavigate('apps');
+                        }}
                         className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono text-cyan-300 flex items-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <span>Explore Existing Apps & Platforms</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
-                      </button>
+                      </a>
                     )}
                   </div>
                 </div>

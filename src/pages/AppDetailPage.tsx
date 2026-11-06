@@ -109,13 +109,17 @@ export const AppDetailPage: React.FC<AppDetailPageProps> = ({ slug, onNavigate, 
         </div>
 
         <div className="flex items-center justify-center gap-3 pt-2">
-          <button
-            onClick={() => onNavigate('apps')}
-            className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-xs border border-slate-800 transition-colors min-h-[44px] flex items-center gap-1.5"
+          <a
+            href="/apps"
+            onClick={(e) => {
+              e.preventDefault();
+              onNavigate('apps');
+            }}
+            className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-xs border border-slate-800 transition-colors min-h-[44px] flex items-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Return to Apps</span>
-          </button>
+          </a>
           <button
             onClick={loadApp}
             className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-colors min-h-[44px] flex items-center gap-1.5"
@@ -190,13 +194,17 @@ export const AppDetailPage: React.FC<AppDetailPageProps> = ({ slug, onNavigate, 
         
         {/* Navigation Breadcrumb / Back Link */}
         <div>
-          <button
-            onClick={() => onNavigate('apps')}
-            className="inline-flex items-center gap-2 text-xs font-mono text-cyan-400 hover:text-cyan-300 transition-colors p-2 -ml-2 rounded-lg hover:bg-cyan-500/10 min-h-[44px]"
+          <a
+            href="/apps"
+            onClick={(e) => {
+              e.preventDefault();
+              onNavigate('apps');
+            }}
+            className="inline-flex items-center gap-2 text-xs font-mono text-cyan-400 hover:text-cyan-300 transition-colors p-2 -ml-2 rounded-lg hover:bg-cyan-500/10 min-h-[44px] cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to All Applications</span>
-          </button>
+          </a>
         </div>
 
         {/* Hero Header Area */}
