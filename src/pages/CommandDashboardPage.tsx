@@ -34,6 +34,7 @@ import { CommandMaatverseTab } from '../components/command/CommandMaatverseTab';
 import { CommandPlatformsTab } from '../components/command/CommandPlatformsTab';
 import { CommandContentTab } from '../components/command/CommandContentTab';
 import { CommandUseCasesTab } from '../components/command/CommandUseCasesTab';
+import { CommandLearnTab } from '../components/command/CommandLearnTab';
 import { CommandDocumentsTab } from '../components/command/CommandDocumentsTab';
 import { CommandNewsTab } from '../components/command/CommandNewsTab';
 import { CommandStoreTab } from '../components/command/CommandStoreTab';
@@ -569,6 +570,10 @@ export const CommandDashboardPage: React.FC<CommandDashboardPageProps> = ({ onEx
 
         {activeTab === 'use_cases' && (
           <CommandUseCasesTab />
+        )}
+
+        {activeTab === 'learn' && (
+          <CommandLearnTab />
         )}
 
         {activeTab === 'documents' && (

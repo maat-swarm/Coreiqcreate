@@ -1039,6 +1039,7 @@ const localStore: Record<string, any[]> = {
   tool_submissions: [],
   maatverse_sections: [...SEED_MAATVERSE_SECTIONS],
   maatverse_entries: [...SEED_MAATVERSE_ENTRIES],
+  learn_lessons: [],
 };
 
 // Seed localStore with manifest placeholders
@@ -5531,6 +5532,284 @@ const systemPrompt = buildSystemPrompt() || agentConfig?.system_prompt || 'You a
     console.error('Ask endpoint error:', e);
     return res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// -----------------------------------------------------------------------------
+// LEARN LESSONS ENGINE (PUBLIC + COMMAND ADMIN)
+// -----------------------------------------------------------------------------
+
+const sortLearnLessons = (rows: any[]) =>
+  rows.slice().sort((a, b) => {
+    const orderDiff = (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    if (orderDiff !== 0) return orderDiff;
+    return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+  });
+
+const serializePublicLesson = (row: any) => ({
+  id: row.id,
+  title: row.title,
+  description: row.description ?? '',
+  category: row.category ?? 'AI Agents',
+  video_url: row.video_url ?? null,
+  poster_url: row.poster_url ?? null,
+  pdf_url: row.pdf_url ?? null,
+  pdf_label: row.pdf_label ?? null,
+  sort_order: row.sort_order ?? 0,
+});
+
+// GET /api/v1/learn/lessons — public published lessons
+app.get('/api/v1/learn/lessons', async (_req: Request, res: Response) => {
+  const client = adminSupabase || supabase;
+  let rows: any[] = [];
+
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('learn_lessons')
+        .select('id, title, description, category, video_url, poster_url, pdf_url, pdf_label, sort_order, created_at')
+        .eq('published', true)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (!error && data) {
+        rows = data;
+      }
+    } catch (e) {
+      console.warn('Supabase fetch public learn_lessons warning:', e);
+    }
+  }
+
+  if (!rows.length && localStore.learn_lessons?.length) {
+    rows = sortLearnLessons(localStore.learn_lessons.filter((l: any) => Boolean(l.published)));
+  }
+
+  return res.json({ lessons: rows.map(serializePublicLesson) });
+});
+
+// GET /api/v1/admin/learn/lessons — all lessons (published & draft)
+app.get('/api/v1/admin/learn/lessons', authenticateApiKey, async (_req: Request, res: Response) => {
+  const client = adminSupabase || supabase;
+  let rows: any[] = [];
+  let fetchedFromDb = false;
+
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('learn_lessons')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (!error && data) {
+        rows = data;
+        fetchedFromDb = true;
+      }
+    } catch (e) {
+      console.warn('Supabase fetch admin learn_lessons warning:', e);
+    }
+  }
+
+  if (!fetchedFromDb) {
+    rows = sortLearnLessons(localStore.learn_lessons || []);
+  }
+
+  return res.json({ count: rows.length, lessons: rows });
+});
+
+// POST /api/v1/admin/learn/lessons — create lesson
+app.post('/api/v1/admin/learn/lessons', authenticateApiKey, async (req: Request, res: Response) => {
+  const {
+    title,
+    description = '',
+    category = 'AI Agents',
+    video_url = null,
+    poster_url = null,
+    pdf_url = null,
+    pdf_label = null,
+    sort_order = 0,
+    published = false,
+  } = req.body || {};
+
+  if (!title || typeof title !== 'string' || !title.trim()) {
+    return res.status(400).json({
+      error: 'Bad Request',
+      message: 'title is required.',
+    });
+  }
+
+  const parsedSortOrder = Number.isFinite(Number(sort_order)) ? parseInt(String(sort_order), 10) : 0;
+
+  const newLesson = {
+    id: crypto.randomUUID ? crypto.randomUUID() : `lesson_${Date.now()}`,
+    title: title.trim(),
+    description: typeof description === 'string' ? description.trim() : '',
+    category: typeof category === 'string' && category.trim() ? category.trim() : 'AI Agents',
+    video_url: typeof video_url === 'string' && video_url.trim() ? video_url.trim() : null,
+    poster_url: typeof poster_url === 'string' && poster_url.trim() ? poster_url.trim() : null,
+    pdf_url: typeof pdf_url === 'string' && pdf_url.trim() ? pdf_url.trim() : null,
+    pdf_label: typeof pdf_label === 'string' && pdf_label.trim() ? pdf_label.trim() : null,
+    published: Boolean(published),
+    sort_order: parsedSortOrder,
+    created_at: new Date().toISOString(),
+  };
+
+  const client = adminSupabase || supabase;
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('learn_lessons')
+        .insert([newLesson])
+        .select()
+        .single();
+      if (!error && data) {
+        return res.status(201).json({ status: 'created', lesson: data });
+      }
+      if (error) {
+        console.warn('Supabase create learn_lesson error:', error.message);
+      }
+    } catch (e) {
+      console.error('Supabase create learn_lesson exception:', e);
+    }
+  }
+
+  if (!localStore.learn_lessons) localStore.learn_lessons = [];
+  localStore.learn_lessons.push(newLesson);
+
+  return res.status(201).json({ status: 'created', lesson: newLesson });
+});
+
+// PATCH /api/v1/admin/learn/lessons/:id — update lesson
+app.patch('/api/v1/admin/learn/lessons/:id', authenticateApiKey, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const body = req.body || {};
+  const updates: Record<string, any> = {};
+
+  if (body.title !== undefined) {
+    if (typeof body.title !== 'string' || !body.title.trim()) {
+      return res.status(400).json({ error: 'Bad Request', message: 'title cannot be empty.' });
+    }
+    updates.title = body.title.trim();
+  }
+  if (body.description !== undefined) updates.description = typeof body.description === 'string' ? body.description.trim() : '';
+  if (body.category !== undefined) updates.category = typeof body.category === 'string' && body.category.trim() ? body.category.trim() : 'AI Agents';
+  if (body.video_url !== undefined) updates.video_url = typeof body.video_url === 'string' && body.video_url.trim() ? body.video_url.trim() : null;
+  if (body.poster_url !== undefined) updates.poster_url = typeof body.poster_url === 'string' && body.poster_url.trim() ? body.poster_url.trim() : null;
+  if (body.pdf_url !== undefined) updates.pdf_url = typeof body.pdf_url === 'string' && body.pdf_url.trim() ? body.pdf_url.trim() : null;
+  if (body.pdf_label !== undefined) updates.pdf_label = typeof body.pdf_label === 'string' && body.pdf_label.trim() ? body.pdf_label.trim() : null;
+  if (body.sort_order !== undefined) updates.sort_order = Number.isFinite(Number(body.sort_order)) ? parseInt(String(body.sort_order), 10) : 0;
+  if (body.published !== undefined) updates.published = Boolean(body.published);
+
+  const client = adminSupabase || supabase;
+  let updatedRecord: any = null;
+
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('learn_lessons')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) {
+        updatedRecord = data;
+      }
+    } catch (e) {
+      console.error('Supabase update learn_lesson error:', e);
+    }
+  }
+
+  const existingLocal = (localStore.learn_lessons || []).find((l: any) => l.id === id);
+  if (existingLocal) {
+    Object.assign(existingLocal, updates);
+    if (!updatedRecord) updatedRecord = existingLocal;
+  }
+
+  if (!updatedRecord) {
+    return res.status(404).json({ error: 'Not Found', message: `Lesson '${id}' not found.` });
+  }
+
+  return res.json({ status: 'updated', lesson: updatedRecord });
+});
+
+// DELETE /api/v1/admin/learn/lessons/:id — delete lesson
+app.delete('/api/v1/admin/learn/lessons/:id', authenticateApiKey, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const client = adminSupabase || supabase;
+
+  if (client) {
+    try {
+      await client.from('learn_lessons').delete().eq('id', id);
+    } catch (e) {
+      console.warn('Supabase delete learn_lesson error:', e);
+    }
+  }
+
+  localStore.learn_lessons = (localStore.learn_lessons || []).filter((l: any) => l.id !== id);
+  return res.json({ status: 'deleted', id });
+});
+
+// POST /api/v1/admin/learn/lessons/:id/publish — publish lesson
+app.post('/api/v1/admin/learn/lessons/:id/publish', authenticateApiKey, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const client = adminSupabase || supabase;
+  let updatedRecord: any = null;
+
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('learn_lessons')
+        .update({ published: true })
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) updatedRecord = data;
+    } catch (e) {
+      console.error('Supabase publish learn_lesson error:', e);
+    }
+  }
+
+  const existingLocal = (localStore.learn_lessons || []).find((l: any) => l.id === id);
+  if (existingLocal) {
+    existingLocal.published = true;
+    if (!updatedRecord) updatedRecord = existingLocal;
+  }
+
+  if (!updatedRecord) {
+    return res.status(404).json({ error: 'Not Found', message: `Lesson '${id}' not found.` });
+  }
+
+  return res.json({ status: 'published', lesson: updatedRecord });
+});
+
+// POST /api/v1/admin/learn/lessons/:id/unpublish — unpublish lesson
+app.post('/api/v1/admin/learn/lessons/:id/unpublish', authenticateApiKey, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const client = adminSupabase || supabase;
+  let updatedRecord: any = null;
+
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('learn_lessons')
+        .update({ published: false })
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) updatedRecord = data;
+    } catch (e) {
+      console.error('Supabase unpublish learn_lesson error:', e);
+    }
+  }
+
+  const existingLocal = (localStore.learn_lessons || []).find((l: any) => l.id === id);
+  if (existingLocal) {
+    existingLocal.published = false;
+    if (!updatedRecord) updatedRecord = existingLocal;
+  }
+
+  if (!updatedRecord) {
+    return res.status(404).json({ error: 'Not Found', message: `Lesson '${id}' not found.` });
+  }
+
+  return res.json({ status: 'unpublished', lesson: updatedRecord });
 });
 
 // -----------------------------------------------------------------------------

@@ -8,6 +8,7 @@ export type CommandTab =
   | 'platforms'
   | 'content'
   | 'use_cases'
+  | 'learn'
   | 'documents'
   | 'news'
   | 'store'
